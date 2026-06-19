@@ -8,12 +8,13 @@ export default function Sidebar() {
   { href: "/roadmap", label: "Career Roadmap" },
   { href: "/resume", label: "Resume Center" },
   { href: "/job-discovery", label: "Job Discovery" },
+  { href: "/applications", label: "Applications" },
+  { href: "/application-kanban", label: "Application Kanban" },
   { href: "/job-match", label: "Job Match" },
   { href: "/ats-resume", label: "ATS Resume" },
-  { href: "/applications", label: "Applications" },
   { href: "/recommendations", label: "Recommendations" },
-  { href: "/chat", label: "Career Chat" },
   { href: "/interview-prep", label: "Interview Prep" },
+  { href: "/chat", label: "Career Chat" },
 ];
 
   return (
