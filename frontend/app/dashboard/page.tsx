@@ -22,10 +22,21 @@ type CareerMemory = {
   notes: string;
 };
 
+type CareerIntelligence = {
+  daily_focus: string;
+  skill_to_learn: string;
+  project_task: string;
+  interview_topic: string;
+  application_goal: string;
+  reason: string;
+  priority_level: string;
+};
+
 export default function DashboardPage() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [memory, setMemory] = useState<CareerMemory | null>(null);
-
+const [careerIntelligence, setCareerIntelligence] =
+  useState<CareerIntelligence | null>(null);
   const fetchApplications = async () => {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/applications/`);
     const data = await res.json();
@@ -38,9 +49,26 @@ export default function DashboardPage() {
     setMemory(data);
   };
 
+  const fetchCareerIntelligence = async () => {
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/career-intelligence/`
+    );
+
+    const data = await res.json();
+
+    if (!data.error) {
+      setCareerIntelligence(data);
+    }
+  } catch (error) {
+    console.error("Could not load career intelligence", error);
+  }
+};
+
   useEffect(() => {
     fetchApplications();
     fetchMemory();
+    fetchCareerIntelligence();
   }, []);
 
   const total = applications.length;
@@ -154,6 +182,76 @@ careerProgressScore = Math.min(careerProgressScore, 100);
           </div>
         )}
       </div>
+
+      <div className="mt-8 bg-slate-900 p-6 rounded-xl">
+  <div className="flex items-center justify-between">
+    <div>
+      <h2 className="text-xl font-semibold">Career Intelligence</h2>
+      <p className="text-slate-400 mt-1">
+        Your AI-generated career focus for today.
+      </p>
+    </div>
+
+    <Link
+      href="/career-intelligence"
+      className="rounded-lg border border-slate-700 px-4 py-2 text-sm hover:bg-slate-800"
+    >
+      Open Agent
+    </Link>
+  </div>
+
+  {careerIntelligence ? (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-5">
+      <div className="bg-slate-800 p-4 rounded-lg">
+        <p className="text-slate-400 text-sm">Daily Focus</p>
+        <p className="font-medium mt-2">
+          {careerIntelligence.daily_focus}
+        </p>
+      </div>
+
+      <div className="bg-slate-800 p-4 rounded-lg">
+        <p className="text-slate-400 text-sm">Skill to Learn</p>
+        <p className="font-medium mt-2">
+          {careerIntelligence.skill_to_learn}
+        </p>
+      </div>
+
+      <div className="bg-slate-800 p-4 rounded-lg">
+        <p className="text-slate-400 text-sm">Interview Topic</p>
+        <p className="font-medium mt-2">
+          {careerIntelligence.interview_topic}
+        </p>
+      </div>
+
+      <div className="bg-slate-800 p-4 rounded-lg md:col-span-2">
+        <p className="text-slate-400 text-sm">Project Task</p>
+        <p className="font-medium mt-2">
+          {careerIntelligence.project_task}
+        </p>
+      </div>
+
+      <div className="bg-slate-800 p-4 rounded-lg">
+        <p className="text-slate-400 text-sm">Priority</p>
+        <p className="font-medium mt-2">
+          {careerIntelligence.priority_level}
+        </p>
+      </div>
+    </div>
+  ) : (
+    <div className="mt-5 bg-slate-800 p-4 rounded-lg">
+      <p className="text-slate-300">
+        No career intelligence generated yet.
+      </p>
+
+      <Link
+        href="/career-intelligence"
+        className="inline-block mt-3 text-indigo-400 hover:text-indigo-300"
+      >
+        Generate today&apos;s career plan
+      </Link>
+    </div>
+  )}
+</div>
 
       <div className="mt-8 bg-slate-900 p-6 rounded-xl">
   <h2 className="text-xl font-semibold">Career Progress Score</h2>

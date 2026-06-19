@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
 from app.routes import resume, chat, job_match, ats_resume, recommendations, applications, memory, roadmap, jobs, interview, cover_letter
 from app.models import application, memory as memory_model, roadmap as roadmap_model
-
+from app.routes import career_intelligence
 from app.routes import interview
 
 app = FastAPI()
@@ -30,6 +30,11 @@ app.include_router(roadmap.router, prefix="/api/roadmap", tags=["Career Roadmap"
 app.include_router(jobs.router, prefix="/api/jobs", tags=["Jobs"])
 app.include_router(interview.router, prefix="/api/interview", tags=["Interview"])
 app.include_router(cover_letter.router, prefix="/api/cover-letter", tags=["Cover Letter"])
+app.include_router(
+    career_intelligence.router,
+    prefix="/api/career-intelligence",
+    tags=["Career Intelligence"]
+)
 @app.get("/")
 def home():
     return {"message": "My Digital Twin backend is running"}
