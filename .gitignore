@@ -1,0 +1,13 @@
+.env
+backend/.env
+frontend/.env.local
+venv/
+backend/venv/
+node_modules/
+frontend/node_modules/
+.next/
+frontend/.next/
+__pycache__/
+*.pyc
+my_digital_twin.db
+backend/my_digital_twin.db
