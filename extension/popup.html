@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>My Digital Twin Autofill</title>
+    <style>
+      body {
+        width: 340px;
+        font-family: Arial, sans-serif;
+        background: #020617;
+        color: white;
+        padding: 16px;
+      }
+
+      h1 {
+        font-size: 18px;
+        margin-bottom: 8px;
+      }
+
+      p {
+        color: #94a3b8;
+        font-size: 13px;
+      }
+
+      button {
+        width: 100%;
+        padding: 10px;
+        margin-top: 10px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        color: white;
+        font-weight: bold;
+      }
+
+      #scanBtn {
+        background: #4f46e5;
+      }
+
+      #fillBtn {
+        background: #ea580c;
+      }
+
+      pre {
+        background: #0f172a;
+        padding: 10px;
+        border-radius: 8px;
+        max-height: 250px;
+        overflow: auto;
+        font-size: 12px;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>My Digital Twin</h1>
+    <p>Scan this application page and autofill answers with AI.</p>
+
+    <button id="scanBtn">Scan Page Fields</button>
+    <button id="fillBtn">Fill Suggested Answers</button>
+
+    <pre id="output">No fields scanned yet.</pre>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

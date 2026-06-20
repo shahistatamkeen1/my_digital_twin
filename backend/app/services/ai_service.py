@@ -188,4 +188,53 @@ Job Description:
 Generate the final cover letter as plain text.
 """
 
-    return ask_ai(system_prompt, user_prompt, temperature=0.4)      
+    return ask_ai(system_prompt, user_prompt, temperature=0.4)    
+
+def generate_application_autofill(
+    resume_text,
+    company,
+    role,
+    job_description,
+    career_goal=""
+):
+    system_prompt = """
+You are an AI job application assistant.
+Generate concise, professional, human-sounding answers for job application forms.
+Use the candidate's resume and career goal.
+Do not invent false experience.
+Return ONLY valid JSON.
+"""
+
+    user_prompt = f"""
+Candidate: Shahista Tamkeen
+
+Career Goal:
+{career_goal}
+
+Company:
+{company}
+
+Role:
+{role}
+
+Resume:
+{resume_text[:6000]}
+
+Job Description:
+{job_description[:6000]}
+
+Return JSON exactly like this:
+{{
+  "tell_me_about_yourself": "answer",
+  "why_this_role": "answer",
+  "why_this_company": "answer",
+  "why_should_we_hire_you": "answer",
+  "work_authorization": "answer",
+  "sponsorship": "answer",
+  "salary_expectation": "answer",
+  "availability": "answer",
+  "additional_information": "answer"
+}}
+"""
+
+    return ask_ai_json(system_prompt, user_prompt, temperature=0.3)  

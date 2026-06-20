@@ -55,6 +55,18 @@ type CoverLetterResult = {
   cover_letter: string;
 };
 
+type AutofillResult = {
+  tell_me_about_yourself: string;
+  why_this_role: string;
+  why_this_company: string;
+  why_should_we_hire_you: string;
+  work_authorization: string;
+  sponsorship: string;
+  salary_expectation: string;
+  availability: string;
+  additional_information: string;
+};
+
 export default function JobDiscoveryPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [memory, setMemory] = useState<CareerMemory | null>(null);
@@ -69,6 +81,7 @@ export default function JobDiscoveryPage() {
   const [atsResults, setAtsResults] = useState<Record<string, ATSResult>>({});
   const [interviewResults, setInterviewResults] = useState<
   Record<string, InterviewResult>
+  
 >({});
 
 const [generatingInterviewJobId, setGeneratingInterviewJobId] =
@@ -77,6 +90,8 @@ const [generatingInterviewJobId, setGeneratingInterviewJobId] =
 
   const [coverLetters, setCoverLetters] = useState<Record<string, CoverLetterResult>>({});
 const [generatingCoverLetterJobId, setGeneratingCoverLetterJobId] = useState<string | null>(null);
+const [autofillResults, setAutofillResults] = useState<Record<string, AutofillResult>>({});
+const [generatingAutofillJobId, setGeneratingAutofillJobId] = useState<string | null>(null);
   const normalizeLocation = (value: string) => {
     const clean = value.trim().toLowerCase();
 
@@ -433,6 +448,50 @@ const generateCoverLetterForJob = async (job: Job) => {
   }
 };
 
+const generateAutofillAnswers = async (job: Job) => {
+  console.log("Autofill clicked for:", job);
+  if (!resumeText) {
+    alert("Please upload your resume first in Resume Center.");
+    return;
+  }
+
+  setGeneratingAutofillJobId(job.id);
+
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/autofill/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        resume_text: resumeText,
+        company: job.company,
+        role: job.role,
+        job_description: job.description,
+        career_goal: memory?.career_goal || "",
+      }),
+    });
+
+    const data = await res.json();
+    console.log("Autofill response:", data);
+
+    if (data.error) {
+      alert(data.error);
+      return;
+    }
+
+    setAutofillResults((prev) => ({
+      ...prev,
+      [job.id]: data,
+    }));
+  } catch (error) {
+    console.error("Autofill error:", error);
+    alert("Could not generate autofill answers.");
+  } finally {
+    setGeneratingAutofillJobId(null);
+  }
+};
+
   return (
     <main className="min-h-screen bg-slate-950 text-white p-8">
       <h1 className="text-3xl font-bold">Real Job Discovery</h1>
@@ -573,6 +632,14 @@ const generateCoverLetterForJob = async (job: Job) => {
   className="bg-pink-600 px-4 py-2 rounded-lg hover:bg-pink-500 disabled:opacity-50"
 >
   {generatingCoverLetterJobId === job.id ? "Generating..." : "Generate Cover Letter"}
+</button>
+
+<button
+  onClick={() => generateAutofillAnswers(job)}
+  disabled={generatingAutofillJobId === job.id}
+  className="bg-orange-600 px-4 py-2 rounded-lg hover:bg-orange-500 disabled:opacity-50"
+>
+  {generatingAutofillJobId === job.id ? "Generating..." : "Autofill Answers"}
 </button>
 
                 {!savedJobs[job.id] ? (
@@ -787,6 +854,31 @@ const generateCoverLetterForJob = async (job: Job) => {
     >
       Copy Cover Letter
     </button>
+  </div>
+)}
+
+{autofillResults[job.id] && (
+  <div className="mt-5 bg-slate-800 p-5 rounded-lg">
+    <h3 className="text-xl font-semibold">Application Autofill Answers</h3>
+
+    {Object.entries(autofillResults[job.id]).map(([key, value]) => (
+      <div key={key} className="mt-4 bg-slate-900 p-4 rounded-lg">
+        <p className="text-orange-300 font-medium capitalize">
+          {key.replaceAll("_", " ")}
+        </p>
+
+        <p className="text-slate-300 text-sm mt-2 whitespace-pre-wrap">
+          {String(value)}
+        </p>
+
+        <button
+          onClick={() => navigator.clipboard.writeText(String(value))}
+          className="mt-3 bg-slate-700 px-3 py-1 rounded text-sm hover:bg-slate-600"
+        >
+          Copy
+        </button>
+      </div>
+    ))}
   </div>
 )}
             </div>

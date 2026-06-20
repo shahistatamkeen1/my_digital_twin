@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import engine, Base
-from app.routes import resume, chat, job_match, ats_resume, recommendations, applications, memory, roadmap, jobs, interview, cover_letter
+from app.routes import resume, chat, job_match, ats_resume, recommendations, applications, memory, roadmap, jobs, interview, cover_letter, career_intelligence, autofill
 from app.models import application, memory as memory_model, roadmap as roadmap_model
 from app.routes import career_intelligence
 from app.routes import interview
@@ -13,7 +13,10 @@ Base.metadata.create_all(bind=engine)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+    "http://localhost:3000",
+    "chrome-extension://*"
+],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -35,6 +38,7 @@ app.include_router(
     prefix="/api/career-intelligence",
     tags=["Career Intelligence"]
 )
+app.include_router(autofill.router, prefix="/api/autofill", tags=["Application Autofill"])
 @app.get("/")
 def home():
     return {"message": "My Digital Twin backend is running"}

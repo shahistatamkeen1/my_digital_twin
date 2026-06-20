@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "My Digital Twin Autofill",
+  "version": "1.0",
+  "description": "AI-powered job application autofill assistant.",
+  "permissions": ["activeTab", "scripting"],
+  "host_permissions": ["http://localhost:8000/*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "My Digital Twin Autofill"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ]
+}
