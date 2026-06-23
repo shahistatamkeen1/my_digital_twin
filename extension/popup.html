@@ -4,7 +4,7 @@
     <title>My Digital Twin Autofill</title>
     <style>
       body {
-        width: 340px;
+        width: 380px;
         font-family: Arial, sans-serif;
         background: #020617;
         color: white;
@@ -21,6 +21,22 @@
         font-size: 13px;
       }
 
+      textarea,
+      input {
+        width: 100%;
+        margin-top: 8px;
+        padding: 8px;
+        border-radius: 8px;
+        border: none;
+        background: #0f172a;
+        color: white;
+        box-sizing: border-box;
+      }
+
+      textarea {
+        height: 90px;
+      }
+
       button {
         width: 100%;
         padding: 10px;
@@ -30,6 +46,10 @@
         cursor: pointer;
         color: white;
         font-weight: bold;
+      }
+
+      #saveProfileBtn {
+        background: #334155;
       }
 
       #scanBtn {
@@ -44,7 +64,7 @@
         background: #0f172a;
         padding: 10px;
         border-radius: 8px;
-        max-height: 250px;
+        max-height: 220px;
         overflow: auto;
         font-size: 12px;
         white-space: pre-wrap;
@@ -54,7 +74,21 @@
 
   <body>
     <h1>My Digital Twin</h1>
-    <p>Scan this application page and autofill answers with AI.</p>
+    <p>Save your profile once, then scan and fill job application answers.</p>
+
+    <input id="roleInput" placeholder="Target Role, e.g. AI Engineer" />
+
+    <textarea
+      id="careerGoalInput"
+      placeholder="Career Goal, e.g. I want to become an AI Engineer..."
+    ></textarea>
+
+    <textarea
+      id="resumeInput"
+      placeholder="Paste resume text here..."
+    ></textarea>
+
+    <button id="saveProfileBtn">Save Extension Profile</button>
 
     <button id="scanBtn">Scan Page Fields</button>
     <button id="fillBtn">Fill Suggested Answers</button>

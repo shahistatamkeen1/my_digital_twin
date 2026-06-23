@@ -67,6 +67,18 @@ type AutofillResult = {
   additional_information: string;
 };
 
+type TailoredResumeResult = {
+  tailored_resume_score: number;
+  target_role: string;
+  keywords_added: string[];
+  optimized_summary: string;
+  optimized_skills: string[];
+  optimized_experience_bullets: string[];
+  recommended_projects_to_highlight: string[];
+  missing_gaps: string[];
+  final_notes: string;
+};
+
 export default function JobDiscoveryPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [memory, setMemory] = useState<CareerMemory | null>(null);
@@ -92,6 +104,9 @@ const [generatingInterviewJobId, setGeneratingInterviewJobId] =
 const [generatingCoverLetterJobId, setGeneratingCoverLetterJobId] = useState<string | null>(null);
 const [autofillResults, setAutofillResults] = useState<Record<string, AutofillResult>>({});
 const [generatingAutofillJobId, setGeneratingAutofillJobId] = useState<string | null>(null);
+const [tailoredResumes, setTailoredResumes] = useState<Record<string, TailoredResumeResult>>({});
+const [tailoringJobId, setTailoringJobId] = useState<string | null>(null);
+
   const normalizeLocation = (value: string) => {
     const clean = value.trim().toLowerCase();
 
@@ -108,6 +123,7 @@ const [generatingAutofillJobId, setGeneratingAutofillJobId] = useState<string | 
 
     return value.trim();
   };
+
 
   const fetchMemory = async () => {
     try {
@@ -354,6 +370,8 @@ ${ats?.optimized_bullets?.map((bullet: string) => `- ${bullet}`).join("\n") || "
       ...prev,
       [job.id]: data,
     }));
+
+    await tailorResumeForJob(job);
   } catch (error) {
     console.error("ATS resume error:", error);
     alert("Could not generate ATS resume.");
@@ -492,6 +510,47 @@ const generateAutofillAnswers = async (job: Job) => {
   }
 };
 
+const tailorResumeForJob = async (job: Job) => {
+  if (!resumeText) {
+    alert("Please upload your resume first in Resume Center.");
+    return;
+  }
+
+  setTailoringJobId(job.id);
+
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/resume-tailor/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        resume_text: resumeText,
+        job_description: job.description,
+        company: job.company,
+        role: job.role,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (data.error) {
+      alert(data.error);
+      return;
+    }
+
+    setTailoredResumes((prev) => ({
+      ...prev,
+      [job.id]: data,
+    }));
+  } catch (error) {
+    console.error("Resume tailoring error:", error);
+    alert("Could not tailor resume.");
+  } finally {
+    setTailoringJobId(null);
+  }
+};
+
   return (
     <main className="min-h-screen bg-slate-950 text-white p-8">
       <h1 className="text-3xl font-bold">Real Job Discovery</h1>
@@ -612,8 +671,7 @@ const generateAutofillAnswers = async (job: Job) => {
   disabled={generatingAtsJobId === job.id}
   className="bg-cyan-600 px-4 py-2 rounded-lg hover:bg-cyan-500 disabled:opacity-50"
 >
-  {generatingAtsJobId === job.id ? "Generating..." : "Generate ATS Resume"}
-
+  {generatingAtsJobId === job.id ? "Generating..." : "ATS Optimizer"}
 </button>
 
 <button
@@ -641,6 +699,7 @@ const generateAutofillAnswers = async (job: Job) => {
 >
   {generatingAutofillJobId === job.id ? "Generating..." : "Autofill Answers"}
 </button>
+
 
                 {!savedJobs[job.id] ? (
                   <button
@@ -879,6 +938,70 @@ const generateAutofillAnswers = async (job: Job) => {
         </button>
       </div>
     ))}
+  </div>
+)}
+
+{tailoredResumes[job.id] && (
+  <div className="mt-5 bg-slate-800 p-5 rounded-lg">
+    <h3 className="text-xl font-semibold">Resume Tailoring Suggestions</h3>
+
+    <p className="mt-3 text-3xl font-bold text-emerald-400">
+      {tailoredResumes[job.id].tailored_resume_score}%
+    </p>
+
+    <p className="mt-4 font-medium">Optimized Summary</p>
+    <p className="text-slate-300 text-sm mt-2 whitespace-pre-wrap">
+      {tailoredResumes[job.id].optimized_summary}
+    </p>
+
+    <p className="mt-4 font-medium">Keywords Added</p>
+    <div className="flex flex-wrap gap-2 mt-2">
+      {tailoredResumes[job.id].keywords_added?.map((item, index) => (
+        <span
+          key={index}
+          className="bg-emerald-500/20 text-emerald-300 px-3 py-1 rounded-full text-xs"
+        >
+          {item}
+        </span>
+      ))}
+    </div>
+
+    <p className="mt-4 font-medium">Optimized Skills</p>
+    <div className="flex flex-wrap gap-2 mt-2">
+      {tailoredResumes[job.id].optimized_skills?.map((item, index) => (
+        <span
+          key={index}
+          className="bg-blue-500/20 text-blue-300 px-3 py-1 rounded-full text-xs"
+        >
+          {item}
+        </span>
+      ))}
+    </div>
+
+    <p className="mt-4 font-medium">Optimized Experience Bullets</p>
+    <ul className="list-disc list-inside text-slate-300 text-sm mt-2 space-y-1">
+      {tailoredResumes[job.id].optimized_experience_bullets?.map((item, index) => (
+        <li key={index}>{item}</li>
+      ))}
+    </ul>
+
+    <p className="mt-4 font-medium">Projects to Highlight</p>
+    <ul className="list-disc list-inside text-slate-300 text-sm mt-2 space-y-1">
+      {tailoredResumes[job.id].recommended_projects_to_highlight?.map((item, index) => (
+        <li key={index}>{item}</li>
+      ))}
+    </ul>
+
+    <p className="mt-4 font-medium">Missing Gaps</p>
+    <ul className="list-disc list-inside text-slate-300 text-sm mt-2 space-y-1">
+      {tailoredResumes[job.id].missing_gaps?.map((item, index) => (
+        <li key={index}>{item}</li>
+      ))}
+    </ul>
+
+    <p className="mt-4 text-xs text-slate-400">
+      {tailoredResumes[job.id].final_notes}
+    </p>
   </div>
 )}
             </div>

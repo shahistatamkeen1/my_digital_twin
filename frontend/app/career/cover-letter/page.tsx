@@ -24,9 +24,14 @@ export default function CoverLetterPage() {
   }, []);
 
   const generateCoverLetter = async () => {
-    if (!resumeText) return alert("Please upload your resume first.");
+    if (!resumeText) {
+      alert("Please upload your resume first in Resume Center.");
+      return;
+    }
+
     if (!company || !role || !jobDescription) {
-      return alert("Company, role, and job description are required.");
+      alert("Company, role, and job description are required.");
+      return;
     }
 
     setLoading(true);
@@ -34,16 +39,14 @@ export default function CoverLetterPage() {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/cover-letter/`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           resume_text: resumeText,
           company,
           role,
           job_description: jobDescription,
-          career_goal: careerGoal
-        })
+          career_goal: careerGoal,
+        }),
       });
 
       const data = await res.json();
@@ -55,6 +58,7 @@ export default function CoverLetterPage() {
 
       setCoverLetter(data.cover_letter);
     } catch (error) {
+      console.error("Cover letter error:", error);
       alert("Could not generate cover letter.");
     } finally {
       setLoading(false);
@@ -71,7 +75,8 @@ export default function CoverLetterPage() {
       <h1 className="text-3xl font-bold">Cover Letter Agent</h1>
 
       <p className="mt-2 text-slate-400">
-        Generate a professional cover letter using your resume, career memory, and job description.
+        Generate a professional cover letter using your resume, career memory,
+        and job description.
       </p>
 
       <div className="mt-8 bg-slate-900 p-6 rounded-xl">

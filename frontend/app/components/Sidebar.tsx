@@ -2,22 +2,18 @@ import Link from "next/link";
 
 export default function Sidebar() {
   const links = [
-    { href: "/dashboard", label: "Dashboard" },
-    { href: "/profile", label: "Career Profile" },
-    { href: "/memory", label: "Career Memory" },
-    { href: "/roadmap", label: "Career Roadmap" },
-    { href: "/resume", label: "Resume Center" },
-    { href: "/job-discovery", label: "Job Discovery" },
-    { href: "/applications", label: "Applications" },
-    { href: "/application-kanban", label: "Application Kanban" },
-    { href: "/job-match", label: "Job Match" },
-    { href: "/ats-resume", label: "ATS Resume" },
-    { href: "/recommendations", label: "Recommendations" },
-    { href: "/career-intelligence", label: "Career Intelligence" },
-    { href: "/interview-prep", label: "Interview Prep" },
-    { href: "/cover-letter", label: "Cover Letter Agent" },
-    { href: "/chat", label: "Career Chat" },
-  ];
+  { href: "/career/dashboard", label: "Dashboard" },
+  { href: "/career/profile", label: "Career Profile" },
+  { href: "/career/memory", label: "Career Memory" },
+  { href: "/career/roadmap", label: "Career Roadmap" },
+  { href: "/career/resume", label: "Resume Center" },
+  { href: "/career/job-discovery", label: "Job Discovery" },
+  { href: "/career/applications", label: "Applications" },
+  { href: "/career/application-kanban", label: "Application Pipeline" },
+  { href: "/career/career-intelligence", label: "Career Intelligence" },
+  { href: "/career/chat", label: "Career Chat" },
+  { href: "/twin-hub", label: "← Twin Hub" },
+];
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 bg-slate-950 border-r border-slate-800 text-white p-6 overflow-y-auto">

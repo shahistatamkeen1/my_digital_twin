@@ -238,3 +238,83 @@ Return JSON exactly like this:
 """
 
     return ask_ai_json(system_prompt, user_prompt, temperature=0.3)  
+
+def generate_custom_autofill_answers(
+    resume_text,
+    target_role,
+    career_goal,
+    detected_questions
+):
+    system_prompt = """
+You are an AI job application autofill assistant.
+Generate professional, concise answers for each detected application field.
+Do not invent false information.
+If a question asks for sensitive or unavailable information, give a safe placeholder answer.
+Return ONLY valid JSON.
+"""
+
+    user_prompt = f"""
+Candidate: Shahista Tamkeen
+
+Target Role:
+{target_role}
+
+Career Goal:
+{career_goal}
+
+Resume:
+{resume_text[:6000]}
+
+Detected Application Fields / Questions:
+{detected_questions}
+
+Return JSON exactly like this:
+{{
+  "answers": [
+    {{
+      "question": "original detected question",
+      "answer": "professional answer"
+    }}
+  ]
+}}
+"""
+
+    return ask_ai_json(system_prompt, user_prompt, temperature=0.3)
+
+def tailor_resume_for_job(resume_text, job_description, company="", role=""):
+    system_prompt = """
+You are an expert ATS resume tailoring agent.
+Tailor the candidate's resume for a specific job description.
+Do not invent false experience.
+Use only the candidate's real skills and projects.
+Return ONLY valid JSON.
+"""
+
+    user_prompt = f"""
+Company:
+{company}
+
+Role:
+{role}
+
+Resume:
+{resume_text[:7000]}
+
+Job Description:
+{job_description[:7000]}
+
+Return JSON exactly like this:
+{{
+  "tailored_resume_score": 0,
+  "target_role": "role",
+  "keywords_added": [],
+  "optimized_summary": "summary",
+  "optimized_skills": [],
+  "optimized_experience_bullets": [],
+  "recommended_projects_to_highlight": [],
+  "missing_gaps": [],
+  "final_notes": "short note"
+}}
+"""
+
+    return ask_ai_json(system_prompt, user_prompt, temperature=0.3)

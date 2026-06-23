@@ -113,12 +113,54 @@ careerProgressScore = Math.min(careerProgressScore, 100);
         </div>
 
         <Link
-          href="/applications"
+          href="/career/applications"
           className="rounded-lg bg-indigo-600 px-4 py-2 font-medium hover:bg-indigo-500"
         >
           Add Application
         </Link>
       </div>
+
+      <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-5">
+  <Link
+    href="/career/memory"
+    className="bg-slate-900 p-5 rounded-xl hover:bg-slate-800"
+  >
+    <h2 className="font-semibold">Career Memory</h2>
+    <p className="text-slate-400 text-sm mt-2">
+      Update your goals, skills, and preferences.
+    </p>
+  </Link>
+
+  <Link
+    href="/career/roadmap"
+    className="bg-slate-900 p-5 rounded-xl hover:bg-slate-800"
+  >
+    <h2 className="font-semibold">Career Roadmap</h2>
+    <p className="text-slate-400 text-sm mt-2">
+      Track your 30-day career growth plan.
+    </p>
+  </Link>
+
+  <Link
+    href="/career/cover-letter"
+    className="bg-slate-900 p-5 rounded-xl hover:bg-slate-800"
+  >
+    <h2 className="font-semibold">Cover Letter Agent</h2>
+    <p className="text-slate-400 text-sm mt-2">
+      Generate a cover letter manually.
+    </p>
+  </Link>
+
+  <Link
+    href="/career/interview-prep"
+    className="bg-slate-900 p-5 rounded-xl hover:bg-slate-800"
+  >
+    <h2 className="font-semibold">Interview Prep</h2>
+    <p className="text-slate-400 text-sm mt-2">
+      Practice role-based interview questions.
+    </p>
+  </Link>
+</div>
 
       <div className="mt-8 bg-slate-900 p-6 rounded-xl">
         <div className="flex items-center justify-between">
@@ -130,7 +172,7 @@ careerProgressScore = Math.min(careerProgressScore, 100);
           </div>
 
           <Link
-            href="/memory"
+            href="/career/memory"
             className="rounded-lg border border-slate-700 px-4 py-2 text-sm hover:bg-slate-800"
           >
             Edit Memory
@@ -174,7 +216,7 @@ careerProgressScore = Math.min(careerProgressScore, 100);
             </p>
 
             <Link
-              href="/memory"
+              href="/career/memory"
               className="inline-block mt-3 text-indigo-400 hover:text-indigo-300"
             >
               Create Career Memory
@@ -193,7 +235,7 @@ careerProgressScore = Math.min(careerProgressScore, 100);
     </div>
 
     <Link
-      href="/career-intelligence"
+      href="/career/career-intelligence"
       className="rounded-lg border border-slate-700 px-4 py-2 text-sm hover:bg-slate-800"
     >
       Open Agent
@@ -244,11 +286,11 @@ careerProgressScore = Math.min(careerProgressScore, 100);
       </p>
 
       <Link
-        href="/career-intelligence"
-        className="inline-block mt-3 text-indigo-400 hover:text-indigo-300"
-      >
-        Generate today&apos;s career plan
-      </Link>
+  href="/career/career-intelligence"
+  className="inline-block mt-3 text-indigo-400 hover:text-indigo-300"
+>
+  Generate today's career plan
+</Link>
     </div>
   )}
 </div>

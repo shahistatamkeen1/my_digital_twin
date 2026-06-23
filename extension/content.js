@@ -82,5 +82,39 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     });
   }
 
+  if (request.action === "fillCustomFields") {
+  const answers = request.answers || [];
+
+  const fields = Array.from(
+    document.querySelectorAll("input, textarea")
+  ).filter((field) => {
+    const type = field.getAttribute("type");
+    return (
+      !["hidden", "password", "submit", "button", "checkbox", "radio"].includes(type)
+    );
+  });
+
+  fields.forEach((field) => {
+    const fieldQuestion = getLabelForField(field).toLowerCase();
+
+    answers.forEach((item) => {
+      const question = (item.question || "").toLowerCase();
+      const answer = item.answer || "";
+
+      if (
+        fieldQuestion.includes(question) ||
+        question.includes(fieldQuestion) ||
+        fieldQuestion.split(" ").some((word) => question.includes(word))
+      ) {
+        field.value = answer;
+        field.dispatchEvent(new Event("input", { bubbles: true }));
+        field.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    });
+  });
+
+  sendResponse({ success: true });
+}
+
   return true;
 });

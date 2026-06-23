@@ -6,6 +6,7 @@ from app.routes import resume, chat, job_match, ats_resume, recommendations, app
 from app.models import application, memory as memory_model, roadmap as roadmap_model
 from app.routes import career_intelligence
 from app.routes import interview
+from app.routes import resume_tailor
 
 app = FastAPI()
 
@@ -38,6 +39,12 @@ app.include_router(
     prefix="/api/career-intelligence",
     tags=["Career Intelligence"]
 )
+app.include_router(
+    resume_tailor.router,
+    prefix="/api/resume-tailor",
+    tags=["Resume Tailor"]
+)
+
 app.include_router(autofill.router, prefix="/api/autofill", tags=["Application Autofill"])
 @app.get("/")
 def home():

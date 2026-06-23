@@ -1,59 +1,63 @@
-import Link from "next/link";
+import PrimaryButton from "./components/PrimaryButton";
+import SpatialCard from "./components/SpatialCard";
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <main className="min-h-screen bg-slate-950 text-white px-6">
-      <section className="max-w-5xl mx-auto py-24 text-center">
-        <p className="text-indigo-400 font-medium">
-          AI-Powered Career Twin
-        </p>
+    <main className="min-h-screen overflow-hidden bg-slate-950 text-white">
+      <div className="absolute left-[-120px] top-[-120px] h-96 w-96 rounded-full bg-violet-600/30 blur-3xl" />
+      <div className="absolute right-[-120px] top-40 h-96 w-96 rounded-full bg-cyan-500/20 blur-3xl" />
 
-        <h1 className="text-5xl font-bold mt-4">
-          My Digital Twin
-        </h1>
-
-        <p className="mt-6 text-lg text-slate-300 max-w-2xl mx-auto">
-          Your personal AI career assistant for resume analysis,
-          job matching, application tracking, and career growth planning.
-        </p>
-
-        <div className="mt-8 flex justify-center gap-4">
-          <Link
-            href="/dashboard"
-            className="rounded-lg bg-indigo-600 px-6 py-3 font-medium hover:bg-indigo-500"
-          >
-            Open Dashboard
-          </Link>
-
-          <Link
-            href="/resume"
-            className="rounded-lg border border-slate-700 px-6 py-3 font-medium hover:bg-slate-900"
-          >
-            Upload Resume
-          </Link>
-        </div>
-      </section>
-
-      <section className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 pb-20">
-        <div className="bg-slate-900 p-6 rounded-xl">
-          <h3 className="font-semibold text-lg">Resume Intelligence</h3>
-          <p className="mt-3 text-slate-400 text-sm">
-            Upload your resume and extract career insights instantly.
+      <section className="relative mx-auto flex min-h-screen max-w-7xl flex-col justify-center px-8 py-20">
+        <div className="max-w-4xl">
+          <p className="mb-5 inline-flex rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-cyan-300">
+            AI-Powered Personal Operating System
           </p>
+
+          <h1 className="text-6xl font-bold leading-tight md:text-7xl">
+            My Digital Twin
+          </h1>
+
+          <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
+            A multi-agent AI platform that helps you manage your career,
+            applications, interviews, resume, and future personal workflows
+            through intelligent digital twins.
+          </p>
+
+          <div className="mt-8 flex flex-wrap gap-4">
+            <PrimaryButton href="/twin-hub">
+              Enter Twin Hub
+            </PrimaryButton>
+
+            <PrimaryButton href="/login">
+              Login
+            </PrimaryButton>
+          </div>
         </div>
 
-        <div className="bg-slate-900 p-6 rounded-xl">
-          <h3 className="font-semibold text-lg">Job Match Scoring</h3>
-          <p className="mt-3 text-slate-400 text-sm">
-            Compare your resume with job descriptions and find missing skills.
-          </p>
-        </div>
+        <div className="mt-16 grid grid-cols-1 gap-6 md:grid-cols-3">
+          <SpatialCard>
+            <h2 className="text-xl font-semibold">Career Twin</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-400">
+              Discover jobs, optimize resumes, generate cover letters, prepare
+              for interviews, and track applications.
+            </p>
+          </SpatialCard>
 
-        <div className="bg-slate-900 p-6 rounded-xl">
-          <h3 className="font-semibold text-lg">Application Tracker</h3>
-          <p className="mt-3 text-slate-400 text-sm">
-            Track saved, applied, interview, offer, and rejected jobs.
-          </p>
+          <SpatialCard>
+            <h2 className="text-xl font-semibold">Finance Twin</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-400">
+              Future agent for budgeting, spending insights, financial alerts,
+              and savings planning.
+            </p>
+          </SpatialCard>
+
+          <SpatialCard>
+            <h2 className="text-xl font-semibold">Health Twin</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-400">
+              Future agent for daily wellness, nutrition suggestions, habits,
+              and locality-based health guidance.
+            </p>
+          </SpatialCard>
         </div>
       </section>
     </main>
