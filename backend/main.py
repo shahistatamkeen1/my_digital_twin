@@ -7,6 +7,12 @@ from app.models import application, memory as memory_model, roadmap as roadmap_m
 from app.routes import career_intelligence
 from app.routes import interview
 from app.routes import resume_tailor
+from app.routes import twin_context
+from app.routes import twin_recommendation
+from app.models import finance as finance_model
+from app.routes import finance
+from app.routes import finance_chat
+from app.routes import twin_orchestrator
 
 app = FastAPI()
 
@@ -44,7 +50,27 @@ app.include_router(
     prefix="/api/resume-tailor",
     tags=["Resume Tailor"]
 )
-
+app.include_router(
+    twin_recommendation.router,
+    prefix="/api/twin-recommendation",
+    tags=["Twin Recommendation"]
+)
+app.include_router(
+    finance.router,
+    prefix="/api/finance",
+    tags=["Finance"]
+)
+app.include_router(
+    finance_chat.router,
+    prefix="/api/finance-chat",
+    tags=["Finance Chat"]
+)
+app.include_router(
+    twin_orchestrator.router,
+    prefix="/api/twin-orchestrator",
+    tags=["Twin Orchestrator"]
+)
+app.include_router(twin_context.router, prefix="/api/twin-context", tags=["Twin Context"])
 app.include_router(autofill.router, prefix="/api/autofill", tags=["Application Autofill"])
 @app.get("/")
 def home():

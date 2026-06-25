@@ -318,3 +318,40 @@ Return JSON exactly like this:
 """
 
     return ask_ai_json(system_prompt, user_prompt, temperature=0.3)
+
+def generate_finance_insight(finance_summary, transactions):
+    system_prompt = """
+You are Finance Twin, an AI personal finance assistant.
+
+Analyze the user's complete Finance Twin context:
+- finance memory
+- income
+- expenses
+- savings
+- budget health
+- spending categories
+- savings goals
+- recent transactions
+
+Give practical, simple, safe financial guidance.
+
+Do not provide investment, tax, legal, or guaranteed financial advice.
+
+Format your response with:
+1. Short overall assessment
+2. What looks good
+3. What needs attention
+4. 3 clear action steps
+"""
+
+    user_prompt = f"""
+Finance Twin Context:
+{finance_summary}
+
+Recent Transactions:
+{transactions}
+
+Generate a personalized Finance Twin insight.
+"""
+
+    return ask_ai(system_prompt, user_prompt, temperature=0.4)

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import AgentCard from "../components/AgentCard";
 import SpatialCard from "../components/SpatialCard";
 
@@ -16,10 +17,29 @@ export default function TwinHubPage() {
           </h1>
 
           <p className="mt-4 max-w-3xl text-slate-400">
-            Start with Career Twin today. Finance, Health, and Learning Twins
-            are prepared as future agent modules in the same platform.
+            Start with the Master Twin Orchestrator, or open a specialized twin
+            for career, finance, health, or learning.
           </p>
         </SpatialCard>
+
+        <Link href="/twin-orchestrator">
+          <div className="mt-8 rounded-3xl border border-cyan-400/40 bg-gradient-to-r from-cyan-500/10 to-violet-600/10 p-8 shadow-2xl shadow-cyan-500/10 transition hover:-translate-y-1 hover:border-cyan-300">
+            <p className="text-sm text-cyan-300">Master Brain</p>
+
+            <h2 className="mt-3 text-3xl font-bold">
+              Twin Orchestrator
+            </h2>
+
+            <p className="mt-4 max-w-3xl text-slate-300">
+              Ask cross-life questions that combine Career Twin and Finance Twin
+              intelligence for smarter decisions across work, money, goals, and planning.
+            </p>
+
+            <div className="mt-5 inline-flex rounded-full bg-emerald-500/20 px-4 py-2 text-sm text-emerald-300">
+              Available
+            </div>
+          </div>
+        </Link>
 
         <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
           <AgentCard
@@ -31,8 +51,8 @@ export default function TwinHubPage() {
 
           <AgentCard
             title="Finance Twin"
-            description="Manage spending, budgeting, alerts, savings goals, and financial planning."
-            status="coming-soon"
+            description="Track income, expenses, savings goals, spending categories, AI insights, and financial habits."
+            status="available"
             href="/finance"
           />
 

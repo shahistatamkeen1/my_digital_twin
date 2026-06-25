@@ -31,6 +31,10 @@ export default function HomePage() {
             <PrimaryButton href="/login">
               Login
             </PrimaryButton>
+
+            <PrimaryButton href="/twin-orchestrator">
+  Ask Twin Orchestrator
+</PrimaryButton>
           </div>
         </div>
 
@@ -45,10 +49,9 @@ export default function HomePage() {
 
           <SpatialCard>
             <h2 className="text-xl font-semibold">Finance Twin</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-400">
-              Future agent for budgeting, spending insights, financial alerts,
-              and savings planning.
-            </p>
+<p className="mt-3 text-sm leading-6 text-slate-400">
+  Track income, expenses, savings goals, category spending, and receive AI-powered financial insights.
+</p>
           </SpatialCard>
 
           <SpatialCard>

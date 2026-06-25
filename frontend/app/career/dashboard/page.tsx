@@ -35,8 +35,9 @@ type CareerIntelligence = {
 export default function DashboardPage() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [memory, setMemory] = useState<CareerMemory | null>(null);
-const [careerIntelligence, setCareerIntelligence] =
-  useState<CareerIntelligence | null>(null);
+  const [careerIntelligence, setCareerIntelligence] =
+    useState<CareerIntelligence | null>(null);
+
   const fetchApplications = async () => {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/applications/`);
     const data = await res.json();
@@ -50,20 +51,19 @@ const [careerIntelligence, setCareerIntelligence] =
   };
 
   const fetchCareerIntelligence = async () => {
-  try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/career-intelligence/`
-    );
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/career-intelligence/`
+      );
+      const data = await res.json();
 
-    const data = await res.json();
-
-    if (!data.error) {
-      setCareerIntelligence(data);
+      if (!data.error) {
+        setCareerIntelligence(data);
+      }
+    } catch (error) {
+      console.error("Could not load career intelligence", error);
     }
-  } catch (error) {
-    console.error("Could not load career intelligence", error);
-  }
-};
+  };
 
   useEffect(() => {
     fetchApplications();
@@ -80,25 +80,46 @@ const [careerIntelligence, setCareerIntelligence] =
 
   const recentApplications = applications.slice(0, 5);
 
-  let careerProgressScore = 0;
+ const memoryCompletion = memory ? 100 : 0;
+const applicationActivity = Math.min(total * 20, 100);
+const interviewReadiness = interviews > 0 ? 80 : 40;
+const offerStrength = offers > 0 ? 100 : 50;
 
-if (memory?.career_goal) careerProgressScore += 20;
-if (memory?.target_role) careerProgressScore += 15;
-if (memory?.current_skills) careerProgressScore += 15;
-if (memory?.skills_to_learn) careerProgressScore += 10;
+const twinIntelligenceScore = Math.round(
+  memoryCompletion * 0.3 +
+    applicationActivity * 0.3 +
+    interviewReadiness * 0.25 +
+    offerStrength * 0.15
+);
 
-careerProgressScore += Math.min(applications.length * 3, 20);
-careerProgressScore += Math.min(interviews * 5, 10);
-careerProgressScore += Math.min(offers * 10, 10);
+  const quickActions = [
+    {
+      title: "Update Memory",
+      description: "Update your goals, skills, and preferences.",
+      href: "/career/memory",
+    },
+    {
+      title: "Update Roadmap",
+      description: "Track your 30-day career growth plan.",
+      href: "/career/roadmap",
+    },
+    {
+      title: "Generate Cover Letter",
+      description: "Generate a cover letter manually.",
+      href: "/career/cover-letter",
+    },
+    {
+      title: "Prepare Interview",
+      description: "Practice role-based interview questions.",
+      href: "/career/interview-prep",
+    },
+  ];
 
-careerProgressScore = Math.min(careerProgressScore, 100);
-
-  const cards = [
-    { label: "Total Applications", value: total },
-    { label: "Saved Jobs", value: saved },
+  const statusItems = [
+    { label: "Saved", value: saved },
     { label: "Applied", value: applied },
-    { label: "Interviews", value: interviews },
-    { label: "Offers", value: offers },
+    { label: "Interview", value: interviews },
+    { label: "Offer", value: offers },
     { label: "Rejected", value: rejected },
   ];
 
@@ -121,46 +142,124 @@ careerProgressScore = Math.min(careerProgressScore, 100);
       </div>
 
       <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-5">
-  <Link
-    href="/career/memory"
-    className="bg-slate-900 p-5 rounded-xl hover:bg-slate-800"
-  >
-    <h2 className="font-semibold">Career Memory</h2>
-    <p className="text-slate-400 text-sm mt-2">
-      Update your goals, skills, and preferences.
-    </p>
-  </Link>
+        <div className="bg-slate-900 p-5 rounded-xl">
+          <p className="text-slate-400 text-sm">Total Applications</p>
+          <h2 className="text-4xl font-bold mt-2">{total}</h2>
+        </div>
 
-  <Link
-    href="/career/roadmap"
-    className="bg-slate-900 p-5 rounded-xl hover:bg-slate-800"
-  >
-    <h2 className="font-semibold">Career Roadmap</h2>
-    <p className="text-slate-400 text-sm mt-2">
-      Track your 30-day career growth plan.
-    </p>
-  </Link>
+        <div className="bg-slate-900 p-5 rounded-xl">
+          <p className="text-slate-400 text-sm">Applied</p>
+          <h2 className="text-4xl font-bold mt-2">{applied}</h2>
+        </div>
 
-  <Link
-    href="/career/cover-letter"
-    className="bg-slate-900 p-5 rounded-xl hover:bg-slate-800"
-  >
-    <h2 className="font-semibold">Cover Letter Agent</h2>
-    <p className="text-slate-400 text-sm mt-2">
-      Generate a cover letter manually.
-    </p>
-  </Link>
+        <div className="bg-slate-900 p-5 rounded-xl">
+          <p className="text-slate-400 text-sm">Interviews</p>
+          <h2 className="text-4xl font-bold mt-2 text-yellow-400">
+            {interviews}
+          </h2>
+        </div>
 
-  <Link
-    href="/career/interview-prep"
-    className="bg-slate-900 p-5 rounded-xl hover:bg-slate-800"
-  >
-    <h2 className="font-semibold">Interview Prep</h2>
-    <p className="text-slate-400 text-sm mt-2">
-      Practice role-based interview questions.
-    </p>
-  </Link>
+        <div className="bg-slate-900 p-5 rounded-xl">
+          <p className="text-slate-400 text-sm">Offers</p>
+          <h2 className="text-4xl font-bold mt-2 text-green-400">{offers}</h2>
+        </div>
+      </div>
+
+          <div className="mt-8 bg-slate-900 p-6 rounded-xl">
+  <h2 className="text-xl font-semibold">Twin Intelligence Score</h2>
+
+  <p className="text-slate-400 mt-1">
+    Your overall Career Twin strength based on memory, applications,
+    interviews, and offer progress.
+  </p>
+
+  <p className="mt-5 text-5xl font-bold text-indigo-400">
+    {twinIntelligenceScore}%
+  </p>
+
+  <div className="mt-4 h-3 bg-slate-800 rounded-full">
+    <div
+      className="h-3 bg-indigo-500 rounded-full"
+      style={{ width: `${twinIntelligenceScore}%` }}
+    />
+  </div>
+
+  <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div className="bg-slate-800 p-4 rounded-lg">
+      <p className="text-slate-400 text-sm">Memory Completion</p>
+      <p className="text-2xl font-bold mt-2">{memoryCompletion}%</p>
+    </div>
+
+    <div className="bg-slate-800 p-4 rounded-lg">
+      <p className="text-slate-400 text-sm">Application Activity</p>
+      <p className="text-2xl font-bold mt-2">{applicationActivity}%</p>
+    </div>
+
+    <div className="bg-slate-800 p-4 rounded-lg">
+      <p className="text-slate-400 text-sm">Interview Readiness</p>
+      <p className="text-2xl font-bold mt-2">{interviewReadiness}%</p>
+    </div>
+
+    <div className="bg-slate-800 p-4 rounded-lg">
+      <p className="text-slate-400 text-sm">Offer Strength</p>
+      <p className="text-2xl font-bold mt-2">{offerStrength}%</p>
+    </div>
+  </div>
+
+  <p className="mt-4 text-sm text-slate-400">
+    AI Insight of the Day
+
+Your interview readiness is currently lower than your application activity.
+
+Recommended next step:
+Generate an interview preparation plan and complete 3 mock questions.
+  </p>
 </div>
+
+      <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-5">
+        {quickActions.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="bg-slate-900 p-5 rounded-xl hover:bg-slate-800"
+          >
+            <h2 className="font-semibold">{item.title}</h2>
+            <p className="text-slate-400 text-sm mt-2">{item.description}</p>
+          </Link>
+        ))}
+      </div>
+
+
+      <div className="mt-8 bg-slate-900 p-6 rounded-xl">
+        <h2 className="text-xl font-semibold">Application Pipeline</h2>
+        <p className="text-slate-400 mt-1">
+          Your progress through the hiring pipeline.
+        </p>
+
+        <div className="mt-6 space-y-4">
+          {statusItems.map((item) => {
+            const percent = Math.round((item.value / (total || 1)) * 100);
+
+            return (
+              <div key={item.label}>
+                <div className="flex justify-between text-sm">
+                  <span>{item.label}</span>
+                  <span className="text-slate-400">
+                    {item.value} jobs · {percent}%
+                  </span>
+                </div>
+
+                <div className="mt-2 h-3 bg-slate-800 rounded-full">
+                  <div
+                    className="h-3 bg-indigo-500 rounded-full"
+                    style={{ width: `${percent}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       <div className="mt-8 bg-slate-900 p-6 rounded-xl">
         <div className="flex items-center justify-between">
@@ -190,9 +289,7 @@ careerProgressScore = Math.min(careerProgressScore, 100);
 
             <div className="bg-slate-800 p-4 rounded-lg">
               <p className="text-slate-400 text-sm">Target Role</p>
-              <p className="font-medium mt-2">
-                {memory.target_role || "-"}
-              </p>
+              <p className="font-medium mt-2">{memory.target_role || "-"}</p>
             </div>
 
             <div className="bg-slate-800 p-4 rounded-lg">
@@ -211,9 +308,7 @@ careerProgressScore = Math.min(careerProgressScore, 100);
           </div>
         ) : (
           <div className="mt-5 rounded-lg bg-slate-800 p-4">
-            <p className="text-slate-300">
-              No Career Memory saved yet.
-            </p>
+            <p className="text-slate-300">No Career Memory saved yet.</p>
 
             <Link
               href="/career/memory"
@@ -226,107 +321,73 @@ careerProgressScore = Math.min(careerProgressScore, 100);
       </div>
 
       <div className="mt-8 bg-slate-900 p-6 rounded-xl">
-  <div className="flex items-center justify-between">
-    <div>
-      <h2 className="text-xl font-semibold">Career Intelligence</h2>
-      <p className="text-slate-400 mt-1">
-        Your AI-generated career focus for today.
-      </p>
-    </div>
-
-    <Link
-      href="/career/career-intelligence"
-      className="rounded-lg border border-slate-700 px-4 py-2 text-sm hover:bg-slate-800"
-    >
-      Open Agent
-    </Link>
-  </div>
-
-  {careerIntelligence ? (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-5">
-      <div className="bg-slate-800 p-4 rounded-lg">
-        <p className="text-slate-400 text-sm">Daily Focus</p>
-        <p className="font-medium mt-2">
-          {careerIntelligence.daily_focus}
-        </p>
-      </div>
-
-      <div className="bg-slate-800 p-4 rounded-lg">
-        <p className="text-slate-400 text-sm">Skill to Learn</p>
-        <p className="font-medium mt-2">
-          {careerIntelligence.skill_to_learn}
-        </p>
-      </div>
-
-      <div className="bg-slate-800 p-4 rounded-lg">
-        <p className="text-slate-400 text-sm">Interview Topic</p>
-        <p className="font-medium mt-2">
-          {careerIntelligence.interview_topic}
-        </p>
-      </div>
-
-      <div className="bg-slate-800 p-4 rounded-lg md:col-span-2">
-        <p className="text-slate-400 text-sm">Project Task</p>
-        <p className="font-medium mt-2">
-          {careerIntelligence.project_task}
-        </p>
-      </div>
-
-      <div className="bg-slate-800 p-4 rounded-lg">
-        <p className="text-slate-400 text-sm">Priority</p>
-        <p className="font-medium mt-2">
-          {careerIntelligence.priority_level}
-        </p>
-      </div>
-    </div>
-  ) : (
-    <div className="mt-5 bg-slate-800 p-4 rounded-lg">
-      <p className="text-slate-300">
-        No career intelligence generated yet.
-      </p>
-
-      <Link
-  href="/career/career-intelligence"
-  className="inline-block mt-3 text-indigo-400 hover:text-indigo-300"
->
-  Generate today's career plan
-</Link>
-    </div>
-  )}
-</div>
-
-      <div className="mt-8 bg-slate-900 p-6 rounded-xl">
-  <h2 className="text-xl font-semibold">Career Progress Score</h2>
-
-  <p className="text-slate-400 mt-1">
-    Your progress based on saved career memory and application activity.
-  </p>
-
-  <div className="mt-5">
-    <p className="text-5xl font-bold text-indigo-400">
-      {careerProgressScore}%
-    </p>
-
-    <div className="mt-4 h-3 w-full rounded-full bg-slate-800">
-      <div
-        className="h-3 rounded-full bg-indigo-500"
-        style={{ width: `${careerProgressScore}%` }}
-      />
-    </div>
-
-    <p className="mt-4 text-sm text-slate-400">
-      Complete your memory, add applications, and track interviews to increase your score.
-    </p>
-  </div>
-</div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-        {cards.map((card) => (
-          <div key={card.label} className="bg-slate-900 p-6 rounded-xl">
-            <p className="text-slate-400">{card.label}</p>
-            <h2 className="text-3xl font-bold mt-2">{card.value}</h2>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold">Career Intelligence</h2>
+            <p className="text-slate-400 mt-1">
+              Your AI-generated career focus for today.
+            </p>
           </div>
-        ))}
+
+          <Link
+            href="/career/career-intelligence"
+            className="rounded-lg border border-slate-700 px-4 py-2 text-sm hover:bg-slate-800"
+          >
+            Open Agent
+          </Link>
+        </div>
+
+        {careerIntelligence ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-5">
+            <div className="bg-slate-800 p-4 rounded-lg">
+              <p className="text-slate-400 text-sm">Daily Focus</p>
+              <p className="font-medium mt-2">
+                {careerIntelligence.daily_focus}
+              </p>
+            </div>
+
+            <div className="bg-slate-800 p-4 rounded-lg">
+              <p className="text-slate-400 text-sm">Skill to Learn</p>
+              <p className="font-medium mt-2">
+                {careerIntelligence.skill_to_learn}
+              </p>
+            </div>
+
+            <div className="bg-slate-800 p-4 rounded-lg">
+              <p className="text-slate-400 text-sm">Interview Topic</p>
+              <p className="font-medium mt-2">
+                {careerIntelligence.interview_topic}
+              </p>
+            </div>
+
+            <div className="bg-slate-800 p-4 rounded-lg md:col-span-2">
+              <p className="text-slate-400 text-sm">Project Task</p>
+              <p className="font-medium mt-2">
+                {careerIntelligence.project_task}
+              </p>
+            </div>
+
+            <div className="bg-slate-800 p-4 rounded-lg">
+              <p className="text-slate-400 text-sm">Priority</p>
+              <p className="font-medium mt-2">
+                {careerIntelligence.priority_level}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-5 bg-slate-800 p-4 rounded-lg">
+            <p className="text-slate-300">
+              No career intelligence generated yet.
+            </p>
+
+            <Link
+              href="/career/career-intelligence"
+              className="inline-block mt-3 text-indigo-400 hover:text-indigo-300"
+            >
+              Generate today&apos;s career plan
+            </Link>
+          </div>
+        )}
       </div>
 
       <div className="mt-8 bg-slate-900 p-6 rounded-xl">
