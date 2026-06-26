@@ -57,11 +57,11 @@ export default function TwinHubPage() {
           />
 
           <AgentCard
-            title="Health Twin"
-            description="Plan meals, track wellness, receive health suggestions, and find local healthy options."
-            status="coming-soon"
-            href="/health"
-          />
+  title="Health Twin"
+  description="Track wellness goals, daily habits, sleep, hydration, workouts, and AI health insights."
+  status="available"
+  href="/health"
+/>
 
           <AgentCard
             title="Learning Twin"

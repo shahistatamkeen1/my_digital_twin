@@ -13,6 +13,9 @@ from app.models import finance as finance_model
 from app.routes import finance
 from app.routes import finance_chat
 from app.routes import twin_orchestrator
+from app.models import health as health_model
+from app.routes import health
+from app.routes import health_chat
 
 app = FastAPI()
 
@@ -69,6 +72,16 @@ app.include_router(
     twin_orchestrator.router,
     prefix="/api/twin-orchestrator",
     tags=["Twin Orchestrator"]
+)
+app.include_router(
+    health.router,
+    prefix="/api/health",
+    tags=["Health"]
+)
+app.include_router(
+    health_chat.router,
+    prefix="/api/health-chat",
+    tags=["Health Chat"]
 )
 app.include_router(twin_context.router, prefix="/api/twin-context", tags=["Twin Context"])
 app.include_router(autofill.router, prefix="/api/autofill", tags=["Application Autofill"])

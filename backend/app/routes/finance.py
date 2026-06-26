@@ -221,3 +221,57 @@ def save_finance_memory(memory: FinanceMemoryCreate, db: Session = Depends(get_d
     db.refresh(new_memory)
 
     return new_memory
+
+@router.get("/expenditure-pattern")
+def expenditure_pattern(db: Session = Depends(get_db)):
+    transactions = db.query(FinanceTransaction).all()
+
+    income = sum(t.amount for t in transactions if t.type == "Income")
+    expenses = sum(t.amount for t in transactions if t.type == "Expense")
+    savings = income - expenses
+
+    savings_rate = 0
+    if income > 0:
+        savings_rate = round((savings / income) * 100)
+
+    category_totals = {}
+
+    for transaction in transactions:
+        if transaction.type == "Expense":
+            category = transaction.category or "Other"
+            category_totals[category] = category_totals.get(category, 0) + transaction.amount
+
+    top_category = "No expenses yet"
+    top_category_amount = 0
+
+    if category_totals:
+        top_category = max(category_totals, key=category_totals.get)
+        top_category_amount = category_totals[top_category]
+
+    category_breakdown = [
+        {
+            "category": category,
+            "amount": amount,
+            "percent": round((amount / expenses) * 100) if expenses > 0 else 0,
+        }
+        for category, amount in category_totals.items()
+    ]
+
+    spending_alert = "Your spending looks stable."
+
+    if income > 0 and expenses > income * 0.8:
+        spending_alert = "Your expenses are using more than 80% of your income. Review non-essential spending."
+
+    if savings_rate >= 50:
+        spending_alert = "Excellent savings pattern. You are saving a strong portion of your income."
+
+    return {
+        "income": income,
+        "expenses": expenses,
+        "savings": savings,
+        "savings_rate": savings_rate,
+        "top_category": top_category,
+        "top_category_amount": top_category_amount,
+        "category_breakdown": category_breakdown,
+        "spending_alert": spending_alert,
+    }

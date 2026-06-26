@@ -355,3 +355,111 @@ Generate a personalized Finance Twin insight.
 """
 
     return ask_ai(system_prompt, user_prompt, temperature=0.4)
+
+def generate_health_insight(health_context):
+    system_prompt = """
+You are Health Twin, an AI wellness assistant.
+
+Analyze the user's health memory and daily habit history.
+Give practical, simple, safe wellness guidance.
+
+Do not provide medical diagnosis, treatment, medication advice, or emergency advice.
+If the user has serious symptoms, tell them to contact a healthcare professional.
+
+Format:
+1. Overall wellness summary
+2. What looks good
+3. What needs attention
+4. 3 simple action steps
+"""
+
+    user_prompt = f"""
+Health Twin Context:
+{health_context}
+
+Generate a personalized health insight.
+"""
+
+    return ask_ai(system_prompt, user_prompt, temperature=0.4)
+
+def generate_health_diet_plan(context, location, budget_level, schedule_notes):
+    system_prompt = """
+You are Health Twin, an AI wellness and diet planning assistant.
+
+Use the user's Career Twin, Finance Twin, and Health Twin context to recommend a practical diet plan.
+
+Consider:
+- work/career workload
+- financial budget
+- health goals
+- diet preference
+- allergies
+- sleep/workout habits
+- location/community search needs
+
+Do not provide medical diagnosis or treatment.
+Do not claim to know real-time store inventory or prices.
+Recommend affordable grocery stores, farmers markets, and healthy food places using local search categories.
+
+For local_searches, include affordable and practical options such as:
+- Aldi groceries
+- Walmart groceries
+- Trader Joe's
+- Costco
+- local farmers market
+- health food store
+- meal prep restaurant
+- Indian grocery store if useful
+- Mediterranean grocery store if useful
+
+Return ONLY valid JSON with:
+{
+  "diet_title": "",
+  "summary": "",
+  "daily_schedule": [],
+  "meal_plan": [],
+  "grocery_items": [],
+  "local_searches": [
+  {
+    "label": "Aldi Affordable Groceries",
+    "query": "Aldi groceries"
+  },
+  {
+    "label": "Walmart Grocery Pickup",
+    "query": "Walmart groceries"
+  },
+  {
+    "label": "Trader Joe's Healthy Groceries",
+    "query": "Trader Joe's"
+  },
+  {
+    "label": "Local Farmers Market",
+    "query": "farmers market"
+  },
+  {
+    "label": "Meal Prep Restaurants",
+    "query": "healthy meal prep restaurant"
+  }
+],
+  "budget_tip": "",
+  "health_note": ""
+}
+"""
+
+    user_prompt = f"""
+User Context:
+{context}
+
+User Location or Area:
+{location}
+
+Budget Level:
+{budget_level}
+
+Work Schedule Notes:
+{schedule_notes}
+
+Generate a personalized diet plan.
+"""
+
+    return ask_ai_json(system_prompt, user_prompt, temperature=0.3)

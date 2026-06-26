@@ -8,6 +8,7 @@ export default function FinanceSidebar() {
   { href: "/finance/category-analytics", label: "Category Analytics" },
   { href: "/finance/savings-goals", label: "Savings Goals" },
   { href: "/finance/insights", label: "AI Insights" },
+  { href: "/finance/expenditure-pattern", label: "Expenditure Pattern" },
   { href: "/finance/chat", label: "Finance Chat" },
   { href: "/twin-hub", label: "← Twin Hub" },
 ];
