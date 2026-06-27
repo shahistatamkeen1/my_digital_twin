@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.finance import FinanceTransaction, SavingsGoal, FinanceMemory
 from app.services.ai_service import generate_finance_insight
+from app.services.finance_context_service import get_finance_context
+from app.services.ai_service import generate_investment_plan
 
 router = APIRouter()
 
@@ -29,6 +31,12 @@ class FinanceMemoryCreate(BaseModel):
     risk_level: str = ""
     budget_preference: str = ""
     notes: str = ""
+
+class InvestmentPlanRequest(BaseModel):
+    available_savings: float = 0
+    risk_level: str = "Moderate"
+    goal: str = ""
+    time_horizon: str = ""
     
 @router.get("/")
 def get_transactions(db: Session = Depends(get_db)):
@@ -275,3 +283,38 @@ def expenditure_pattern(db: Session = Depends(get_db)):
         "category_breakdown": category_breakdown,
         "spending_alert": spending_alert,
     }
+    
+@router.post("/investment-plan")
+def investment_plan(req: InvestmentPlanRequest, db: Session = Depends(get_db)):
+    context = get_finance_context(db)
+
+    result = generate_investment_plan(
+        context=context,
+        available_savings=req.available_savings,
+        risk_level=req.risk_level,
+        goal=req.goal,
+        time_horizon=req.time_horizon,
+    )
+
+    if not isinstance(result, dict):
+        return {
+            "plan_title": "Investment Planner",
+            "summary": "The AI response was not in the expected format. Please try again.",
+            "emergency_fund_note": "",
+            "suggested_allocation": [],
+            "investment_options": [],
+            "stock_watchlist": [],
+            "next_steps": [],
+            "risk_note": "This is educational information only and not financial advice.",
+        }
+
+    result.setdefault("plan_title", "Investment Planner")
+    result.setdefault("summary", "")
+    result.setdefault("emergency_fund_note", "")
+    result.setdefault("suggested_allocation", [])
+    result.setdefault("investment_options", [])
+    result.setdefault("stock_watchlist", [])
+    result.setdefault("next_steps", [])
+    result.setdefault("risk_note", "This is educational information only and not financial advice.")
+
+    return result

@@ -8,7 +8,36 @@ type Message = {
   content: string;
 };
 
+type FocusScores = {
+  career_score: number;
+  finance_score: number;
+  health_score: number;
+  overall_score: number;
+  highest_roi_focus: string;
+};
+
 const quickPrompts = [
+
+  {
+  label: "Weekly Executive Plan",
+  prompt:
+    "Create my weekly executive plan using my personal memory, career, finance, and health data.",
+},
+{
+  label: "Today's Best Action",
+  prompt:
+    "What is the single best action I should take today based on all my twin data?",
+},
+{
+  label: "Biggest Risk",
+  prompt:
+    "What is my biggest current risk or bottleneck across career, finance, and health?",
+},
+{
+  label: "Focus This Week",
+  prompt:
+    "What should I focus on this week to improve my overall Digital Twin score?",
+},
   {
     label: "Career + Finance Plan",
     prompt:
@@ -34,6 +63,7 @@ const quickPrompts = [
 export default function TwinOrchestratorPage() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [focusScores, setFocusScores] = useState<FocusScores | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
  const [messages, setMessages] = useState<Message[]>(() => {
@@ -89,15 +119,19 @@ export default function TwinOrchestratorPage() {
         }
       );
 
-      const data = await res.json();
+    const data = await res.json();
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: data.reply || "I could not generate a response.",
-        },
-      ]);
+if (data.focus_scores) {
+  setFocusScores(data.focus_scores);
+}
+
+setMessages((prev) => [
+  ...prev,
+  {
+    role: "assistant",
+    content: data.reply || "I could not generate a response.",
+  },
+]);
     } catch (error) {
       console.error("Twin Orchestrator error:", error);
 
@@ -136,6 +170,49 @@ export default function TwinOrchestratorPage() {
             </button>
           ))}
         </div>
+
+        {focusScores && (
+  <div className="mt-8 rounded-xl bg-slate-900 p-5">
+    <h2 className="mb-4 text-xl font-bold">Weekly Focus Overview</h2>
+
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+      <div className="rounded-lg bg-slate-800 p-4">
+        <p className="text-sm text-slate-400">Career</p>
+        <h3 className="mt-2 text-3xl font-bold text-indigo-400">
+          {focusScores.career_score}%
+        </h3>
+      </div>
+
+      <div className="rounded-lg bg-slate-800 p-4">
+        <p className="text-sm text-slate-400">Finance</p>
+        <h3 className="mt-2 text-3xl font-bold text-green-400">
+          {focusScores.finance_score}%
+        </h3>
+      </div>
+
+      <div className="rounded-lg bg-slate-800 p-4">
+        <p className="text-sm text-slate-400">Health</p>
+        <h3 className="mt-2 text-3xl font-bold text-cyan-400">
+          {focusScores.health_score}%
+        </h3>
+      </div>
+
+      <div className="rounded-lg bg-slate-800 p-4">
+        <p className="text-sm text-slate-400">Overall</p>
+        <h3 className="mt-2 text-3xl font-bold text-purple-400">
+          {focusScores.overall_score}%
+        </h3>
+      </div>
+    </div>
+
+    <div className="mt-4 rounded-lg border border-indigo-500 bg-indigo-500/10 p-4">
+      <p className="text-sm text-slate-300">Highest ROI Focus</p>
+      <h3 className="mt-1 font-semibold text-white">
+        {focusScores.highest_roi_focus}
+      </h3>
+    </div>
+  </div>
+)}
 
         <div className="mt-8 h-[560px] overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900 p-5">
           <div className="space-y-5">

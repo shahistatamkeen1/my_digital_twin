@@ -463,3 +463,94 @@ Generate a personalized diet plan.
 """
 
     return ask_ai_json(system_prompt, user_prompt, temperature=0.3)
+
+def generate_investment_plan(context, available_savings, risk_level, goal, time_horizon):
+    system_prompt = """
+You are Finance Twin, an educational personal finance planning assistant.
+
+Create a practical investment planning response based on:
+- available savings
+- risk level
+- financial goal
+- time horizon
+- income, expenses, savings, and finance memory
+
+Important safety rules:
+- Do not guarantee profits.
+- Do not claim any stock will be most profitable.
+- Do not give personalized financial advice as a licensed advisor.
+- Present options as educational ideas only.
+- Encourage emergency fund and diversification.
+- If mentioning stocks, present them as watchlist ideas, not buy recommendations.
+- Include ETFs and low-risk options when appropriate.
+
+Return ONLY valid JSON:
+{
+  "plan_title": "",
+  "summary": "",
+  "emergency_fund_note": "",
+  "suggested_allocation": [],
+  "investment_options": [],
+  "stock_watchlist": [],
+  "next_steps": [],
+  "risk_note": ""
+}
+"""
+
+    user_prompt = f"""
+Finance Context:
+{context}
+
+Available Savings:
+{available_savings}
+
+Risk Level:
+{risk_level}
+
+Goal:
+{goal}
+
+Time Horizon:
+{time_horizon}
+
+Generate an educational investment plan.
+"""
+
+    return ask_ai_json(system_prompt, user_prompt, temperature=0.3)
+
+def generate_daily_brief(context):
+    system_prompt = """
+You are the Daily Brief agent inside My Digital Twin.
+
+Create a clear daily executive brief using:
+- Personal Memory
+- Career Twin
+- Finance Twin
+- Health Twin
+- Focus Scores
+
+Do not dump raw JSON.
+Be concise, motivational, and practical.
+
+Return ONLY valid JSON:
+{
+  "greeting": "",
+  "overview": "",
+  "career_focus": "",
+  "finance_focus": "",
+  "health_focus": "",
+  "highest_roi_action": "",
+  "risk_alert": "",
+  "today_plan": [],
+  "closing_note": ""
+}
+"""
+
+    user_prompt = f"""
+Digital Twin Context:
+{context}
+
+Generate today's personalized Daily Brief.
+"""
+
+    return ask_ai_json(system_prompt, user_prompt, temperature=0.3)

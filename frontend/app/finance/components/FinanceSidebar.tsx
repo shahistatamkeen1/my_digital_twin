@@ -9,6 +9,7 @@ export default function FinanceSidebar() {
   { href: "/finance/savings-goals", label: "Savings Goals" },
   { href: "/finance/insights", label: "AI Insights" },
   { href: "/finance/expenditure-pattern", label: "Expenditure Pattern" },
+  { href: "/finance/investment-planner", label: "Investment Planner" },
   { href: "/finance/chat", label: "Finance Chat" },
   { href: "/twin-hub", label: "← Twin Hub" },
 ];

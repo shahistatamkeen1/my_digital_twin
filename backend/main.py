@@ -16,6 +16,9 @@ from app.routes import twin_orchestrator
 from app.models import health as health_model
 from app.routes import health
 from app.routes import health_chat
+from app.models import personal_memory as personal_memory_model
+from app.routes import personal_memory
+from app.routes import twin_brief
 
 app = FastAPI()
 
@@ -82,6 +85,16 @@ app.include_router(
     health_chat.router,
     prefix="/api/health-chat",
     tags=["Health Chat"]
+)
+app.include_router(
+    personal_memory.router,
+    prefix="/api/personal-memory",
+    tags=["Personal Memory"]
+)
+app.include_router(
+    twin_brief.router,
+    prefix="/api/twin-brief",
+    tags=["Twin Brief"]
 )
 app.include_router(twin_context.router, prefix="/api/twin-context", tags=["Twin Context"])
 app.include_router(autofill.router, prefix="/api/autofill", tags=["Application Autofill"])
