@@ -2,6 +2,14 @@
 
 import { useState } from "react";
 
+type FocusScores = {
+  career_score: number;
+  finance_score: number;
+  health_score: number;
+  overall_score: number;
+  highest_roi_focus: string;
+};
+
 type TwinBrief = {
   greeting: string;
   overview: string;
@@ -9,9 +17,12 @@ type TwinBrief = {
   finance_focus: string;
   health_focus: string;
   highest_roi_action: string;
+  today_best_action: string;
   risk_alert: string;
   today_plan: any[];
+  weekly_wins: any[];
   closing_note: string;
+  focus_scores: FocusScores;
 };
 
 export default function TwinBriefPage() {
@@ -36,9 +47,9 @@ export default function TwinBriefPage() {
     }
   };
 
-  const renderPlan = (items?: any[]) => {
+  const renderList = (items?: any[]) => {
     if (!items || items.length === 0) {
-      return <p className="text-slate-400">No plan generated.</p>;
+      return <p className="text-slate-400">No items generated.</p>;
     }
 
     return (
@@ -82,6 +93,33 @@ export default function TwinBriefPage() {
             <p className="mt-3 text-slate-300">{brief.overview}</p>
           </div>
 
+          {brief.focus_scores && (
+            <div className="rounded-xl bg-slate-900 p-6">
+              <h2 className="text-xl font-bold">Twin Focus Scores</h2>
+
+              <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-4">
+                <ScoreCard label="Career" value={brief.focus_scores.career_score} />
+                <ScoreCard label="Finance" value={brief.focus_scores.finance_score} />
+                <ScoreCard label="Health" value={brief.focus_scores.health_score} />
+                <ScoreCard label="Overall" value={brief.focus_scores.overall_score} />
+              </div>
+
+              <div className="mt-5 rounded-lg border border-indigo-500 bg-indigo-500/10 p-4">
+                <p className="text-sm text-slate-300">Highest ROI Focus</p>
+                <h3 className="mt-1 font-semibold text-white">
+                  {brief.focus_scores.highest_roi_focus}
+                </h3>
+              </div>
+            </div>
+          )}
+
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-6">
+            <h2 className="text-xl font-semibold text-emerald-300">
+              Today&apos;s Best Action
+            </h2>
+            <p className="mt-3 text-slate-200">{brief.today_best_action}</p>
+          </div>
+
           <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
             <BriefCard title="Career Focus" content={brief.career_focus} />
             <BriefCard title="Finance Focus" content={brief.finance_focus} />
@@ -100,7 +138,12 @@ export default function TwinBriefPage() {
 
           <div className="rounded-xl bg-slate-900 p-6">
             <h2 className="text-xl font-semibold">Today&apos;s Plan</h2>
-            <div className="mt-4">{renderPlan(brief.today_plan)}</div>
+            <div className="mt-4">{renderList(brief.today_plan)}</div>
+          </div>
+
+          <div className="rounded-xl bg-slate-900 p-6">
+            <h2 className="text-xl font-semibold">Weekly Wins</h2>
+            <div className="mt-4">{renderList(brief.weekly_wins)}</div>
           </div>
 
           <div className="rounded-xl bg-slate-900 p-6">
@@ -110,6 +153,23 @@ export default function TwinBriefPage() {
         </div>
       )}
     </main>
+  );
+}
+
+function ScoreCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg bg-slate-800 p-4">
+      <p className="text-sm text-slate-400">{label}</p>
+
+      <h3 className="mt-2 text-3xl font-bold text-cyan-400">{value}%</h3>
+
+      <div className="mt-3 h-3 rounded-full bg-slate-700">
+        <div
+          className="h-3 rounded-full bg-cyan-500"
+          style={{ width: `${value}%` }}
+        />
+      </div>
+    </div>
   );
 }
 

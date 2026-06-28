@@ -19,6 +19,8 @@ from app.routes import health_chat
 from app.models import personal_memory as personal_memory_model
 from app.routes import personal_memory
 from app.routes import twin_brief
+from app.routes import twin_notifications
+from app.routes import master_context
 
 app = FastAPI()
 
@@ -95,6 +97,16 @@ app.include_router(
     twin_brief.router,
     prefix="/api/twin-brief",
     tags=["Twin Brief"]
+)
+app.include_router(
+    twin_notifications.router,
+    prefix="/api/twin-notifications",
+    tags=["Twin Notifications"]
+)
+app.include_router(
+    master_context.router,
+    prefix="/api/master-context",
+    tags=["Master Context"]
 )
 app.include_router(twin_context.router, prefix="/api/twin-context", tags=["Twin Context"])
 app.include_router(autofill.router, prefix="/api/autofill", tags=["Application Autofill"])

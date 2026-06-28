@@ -51,6 +51,16 @@ export default function TwinHubPage() {
   </div>
 </Link>
 
+<Link href="/twin-notifications">
+  <div className="mt-6 rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-6 transition hover:-translate-y-1 hover:border-yellow-300">
+    <p className="text-sm text-yellow-300">Proactive Intelligence</p>
+    <h2 className="mt-2 text-2xl font-bold">Notification Center</h2>
+    <p className="mt-3 text-slate-400">
+      Get proactive alerts across Career, Finance, Health, and your Personal Memory.
+    </p>
+  </div>
+</Link>
+
         <Link href="/personal-memory">
   <div className="mt-6 rounded-2xl border border-slate-700 bg-slate-900 p-6 transition hover:-translate-y-1 hover:border-indigo-400">
     <p className="text-sm text-indigo-300">Shared Memory Layer</p>

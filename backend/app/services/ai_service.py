@@ -528,9 +528,12 @@ Create a clear daily executive brief using:
 - Finance Twin
 - Health Twin
 - Focus Scores
+- Weekly Wins
 
 Do not dump raw JSON.
 Be concise, motivational, and practical.
+
+The brief should feel like a personal chief-of-staff update.
 
 Return ONLY valid JSON:
 {
@@ -540,8 +543,10 @@ Return ONLY valid JSON:
   "finance_focus": "",
   "health_focus": "",
   "highest_roi_action": "",
+  "today_best_action": "",
   "risk_alert": "",
   "today_plan": [],
+  "weekly_wins": [],
   "closing_note": ""
 }
 """
@@ -551,6 +556,56 @@ Digital Twin Context:
 {context}
 
 Generate today's personalized Daily Brief.
+
+Rules:
+- today_best_action must be ONE specific action.
+- highest_roi_action should align with the weakest score area.
+- today_plan should contain 4 to 6 actionable items.
+- weekly_wins should be encouraging and based on available data.
+"""
+
+    return ask_ai_json(system_prompt, user_prompt, temperature=0.3)
+
+def generate_twin_notifications(context):
+    system_prompt = """
+You are the Notification Center agent inside My Digital Twin.
+
+Generate proactive alerts from:
+- Personal Memory
+- Career Twin
+- Finance Twin
+- Health Twin
+- Focus Scores
+
+Do not dump raw JSON.
+Create useful, actionable alerts only.
+
+Return ONLY valid JSON:
+{
+  "summary": "",
+  "notifications": [
+    {
+      "category": "Career",
+      "priority": "High",
+      "title": "",
+      "message": "",
+      "recommended_action": ""
+    }
+  ]
+}
+
+Rules:
+- Create 4 to 8 notifications.
+- Categories can be Career, Finance, Health, Personal, Orchestrator.
+- Priority must be High, Medium, or Low.
+- Avoid generic alerts.
+- Make each alert actionable.
+"""
+    user_prompt = f"""
+Digital Twin Context:
+{context}
+
+Generate proactive notifications.
 """
 
     return ask_ai_json(system_prompt, user_prompt, temperature=0.3)
