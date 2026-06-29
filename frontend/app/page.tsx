@@ -24,17 +24,23 @@ export default function HomePage() {
           </p>
 
           <div className="mt-8 flex flex-wrap gap-4">
-            <PrimaryButton href="/twin-hub">
-              Enter Twin Hub
-            </PrimaryButton>
+            <div className="mt-8 flex flex-wrap gap-4">
+  <PrimaryButton href="/command-center">
+    Open Command Center
+  </PrimaryButton>
 
-            <PrimaryButton href="/login">
-              Login
-            </PrimaryButton>
+  <PrimaryButton href="/twin-hub">
+    Enter Twin Hub
+  </PrimaryButton>
 
-            <PrimaryButton href="/twin-orchestrator">
-  Ask Twin Orchestrator
-</PrimaryButton>
+  <PrimaryButton href="/login">
+    Login
+  </PrimaryButton>
+
+  <PrimaryButton href="/twin-orchestrator">
+    Ask Twin Orchestrator
+  </PrimaryButton>
+</div>
           </div>
         </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 type FocusScores = {
   career_score: number;
@@ -12,10 +13,14 @@ type FocusScores = {
 
 type NotificationItem = {
   category: string;
-  priority: "High" | "Medium" | "Low" | string;
+  priority: "Critical" | "High" | "Medium" | "Low" | string;
+  priority_score: number;
   title: string;
   message: string;
   recommended_action: string;
+  action_label: string;
+  action_type: string;
+  action_url: string;
 };
 
 type NotificationResponse = {
@@ -25,6 +30,8 @@ type NotificationResponse = {
 };
 
 export default function TwinNotificationsPage() {
+  const router = useRouter();
+
   const [data, setData] = useState<NotificationResponse | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -47,8 +54,12 @@ export default function TwinNotificationsPage() {
   };
 
   const priorityClass = (priority: string) => {
+    if (priority === "Critical") {
+      return "border-red-600 bg-red-600/20 text-red-200";
+    }
+
     if (priority === "High") {
-      return "border-red-500 bg-red-500/10 text-red-300";
+      return "border-orange-500 bg-orange-500/10 text-orange-300";
     }
 
     if (priority === "Medium") {
@@ -58,6 +69,12 @@ export default function TwinNotificationsPage() {
     return "border-green-500 bg-green-500/10 text-green-300";
   };
 
+  const handleAction = (item: NotificationItem) => {
+    if (item.action_type === "navigate" && item.action_url) {
+      router.push(item.action_url);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-slate-950 p-8 text-white">
       <p className="text-sm text-cyan-300">Master Digital Twin</p>
@@ -65,8 +82,8 @@ export default function TwinNotificationsPage() {
       <h1 className="mt-2 text-4xl font-bold">Notification Center</h1>
 
       <p className="mt-3 max-w-3xl text-slate-400">
-        Generate proactive alerts across Career, Finance, Health, Personal Memory,
-        and your Twin Orchestrator.
+        Generate proactive alerts across Career, Finance, Health, Personal
+        Memory, and your Twin Orchestrator.
       </p>
 
       <button
@@ -113,23 +130,38 @@ export default function TwinNotificationsPage() {
                         </h3>
                       </div>
 
-                      <span
-                        className={`rounded-full border px-3 py-1 text-xs ${priorityClass(
-                          item.priority
-                        )}`}
-                      >
-                        {item.priority}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-3 py-1 text-xs text-cyan-300">
+                          Score {item.priority_score}
+                        </span>
+
+                        <span
+                          className={`rounded-full border px-3 py-1 text-xs ${priorityClass(
+                            item.priority
+                          )}`}
+                        >
+                          {item.priority}
+                        </span>
+                      </div>
                     </div>
 
                     <p className="mt-4 text-slate-300">{item.message}</p>
 
                     <div className="mt-4 rounded-lg bg-slate-900 p-4">
-                      <p className="text-sm text-slate-400">Recommended Action</p>
+                      <p className="text-sm text-slate-400">
+                        Recommended Action
+                      </p>
                       <p className="mt-1 text-white">
                         {item.recommended_action}
                       </p>
                     </div>
+
+                    <button
+                      onClick={() => handleAction(item)}
+                      className="mt-4 rounded-lg bg-cyan-600 px-4 py-2 text-sm font-medium hover:bg-cyan-500"
+                    >
+                      {item.action_label || "Open"}
+                    </button>
                   </div>
                 ))}
               </div>
