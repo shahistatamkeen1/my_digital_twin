@@ -17,6 +17,15 @@ def get_twin_brief(db: Session = Depends(get_db)):
     career_context = context.get("career_context", {})
     finance_context = context.get("finance_context", {})
     health_context = context.get("health_context", {})
+    learning_context = context.get(
+    "learning_context",
+    {}
+)
+
+    learning_summary = learning_context.get(
+    "learning_summary",
+    {}
+)
 
     application_summary = career_context.get("application_summary", {})
     finance_summary = finance_context.get("tracked_summary", {})
@@ -36,6 +45,11 @@ def get_twin_brief(db: Session = Depends(get_db)):
         weekly_wins.append(
             f"Logged {health_summary.get('habit_count')} health habit entries."
         )
+        
+    if learning_summary.get("completed_goals", 0) > 0:
+        weekly_wins.append(
+        f"Completed {learning_summary.get('completed_goals')} learning goals."
+    )
 
     context["weekly_wins"] = weekly_wins
 

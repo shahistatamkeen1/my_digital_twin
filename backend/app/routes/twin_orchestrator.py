@@ -23,6 +23,7 @@ Available twins:
 - career: jobs, resume, interviews, applications, skills, career goals, salary growth
 - finance: income, expenses, savings, budget, investments, financial goals, affordability, spending decisions
 - health: sleep, hydration, workouts, wellness, mood, habits, diet preferences, fitness goals
+- learning: courses, certifications, skills, study plans, learning roadmap, professional development
 
 Return ONLY valid JSON.
 """
@@ -36,6 +37,7 @@ Return JSON exactly like this:
   "use_career": true,
   "use_finance": true,
   "use_health": true,
+  "use_learning": true,
   "reason": "short reason"
 }}
 """
@@ -46,6 +48,7 @@ Return JSON exactly like this:
         "use_career": bool(result.get("use_career", False)),
         "use_finance": bool(result.get("use_finance", False)),
         "use_health": bool(result.get("use_health", False)),
+        "use_learning": bool(result.get("use_learning", False)),
         "reason": result.get("reason", ""),
     }
 
@@ -78,18 +81,27 @@ def twin_orchestrator(
         else None
     )
 
+    learning_context = (
+        master_context["learning_context"]
+        if routing["use_learning"]
+        else None
+    )
+
     if (
         not routing["use_career"]
         and not routing["use_finance"]
         and not routing["use_health"]
+        and not routing["use_learning"]
     ):
         career_context = master_context["career_context"]
         finance_context = master_context["finance_context"]
         health_context = master_context["health_context"]
+        learning_context = master_context["learning_context"]
 
         routing["use_career"] = True
         routing["use_finance"] = True
         routing["use_health"] = True
+        routing["use_learning"] = True
         routing["reason"] = (
             "No specific twin was selected, so all available twins were used."
         )
@@ -99,6 +111,7 @@ def twin_orchestrator(
     career_score = focus_scores["career_score"]
     finance_score = focus_scores["finance_score"]
     health_score = focus_scores["health_score"]
+    learning_score = focus_scores["learning_score"]
     overall_score = focus_scores["overall_score"]
     highest_roi_focus = focus_scores["highest_roi_focus"]
 
@@ -110,6 +123,7 @@ You combine:
 - Career Twin
 - Finance Twin
 - Health Twin
+- Learning Twin
 
 Your job is not to summarize each twin separately.
 Your job is to create one unified executive recommendation.
@@ -119,7 +133,7 @@ Rules:
 - Be concise, practical, and action-focused.
 - Think like a personal chief of staff.
 - Prioritize actions with the highest life impact.
-- Connect career, finance, and health together.
+- Connect career, finance, health, and learning together.
 - Do not provide legal, tax, investment, medical, immigration, or guaranteed financial advice.
 - For health topics, do not provide diagnosis, treatment, medication advice, or emergency advice.
 - Highest ROI Action and Weekly Plan must align with the calculated weakest area.
@@ -148,6 +162,7 @@ Focus Scores:
 Career Score: {career_score}
 Finance Score: {finance_score}
 Health Score: {health_score}
+Learning Score: {learning_score}
 Overall Twin Score: {overall_score}
 
 Calculated Highest ROI Focus:
@@ -161,6 +176,9 @@ Finance Twin:
 
 Health Twin:
 {health_context if health_context else "Health Twin was not selected for this question."}
+
+Learning Twin:
+{learning_context if learning_context else "Learning Twin was not selected for this question."}
 
 Create an executive-level recommendation.
 Identify the single most important thing the user should focus on.
@@ -176,4 +194,5 @@ Do not contradict the calculated Highest ROI Focus.
         "used_career_context": routing["use_career"],
         "used_finance_context": routing["use_finance"],
         "used_health_context": routing["use_health"],
+        "used_learning_context": routing["use_learning"],
     }

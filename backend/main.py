@@ -18,6 +18,9 @@ from app.routes import health
 from app.routes import health_chat
 from app.models import personal_memory as personal_memory_model
 from app.routes import personal_memory
+from app.models import learning as learning_model
+from app.routes import learning
+from app.routes import learning_chat
 from app.routes import twin_brief
 from app.routes import twin_notifications
 from app.routes import master_context
@@ -107,6 +110,16 @@ app.include_router(
     master_context.router,
     prefix="/api/master-context",
     tags=["Master Context"]
+)
+app.include_router(
+    learning.router,
+    prefix="/api/learning",
+    tags=["Learning"]
+)
+app.include_router(
+    learning_chat.router,
+    prefix="/api/learning-chat",
+    tags=["Learning Chat"]
 )
 app.include_router(twin_context.router, prefix="/api/twin-context", tags=["Twin Context"])
 app.include_router(autofill.router, prefix="/api/autofill", tags=["Application Autofill"])

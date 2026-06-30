@@ -104,12 +104,20 @@ def calculate_health_score(health_context):
     return min(score, 100)
 
 
-def get_highest_roi_focus(career_score, finance_score, health_score):
+def get_highest_roi_focus(
+    career_score,
+    finance_score,
+    health_score,
+    learning_score,
+):
     scores = {
         "Career": career_score,
         "Finance": finance_score,
         "Health": health_score,
+        "Learning": learning_score,
     }
+
+    return min(scores, key=scores.get)
 
     lowest_area = min(scores, key=scores.get)
 
@@ -120,3 +128,17 @@ def get_highest_roi_focus(career_score, finance_score, health_score):
         return "Financial stability has the biggest opportunity right now. Focus on tracking expenses, savings goals, and budget discipline."
 
     return "Health sustainability has the biggest opportunity right now. Focus on sleep, hydration, workouts, and daily wellness habits."
+
+def calculate_learning_score(context):
+    summary = context.get("learning_summary", {})
+
+    total = summary.get("total_goals", 0)
+    completed = summary.get("completed_goals", 0)
+
+    if total == 0:
+        return 50
+
+    return min(
+        100,
+        round((completed / total) * 100 + 40),
+    )

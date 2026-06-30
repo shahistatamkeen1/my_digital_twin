@@ -25,9 +25,6 @@ export default function HomePage() {
 
           <div className="mt-8 flex flex-wrap gap-4">
             <div className="mt-8 flex flex-wrap gap-4">
-  <PrimaryButton href="/command-center">
-    Open Command Center
-  </PrimaryButton>
 
   <PrimaryButton href="/twin-hub">
     Enter Twin Hub
@@ -37,9 +34,6 @@ export default function HomePage() {
     Login
   </PrimaryButton>
 
-  <PrimaryButton href="/twin-orchestrator">
-    Ask Twin Orchestrator
-  </PrimaryButton>
 </div>
           </div>
         </div>

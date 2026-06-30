@@ -33,18 +33,32 @@ export default function CommandCenterPage() {
   const router = useRouter();
 
   const [data, setData] = useState<NotificationResponse | null>(null);
+  const [previousScores, setPreviousScores] = useState<FocusScores | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadCommandCenter = async () => {
     setLoading(true);
 
     try {
+      const savedScores = localStorage.getItem("digital_twin_previous_scores");
+
+      if (savedScores) {
+        setPreviousScores(JSON.parse(savedScores));
+      }
+
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/twin-notifications/`
       );
 
       const result = await res.json();
       setData(result);
+
+      if (result?.focus_scores) {
+        localStorage.setItem(
+          "digital_twin_previous_scores",
+          JSON.stringify(result.focus_scores)
+        );
+      }
     } catch (error) {
       console.error("Command Center error:", error);
       alert("Could not load Command Center.");
@@ -79,7 +93,46 @@ export default function CommandCenterPage() {
     }
   };
 
+  const getTrend = (current: number, previous?: number) => {
+    if (previous === undefined || previous === null) {
+      return {
+        label: "New",
+        className: "text-slate-400",
+      };
+    }
+
+    const diff = current - previous;
+
+    if (diff > 0) {
+      return {
+        label: `↑ +${diff}`,
+        className: "text-green-400",
+      };
+    }
+
+    if (diff < 0) {
+      return {
+        label: `↓ ${diff}`,
+        className: "text-red-400",
+      };
+    }
+
+    return {
+      label: "→ 0",
+      className: "text-slate-400",
+    };
+  };
+
+  const getGrade = (score: number) => {
+    if (score >= 90) return "A+";
+    if (score >= 80) return "A";
+    if (score >= 70) return "B";
+    if (score >= 60) return "C";
+    return "D";
+  };
+
   const topNotifications = data?.notifications?.slice(0, 3) || [];
+  const dailyPriorities = data?.notifications?.slice(0, 4) || [];
 
   return (
     <main className="min-h-screen bg-slate-950 p-8 text-white">
@@ -88,11 +141,10 @@ export default function CommandCenterPage() {
           <div>
             <p className="text-sm text-cyan-300">My Digital Twin</p>
             <h1 className="mt-2 text-4xl font-bold">
-              Command Center Dashboard
+              Personal HQ
             </h1>
             <p className="mt-3 max-w-3xl text-slate-400">
-              Your centralized personal operating system for career, finance,
-              health, daily priorities, and AI-powered recommendations.
+              Your centralized view of progress, priorities, insights, and next actions across all Digital Twins.
             </p>
           </div>
 
@@ -107,44 +159,83 @@ export default function CommandCenterPage() {
 
         {loading && (
           <div className="mt-10 rounded-2xl bg-slate-900 p-8 text-slate-300">
-            Loading your Digital Twin Command Center...
+            Loading your Personal HQ...
           </div>
         )}
 
         {!loading && data && (
           <div className="mt-8 space-y-8">
-            <section className="grid grid-cols-1 gap-5 md:grid-cols-4">
-              <ScoreCard
-                label="Career"
-                value={data.focus_scores.career_score}
-              />
-              <ScoreCard
-                label="Finance"
-                value={data.focus_scores.finance_score}
-              />
-              <ScoreCard
-                label="Health"
-                value={data.focus_scores.health_score}
-              />
-              <ScoreCard
-                label="Overall Twin"
-                value={data.focus_scores.overall_score}
-              />
-            </section>
-
             <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-              <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-6 lg:col-span-2">
+              <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-8 lg:col-span-1">
+                <p className="text-sm text-cyan-300">Digital Twin Score</p>
+
+                <div className="mt-6 flex items-end gap-3">
+                  <h2 className="text-7xl font-bold text-cyan-300">
+                    {data.focus_scores.overall_score}%
+                  </h2>
+                  <span className="mb-3 rounded-full border border-cyan-400/40 bg-cyan-400/10 px-4 py-1 text-sm text-cyan-200">
+                    Grade {getGrade(data.focus_scores.overall_score)}
+                  </span>
+                </div>
+
+                <p className="mt-5 text-sm leading-6 text-slate-300">
+                  This score combines your Career, Finance, and Health Twin
+                  signals into one overall readiness score.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-cyan-500/30 bg-slate-900 p-8 lg:col-span-2">
                 <p className="text-sm text-cyan-300">
                   Executive Twin Summary
                 </p>
                 <h2 className="mt-2 text-2xl font-bold">
-                  Today&apos;s Intelligence Brief
+                  Today's Intelligence Brief
                 </h2>
                 <p className="mt-4 leading-7 text-slate-300">
                   {data.summary}
                 </p>
               </div>
+            </section>
 
+            <section className="grid grid-cols-1 gap-5 md:grid-cols-4">
+              <ScoreCard
+                label="Career"
+                value={data.focus_scores.career_score}
+                trend={getTrend(
+                  data.focus_scores.career_score,
+                  previousScores?.career_score
+                )}
+              />
+
+              <ScoreCard
+                label="Finance"
+                value={data.focus_scores.finance_score}
+                trend={getTrend(
+                  data.focus_scores.finance_score,
+                  previousScores?.finance_score
+                )}
+              />
+
+              <ScoreCard
+                label="Health"
+                value={data.focus_scores.health_score}
+                trend={getTrend(
+                  data.focus_scores.health_score,
+                  previousScores?.health_score
+                )}
+              />
+
+              <ScoreCard
+                label="Overall Twin"
+                value={data.focus_scores.overall_score}
+                trend={getTrend(
+                  data.focus_scores.overall_score,
+                  previousScores?.overall_score
+                )}
+              />
+            </section>
+
+            <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
               <div className="rounded-2xl border border-violet-500/30 bg-violet-500/10 p-6">
                 <p className="text-sm text-violet-300">
                   Highest ROI Focus
@@ -157,14 +248,48 @@ export default function CommandCenterPage() {
                   highest improvement right now.
                 </p>
               </div>
+
+              <div className="rounded-2xl bg-slate-900 p-6 lg:col-span-2">
+                <p className="text-sm text-cyan-300">Today's Priorities</p>
+                <h2 className="mt-2 text-2xl font-bold">
+                  Action Plan for Today
+                </h2>
+
+                {dailyPriorities.length === 0 ? (
+                  <p className="mt-4 text-slate-400">
+                    No priorities available right now.
+                  </p>
+                ) : (
+                  <div className="mt-5 space-y-3">
+                    {dailyPriorities.map((item, index) => (
+                      <button
+                        key={index}
+                        onClick={() => openAction(item)}
+                        className="flex w-full items-start gap-4 rounded-xl border border-slate-700 bg-slate-800 p-4 text-left hover:bg-slate-700"
+                      >
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cyan-500/20 text-sm font-bold text-cyan-300">
+                          {index + 1}
+                        </span>
+
+                        <div>
+                          <h3 className="font-semibold">{item.title}</h3>
+                          <p className="mt-1 text-sm text-slate-400">
+                            {item.recommended_action}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </section>
 
             <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
               <QuickAction
-                title="Ask Twin Orchestrator"
+                title="Ask Digital Twin Advisor"
                 description="Ask one question across Career, Finance, and Health."
-                button="Open Orchestrator"
-                onClick={() => router.push("/twin-orchestrator")}
+                button="Open Advisor"
+                onClick={() => router.push("/digital-twin-advisor")}
               />
 
               <QuickAction
@@ -180,6 +305,21 @@ export default function CommandCenterPage() {
                 button="Open Notifications"
                 onClick={() => router.push("/twin-notifications")}
               />
+            </section>
+
+            <section className="rounded-2xl bg-slate-900 p-6">
+              <p className="text-sm text-cyan-300">Twin Status</p>
+              <h2 className="mt-2 text-2xl font-bold">
+                System Health
+              </h2>
+
+              <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-5">
+                <StatusCard label="Career Twin" />
+                <StatusCard label="Finance Twin" />
+                <StatusCard label="Health Twin" />
+                <StatusCard label="Orchestrator" />
+                <StatusCard label="Notifications" />
+              </div>
             </section>
 
             <section className="rounded-2xl bg-slate-900 p-6">
@@ -254,10 +394,27 @@ export default function CommandCenterPage() {
   );
 }
 
-function ScoreCard({ label, value }: { label: string; value: number }) {
+function ScoreCard({
+  label,
+  value,
+  trend,
+}: {
+  label: string;
+  value: number;
+  trend: {
+    label: string;
+    className: string;
+  };
+}) {
   return (
     <div className="rounded-2xl bg-slate-900 p-6">
-      <p className="text-sm text-slate-400">{label}</p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm text-slate-400">{label}</p>
+        <span className={`text-sm font-semibold ${trend.className}`}>
+          {trend.label}
+        </span>
+      </div>
+
       <h3 className="mt-2 text-4xl font-bold text-cyan-400">{value}%</h3>
 
       <div className="mt-4 h-3 rounded-full bg-slate-700">
@@ -292,6 +449,15 @@ function QuickAction({
       >
         {button}
       </button>
+    </div>
+  );
+}
+
+function StatusCard({ label }: { label: string }) {
+  return (
+    <div className="rounded-xl border border-green-500/20 bg-green-500/10 p-4">
+      <p className="text-sm font-medium text-green-300">Active</p>
+      <h3 className="mt-1 font-semibold text-white">{label}</h3>
     </div>
   );
 }
