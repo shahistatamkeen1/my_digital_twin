@@ -15,6 +15,7 @@ class LearningCreate(BaseModel):
     current_level: Optional[str] = "Beginner"
     target_level: Optional[str] = "Intermediate"
     resource: Optional[str] = None
+    resource_link: Optional[str] = None
     status: Optional[str] = "In Progress"
     notes: Optional[str] = None
 
@@ -25,6 +26,7 @@ class LearningUpdate(BaseModel):
     current_level: Optional[str] = None
     target_level: Optional[str] = None
     resource: Optional[str] = None
+    resource_link: Optional[str] = None
     status: Optional[str] = None
     notes: Optional[str] = None
 
@@ -36,6 +38,7 @@ class LearningResponse(BaseModel):
     current_level: Optional[str]
     target_level: Optional[str]
     resource: Optional[str]
+    resource_link: Optional[str]
     status: Optional[str]
     notes: Optional[str]
 
@@ -51,6 +54,7 @@ def create_learning_item(item: LearningCreate, db: Session = Depends(get_db)):
         current_level=item.current_level,
         target_level=item.target_level,
         resource=item.resource,
+        resource_link=item.resource_link,
         status=item.status,
         notes=item.notes,
     )

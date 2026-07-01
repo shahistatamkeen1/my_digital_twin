@@ -16,6 +16,8 @@ class LearningMemory(Base):
     target_level = Column(String, default="Intermediate")
 
     resource = Column(Text)
+    
+    resource_link = Column(String, nullable=True)
 
     status = Column(String, default="In Progress")
 

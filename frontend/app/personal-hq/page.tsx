@@ -7,6 +7,7 @@ type FocusScores = {
   career_score: number;
   finance_score: number;
   health_score: number;
+  learning_score: number;
   overall_score: number;
   highest_roi_focus: string;
 };
@@ -179,7 +180,7 @@ export default function CommandCenterPage() {
                 </div>
 
                 <p className="mt-5 text-sm leading-6 text-slate-300">
-                  This score combines your Career, Finance, and Health Twin
+                  This score combines your Career, Finance, Health, and Learning Twin
                   signals into one overall readiness score.
                 </p>
               </div>
@@ -197,7 +198,7 @@ export default function CommandCenterPage() {
               </div>
             </section>
 
-            <section className="grid grid-cols-1 gap-5 md:grid-cols-4">
+            <section className="grid grid-cols-1 gap-5 md:grid-cols-5">
               <ScoreCard
                 label="Career"
                 value={data.focus_scores.career_score}
@@ -224,6 +225,15 @@ export default function CommandCenterPage() {
                   previousScores?.health_score
                 )}
               />
+
+              <ScoreCard
+  label="Learning"
+  value={data.focus_scores.learning_score}
+  trend={getTrend(
+    data.focus_scores.learning_score,
+    previousScores?.learning_score
+  )}
+/>
 
               <ScoreCard
                 label="Overall Twin"
@@ -305,6 +315,12 @@ export default function CommandCenterPage() {
                 button="Open Notifications"
                 onClick={() => router.push("/twin-notifications")}
               />
+              <QuickAction
+  title="Progress Center"
+  description="Track your score history, growth trends, and Digital Twin improvement."
+  button="Open Progress-Center"
+  onClick={() => router.push("/progress-center")}
+/>
             </section>
 
             <section className="rounded-2xl bg-slate-900 p-6">
@@ -453,11 +469,20 @@ function QuickAction({
   );
 }
 
-function StatusCard({ label }: { label: string }) {
+function StatusCard({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick?: () => void;
+}) {
   return (
-    <div className="rounded-xl border border-green-500/20 bg-green-500/10 p-4">
+    <button
+      onClick={onClick}
+      className="rounded-xl border border-green-500/20 bg-green-500/10 p-4 text-left hover:bg-green-500/20"
+    >
       <p className="text-sm font-medium text-green-300">Active</p>
       <h3 className="mt-1 font-semibold text-white">{label}</h3>
-    </div>
+    </button>
   );
 }

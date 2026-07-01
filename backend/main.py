@@ -21,9 +21,14 @@ from app.routes import personal_memory
 from app.models import learning as learning_model
 from app.routes import learning
 from app.routes import learning_chat
+from app.routes import learning_recommendations
+from app.models import learning_progress as learning_progress_model
+from app.routes import learning_progress
+from app.routes import resource_recommendations
 from app.routes import twin_brief
 from app.routes import twin_notifications
 from app.routes import master_context
+from app.routes import progress
 
 app = FastAPI()
 
@@ -32,9 +37,9 @@ Base.metadata.create_all(bind=engine)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-    "http://localhost:3000",
-    "chrome-extension://*"
-],
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -120,6 +125,27 @@ app.include_router(
     learning_chat.router,
     prefix="/api/learning-chat",
     tags=["Learning Chat"]
+)
+app.include_router(
+    learning_recommendations.router,
+    prefix="/api/learning-recommendations",
+    tags=["Learning Recommendations"]
+)
+app.include_router(
+    learning_progress.router,
+    prefix="/api/learning-progress",
+    tags=["Learning Progress"]
+)
+
+app.include_router(
+    resource_recommendations.router,
+    prefix="/api/resource-recommendations",
+    tags=["Resource Recommendations"]
+)
+app.include_router(
+    progress.router,
+    prefix="/api/progress",
+    tags=["Progress"],
 )
 app.include_router(twin_context.router, prefix="/api/twin-context", tags=["Twin Context"])
 app.include_router(autofill.router, prefix="/api/autofill", tags=["Application Autofill"])

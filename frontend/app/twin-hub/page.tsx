@@ -17,6 +17,7 @@ const mainFeatures = [
     href: "/digital-twin-advisor",
     style: "border-violet-500/40 bg-violet-500/10 hover:border-violet-300",
   },
+  
 ];
 
 const intelligenceFeatures = [
