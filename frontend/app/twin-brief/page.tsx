@@ -6,6 +6,7 @@ type FocusScores = {
   career_score: number;
   finance_score: number;
   health_score: number;
+  learning_score: number;
   overall_score: number;
   highest_roi_focus: string;
 };
@@ -23,6 +24,8 @@ type TwinBrief = {
   weekly_wins: any[];
   closing_note: string;
   focus_scores: FocusScores;
+  learning_focus: string;
+risks: string[];
 };
 
 export default function TwinBriefPage() {
@@ -97,10 +100,11 @@ export default function TwinBriefPage() {
             <div className="rounded-xl bg-slate-900 p-6">
               <h2 className="text-xl font-bold">Twin Focus Scores</h2>
 
-              <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-4">
+              <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-5">
                 <ScoreCard label="Career" value={brief.focus_scores.career_score} />
                 <ScoreCard label="Finance" value={brief.focus_scores.finance_score} />
                 <ScoreCard label="Health" value={brief.focus_scores.health_score} />
+                <ScoreCard label="Learning" value={brief.focus_scores.learning_score} />
                 <ScoreCard label="Overall" value={brief.focus_scores.overall_score} />
               </div>
 
@@ -120,11 +124,12 @@ export default function TwinBriefPage() {
             <p className="mt-3 text-slate-200">{brief.today_best_action}</p>
           </div>
 
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-            <BriefCard title="Career Focus" content={brief.career_focus} />
-            <BriefCard title="Finance Focus" content={brief.finance_focus} />
-            <BriefCard title="Health Focus" content={brief.health_focus} />
-          </div>
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-4">
+  <BriefCard title="Career Focus" content={brief.career_focus} />
+  <BriefCard title="Finance Focus" content={brief.finance_focus} />
+  <BriefCard title="Health Focus" content={brief.health_focus} />
+  <BriefCard title="Learning Focus" content={brief.learning_focus} />
+</div>
 
           <div className="rounded-xl bg-slate-900 p-6">
             <h2 className="text-xl font-semibold">Highest ROI Action</h2>

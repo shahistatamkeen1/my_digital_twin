@@ -2,7 +2,7 @@ import "./globals.css";
 
 export const metadata = {
   title: "My Digital Twin",
-  description: "AI-powered personal digital twin platform",
+  description: "AI-powered personal digital twin",
 };
 
 export default function RootLayout({
@@ -12,9 +12,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="bg-slate-950" suppressHydrationWarning>
-        {children}
-      </body>
+      <body suppressHydrationWarning>{children}</body>
     </html>
   );
 }

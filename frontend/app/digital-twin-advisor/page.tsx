@@ -3,9 +3,26 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
+type AdvisorReply = {
+  executive_summary: string;
+  mission_status: string;
+  career_signal: string;
+  finance_signal: string;
+  health_signal: string;
+  learning_signal: string;
+  personal_memory_signal: string;
+  conflict_resolution: string;
+  risk_level: string;
+  risks: string[];
+  recommended_actions: string[];
+  expected_roi: string;
+  next_best_action: string;
+};
+
 type Message = {
   role: "user" | "assistant";
-  content: string;
+  content?: string;
+  structured?: AdvisorReply;
 };
 
 type FocusScores = {
@@ -15,6 +32,12 @@ type FocusScores = {
   learning_score: number;
   overall_score: number;
   highest_roi_focus: string;
+};
+
+const initialMessage: Message = {
+  role: "assistant",
+  content:
+    "Hi, I'm your Digital Twin Advisor.\n\nI combine insights from your Career, Finance, Health, Learning, and Personal Memory twins to help you make smarter decisions, prioritize actions, and achieve your goals faster.",
 };
 
 const quickPrompts = [
@@ -64,30 +87,40 @@ export default function DigitalTwinAdvisorPage() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [focusScores, setFocusScores] = useState<FocusScores | null>(null);
+  const [messages, setMessages] = useState<Message[]>([initialMessage]);
+  const [mounted, setMounted] = useState(false);
+
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const [messages, setMessages] = useState<Message[]>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("digitalTwinAdvisorHistory");
-      if (saved) return JSON.parse(saved);
-    }
+  useEffect(() => {
+    setMounted(true);
 
-    return [
-      {
-        role: "assistant",
-        content:
-          "Hi, I'm your Digital Twin Advisor.\n\nI combine insights from your Career, Finance, Health, Learning, and Personal Memory twins to help you make smarter decisions, prioritize actions, and achieve your goals faster.",
-      },
-    ];
-  });
+    const saved = localStorage.getItem("digitalTwinAdvisorHistory");
+
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setMessages(parsed);
+        }
+      } catch {
+        setMessages([initialMessage]);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mounted) {
+      localStorage.setItem(
+        "digitalTwinAdvisorHistory",
+        JSON.stringify(messages)
+      );
+    }
+  }, [messages, mounted]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
-
-  useEffect(() => {
-    localStorage.setItem("digitalTwinAdvisorHistory", JSON.stringify(messages));
-  }, [messages]);
 
   const sendMessage = async (customPrompt?: string) => {
     const messageToSend = customPrompt || input;
@@ -125,13 +158,23 @@ export default function DigitalTwinAdvisorPage() {
         setFocusScores(data.focus_scores);
       }
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: data.reply || "I could not generate a response.",
-        },
-      ]);
+      if (data.reply && typeof data.reply === "object") {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            structured: data.reply,
+          },
+        ]);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: data.reply || "I could not generate a response.",
+          },
+        ]);
+      }
     } catch (error) {
       console.error("Digital Twin Advisor error:", error);
 
@@ -149,15 +192,20 @@ export default function DigitalTwinAdvisorPage() {
 
   const clearChat = () => {
     localStorage.removeItem("digitalTwinAdvisorHistory");
-
-    setMessages([
-      {
-        role: "assistant",
-        content:
-          "Hi, I'm your Digital Twin Advisor.\n\nI combine insights from your Career, Finance, Health, Learning, and Personal Memory twins to help you make smarter decisions, prioritize actions, and achieve your goals faster.",
-      },
-    ]);
+    setMessages([initialMessage]);
   };
+
+  if (!mounted) {
+    return (
+      <main className="min-h-screen bg-slate-950 p-8 text-white">
+        <div className="mx-auto max-w-7xl">
+          <p className="text-sm text-cyan-300">Master Digital Twin</p>
+          <h1 className="mt-2 text-4xl font-bold">Digital Twin Advisor</h1>
+          <p className="mt-3 text-slate-400">Loading advisor...</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-slate-950 p-8 text-white">
@@ -231,8 +279,8 @@ export default function DigitalTwinAdvisorPage() {
           </div>
         </section>
 
-        <section className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
-          <div className="custom-scrollbar h-[620px] overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900 p-5">
+        <section className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px]">
+          <div className="custom-scrollbar h-[720px] overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900 p-5">
             <div className="space-y-5">
               {messages.map((message, index) => (
                 <div
@@ -242,7 +290,7 @@ export default function DigitalTwinAdvisorPage() {
                   }`}
                 >
                   <div
-                    className={`max-w-[85%] rounded-2xl p-4 text-sm leading-6 whitespace-pre-wrap ${
+                    className={`max-w-[95%] rounded-2xl p-4 text-sm leading-6 ${
                       message.role === "user"
                         ? "bg-cyan-600 text-white"
                         : "bg-slate-800 text-slate-200"
@@ -254,9 +302,13 @@ export default function DigitalTwinAdvisorPage() {
                         : "Digital Twin Advisor"}
                     </p>
 
-                    <div className="prose prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-li:my-1 prose-headings:text-white">
-                      <ReactMarkdown>{message.content}</ReactMarkdown>
-                    </div>
+                    {message.structured ? (
+                      <AdvisorResponseCards reply={message.structured} />
+                    ) : (
+                      <div className="prose prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-li:my-1 prose-headings:text-white">
+                        <ReactMarkdown>{message.content || ""}</ReactMarkdown>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -346,6 +398,100 @@ function ScoreCard({ label, value }: { label: string; value: number }) {
           style={{ width: `${value}%` }}
         />
       </div>
+    </div>
+  );
+}
+
+function AdvisorResponseCards({ reply }: { reply: AdvisorReply }) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-4">
+        <p className="text-sm font-semibold text-cyan-300">
+          🧠 Executive Summary
+        </p>
+        <p className="mt-2 text-slate-200">{reply.executive_summary}</p>
+      </div>
+
+      <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-4">
+        <p className="text-sm font-semibold text-blue-300">
+          🎯 Mission Status
+        </p>
+        <p className="mt-2 text-slate-200">{reply.mission_status}</p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <SignalCard title="💼 Career Signal" value={reply.career_signal} />
+        <SignalCard title="💰 Finance Signal" value={reply.finance_signal} />
+        <SignalCard title="❤️ Health Signal" value={reply.health_signal} />
+        <SignalCard title="📚 Learning Signal" value={reply.learning_signal} />
+      </div>
+
+      <div className="rounded-xl bg-slate-900 p-4">
+        <p className="text-sm font-semibold text-violet-300">
+          🧬 Personal Memory Signal
+        </p>
+        <p className="mt-2 text-slate-300">
+          {reply.personal_memory_signal}
+        </p>
+      </div>
+
+      <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 p-4">
+        <p className="text-sm font-semibold text-orange-300">
+          ⚖️ Conflict Resolution
+        </p>
+        <p className="mt-2 text-slate-200">{reply.conflict_resolution}</p>
+      </div>
+
+      <div className="rounded-xl bg-slate-900 p-4">
+        <p className="text-sm font-semibold text-yellow-300">
+          ⚠️ Risk Level: {reply.risk_level}
+        </p>
+
+        <ul className="mt-3 space-y-2">
+          {(reply.risks || []).map((risk, index) => (
+            <li key={index} className="text-slate-300">
+              • {risk}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="rounded-xl bg-slate-900 p-4">
+        <p className="text-sm font-semibold text-emerald-300">
+          ✅ Recommended Actions
+        </p>
+
+        <ul className="mt-3 space-y-2">
+          {(reply.recommended_actions || []).map((action, index) => (
+            <li key={index} className="text-slate-300">
+              • {action}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="rounded-xl border border-purple-500/30 bg-purple-500/10 p-4">
+        <p className="text-sm font-semibold text-purple-300">
+          📈 Expected ROI
+        </p>
+        <p className="mt-2 text-slate-200">{reply.expected_roi}</p>
+      </div>
+
+      <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+        <p className="text-sm font-semibold text-emerald-300">
+          🚀 Next Best Action
+        </p>
+        <p className="mt-2 text-slate-100">{reply.next_best_action}</p>
+      </div>
+    </div>
+  );
+}
+
+function SignalCard({ title, value }: { title: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-slate-900 p-4">
+      <p className="text-sm font-semibold text-slate-300">{title}</p>
+      <p className="mt-2 text-slate-400">{value}</p>
     </div>
   );
 }

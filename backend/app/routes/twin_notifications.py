@@ -2,8 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.services.ai_service import generate_twin_notifications
-from app.services.master_context_service import get_master_context
+from app.services.executive_intelligence_service import generate_executive_intelligence
 
 router = APIRouter()
 
@@ -38,7 +37,6 @@ def get_priority_score(priority: str, category: str, focus_scores: dict) -> int:
     }
 
     score = base_scores.get(priority, 55)
-
     highest_roi_focus = str(focus_scores.get("highest_roi_focus", "")).lower()
 
     if category in highest_roi_focus:
@@ -50,8 +48,10 @@ def get_priority_score(priority: str, category: str, focus_scores: dict) -> int:
         value = focus_scores.get("finance_score", 100)
     elif category == "health":
         value = focus_scores.get("health_score", 100)
+    elif category == "learning":
+        value = focus_scores.get("learning_score", 100)
     else:
-        value = 100
+        value = focus_scores.get("overall_score", 100)
 
     if value < 60:
         score += 10
@@ -95,6 +95,13 @@ def get_action_fields(category: str):
             "action_url": "/health",
         }
 
+    if category == "learning":
+        return {
+            "action_label": "Open Learning Twin",
+            "action_type": "navigate",
+            "action_url": "/learning",
+        }
+
     if category in ["personal memory", "memory", "personal"]:
         return {
             "action_label": "Open Personal Memory",
@@ -103,62 +110,93 @@ def get_action_fields(category: str):
         }
 
     return {
-        "action_label": "Open Twin Hub",
+        "action_label": "Open Advisor",
         "action_type": "navigate",
-        "action_url": "/twin-hub",
+        "action_url": "/digital-twin-advisor",
     }
 
 
 @router.get("/")
 def get_twin_notifications(db: Session = Depends(get_db)):
-    context = get_master_context(db)
-    focus_scores = context["focus_scores"]
+    executive = generate_executive_intelligence(db)
 
-    result = generate_twin_notifications(context)
+    advisor = executive.get("advisor_response", {})
+    focus_scores = executive.get("focus_scores", {})
 
-    if not isinstance(result, dict):
-        result = {}
+    notifications = []
 
-    result.setdefault("summary", "Your Digital Twin notifications are ready.")
-    result.setdefault("notifications", [])
+    risk_level = normalize_priority(advisor.get("risk_level", "Medium"))
 
-    cleaned_notifications = []
-
-    for item in result.get("notifications", []):
-        if not isinstance(item, dict):
-            continue
-
-        category = item.get("category", "Orchestrator")
-        priority = normalize_priority(item.get("priority", "Medium"))
-
+    for risk in advisor.get("risks", []):
         priority_score = get_priority_score(
-            priority=priority,
-            category=category,
+            priority=risk_level,
+            category="orchestrator",
             focus_scores=focus_scores,
         )
 
-        priority_level = get_priority_level(priority_score)
-        action_fields = get_action_fields(category)
-
-        cleaned_notifications.append(
+        notifications.append(
             {
-                "category": category,
-                "priority": priority_level,
+                "category": "Orchestrator",
+                "priority": get_priority_level(priority_score),
                 "priority_score": priority_score,
-                "title": item.get("title", "Notification"),
-                "message": item.get("message", ""),
-                "recommended_action": item.get("recommended_action", ""),
-                **action_fields,
+                "title": "Risk Detected",
+                "message": risk,
+                "recommended_action": advisor.get("next_best_action", ""),
+                **get_action_fields("orchestrator"),
             }
         )
 
-    cleaned_notifications.sort(
+    for action in advisor.get("recommended_actions", []):
+        priority_score = get_priority_score(
+            priority="High",
+            category=str(focus_scores.get("highest_roi_focus", "orchestrator")),
+            focus_scores=focus_scores,
+        )
+
+        notifications.append(
+            {
+                "category": focus_scores.get("highest_roi_focus", "Orchestrator"),
+                "priority": get_priority_level(priority_score),
+                "priority_score": priority_score,
+                "title": "Recommended Action",
+                "message": action,
+                "recommended_action": action,
+                **get_action_fields(focus_scores.get("highest_roi_focus", "orchestrator")),
+            }
+        )
+
+    if advisor.get("next_best_action"):
+        priority_score = get_priority_score(
+            priority="High",
+            category=str(focus_scores.get("highest_roi_focus", "orchestrator")),
+            focus_scores=focus_scores,
+        )
+
+        notifications.insert(
+            0,
+            {
+                "category": "Executive",
+                "priority": get_priority_level(priority_score),
+                "priority_score": priority_score,
+                "title": "Next Best Action",
+                "message": advisor.get("next_best_action", ""),
+                "recommended_action": advisor.get("next_best_action", ""),
+                **get_action_fields("orchestrator"),
+            },
+        )
+
+    notifications.sort(
         key=lambda item: item["priority_score"],
         reverse=True,
     )
 
     return {
-        "summary": result.get("summary", "Your Digital Twin notifications are ready."),
-        "notifications": cleaned_notifications,
+        "summary": advisor.get(
+            "executive_summary",
+            "Your Digital Twin notifications are ready.",
+        ),
+        "notifications": notifications,
         "focus_scores": focus_scores,
+        "agent_analysis": executive.get("agent_analysis", {}),
+        "conflict_resolution": executive.get("conflict_resolution", {}),
     }

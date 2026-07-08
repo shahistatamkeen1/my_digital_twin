@@ -321,6 +321,34 @@ export default function CommandCenterPage() {
   button="Open Progress-Center"
   onClick={() => router.push("/progress-center")}
 />
+
+<QuickAction
+  title="Agent Memory"
+  description="View what your AI agents have learned and remembered over time."
+  button="Open Agent Memory"
+  onClick={() => router.push("/agent-memory")}
+/>
+
+<QuickAction
+  title="Twin Personality"
+  description="See what your Digital Twin has learned about your goals, habits, and decision patterns."
+  button="Open Personality"
+  onClick={() => router.push("/twin-personality")}
+/>
+
+<QuickAction
+  title="Twin Journal"
+  description="View the timeline of memories, reflections, and growth across all agents."
+  button="Open Journal"
+  onClick={() => router.push("/twin-journal")}
+/>
+
+<QuickAction
+  title="Autonomous Planning"
+  description="Generate 7-day action plans from your Digital Twin's learned goals and risks."
+  button="Open Planner"
+  onClick={() => router.push("/agent-plans")}
+/>
             </section>
 
             <section className="rounded-2xl bg-slate-900 p-6">

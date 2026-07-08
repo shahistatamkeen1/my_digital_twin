@@ -31,6 +31,25 @@ type ProgressResponse = {
   total_snapshots: number;
   latest: ProgressSnapshot | null;
   ai_review: string;
+executive_recommendations: string[];
+next_best_action: string;
+risk_level: string;
+  growth_forecast: {
+  status: string;
+  message: string;
+  forecast: {
+    career_score: number | null;
+    finance_score: number | null;
+    health_score: number | null;
+    learning_score: number | null;
+    overall_score: number | null;
+  };
+  recommendation: string;
+};
+achievements: {
+  title: string;
+  icon: string;
+}[];
   insights: {
     best_twin: InsightItem | null;
     worst_twin: InsightItem | null;
@@ -65,6 +84,11 @@ type ProgressResponse = {
 export default function ProgressCenterPage() {
   const [data, setData] = useState<ProgressResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const downloadScorecard = () => {
+  window.open("http://localhost:8000/api/progress/scorecard-pdf", "_blank");
+};
+
+
 
   const loadProgress = async () => {
     setLoading(true);
@@ -96,6 +120,8 @@ export default function ProgressCenterPage() {
   const history = data?.history || [];
   const latest = data?.latest;
   const insights = data?.insights;
+  const forecast = data?.["growth_forecast"];
+  const achievements = data?.["achievements"];
 
   return (
     <main className="min-h-screen bg-slate-950 p-8 text-white">
@@ -111,6 +137,13 @@ export default function ProgressCenterPage() {
               insights across all Digital Twins.
             </p>
           </div>
+          
+          <button
+          onClick={downloadScorecard}
+          className="px-4 py-2 rounded-xl bg-black text-white hover:opacity-90"
+        >
+          Download Monthly Scorecard
+        </button>
 
           <button
             onClick={loadProgress}
@@ -120,6 +153,7 @@ export default function ProgressCenterPage() {
             {loading ? "Refreshing..." : "Refresh Progress"}
           </button>
         </div>
+        
 
         {loading && (
           <div className="mt-10 rounded-2xl bg-slate-900 p-8 text-slate-300">
@@ -231,15 +265,50 @@ export default function ProgressCenterPage() {
               </section>
             )}
 
-            <section className="rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-6">
-              <p className="text-sm text-cyan-300">AI Executive Review</p>
-              <h2 className="mt-2 text-2xl font-bold">
-                Digital Twin Performance Summary
-              </h2>
-              <p className="mt-4 leading-7 text-slate-300">
-                {data?.ai_review || insights?.executive_review}
-              </p>
-            </section>
+            <section className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-6">
+  <p className="text-sm text-emerald-300">
+    Multi-Agent Strategy
+  </p>
+
+  <h2 className="mt-2 text-2xl font-bold">
+    Strategic Recommendations
+  </h2>
+
+  {data?.executive_recommendations?.length ? (
+    <ul className="mt-5 space-y-3">
+      {data.executive_recommendations.map((item, index) => (
+        <li
+          key={index}
+          className="rounded-xl bg-slate-900 p-4 text-slate-300"
+        >
+          {item}
+        </li>
+      ))}
+    </ul>
+  ) : (
+    <p className="mt-4 text-slate-400">
+      No strategic recommendations available yet.
+    </p>
+  )}
+
+  {data?.next_best_action && (
+    <div className="mt-5 rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-4">
+      <p className="text-sm text-cyan-300">Next Best Action</p>
+      <p className="mt-2 font-semibold text-white">
+        {data.next_best_action}
+      </p>
+    </div>
+  )}
+
+  {data?.risk_level && (
+    <div className="mt-5 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4">
+      <p className="text-sm text-yellow-300">Risk Level</p>
+      <p className="mt-2 font-semibold text-white">
+        {data.risk_level}
+      </p>
+    </div>
+  )}
+</section>
 
             <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <TrendChart
@@ -342,6 +411,83 @@ export default function ProgressCenterPage() {
                 </div>
               )}
             </section>
+
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 mt-6">
+  <h2 className="text-xl font-bold mb-4">
+    🔮 AI Growth Forecast
+  </h2>
+
+  {forecast?.status === "not_enough_data" ? (
+    <div className="text-slate-400">
+      {forecast?.message}
+    </div>
+  ) : (
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+
+        <div className="bg-slate-800 rounded-xl p-4">
+          <p className="text-slate-400 text-sm">Career</p>
+          <h3 className="text-2xl font-bold">
+            {forecast?.forecast?.career_score}%
+          </h3>
+        </div>
+
+        <div className="bg-slate-800 rounded-xl p-4">
+          <p className="text-slate-400 text-sm">Finance</p>
+          <h3 className="text-2xl font-bold">
+            {forecast?.forecast?.finance_score}%
+          </h3>
+        </div>
+
+        <div className="bg-slate-800 rounded-xl p-4">
+          <p className="text-slate-400 text-sm">Health</p>
+          <h3 className="text-2xl font-bold">
+            {forecast?.forecast?.health_score}%
+          </h3>
+        </div>
+
+        <div className="bg-slate-800 rounded-xl p-4">
+          <p className="text-slate-400 text-sm">Learning</p>
+          <h3 className="text-2xl font-bold">
+            {forecast?.forecast?.learning_score}%
+          </h3>
+        </div>
+
+        <div className="bg-slate-800 rounded-xl p-4">
+          <p className="text-slate-400 text-sm">Overall</p>
+          <h3 className="text-2xl font-bold text-cyan-400">
+            {forecast?.forecast?.overall_score}%
+          </h3>
+        </div>
+
+      </div>
+
+      <div className="mt-4 p-4 rounded-xl bg-slate-800">
+        <p className="text-sm text-slate-300">
+          {forecast?.recommendation}
+        </p>
+      </div>
+    </>
+  )}
+</div>
+
+<div className="bg-slate-900 rounded-2xl p-6 mt-6">
+  <h2 className="text-xl font-bold mb-4">
+    🏆 Achievements & Milestones
+  </h2>
+
+  <div className="flex flex-wrap gap-4">
+    {data?.achievements?.map((badge, index) => (
+      <div
+        key={index}
+        className="bg-slate-800 px-5 py-3 rounded-xl"
+      >
+        <span className="mr-2">{badge.icon}</span>
+        {badge.title}
+      </div>
+    ))}
+  </div>
+</div>
 
             <section className="rounded-2xl bg-slate-900 p-6">
               <p className="text-sm text-cyan-300">Score History</p>

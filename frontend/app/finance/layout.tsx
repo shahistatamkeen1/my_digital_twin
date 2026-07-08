@@ -8,9 +8,7 @@ export default function FinanceLayout({
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       <FinanceSidebar />
-      <div className="ml-64 min-h-screen">
-        {children}
-      </div>
+      <main className="ml-64 min-h-screen">{children}</main>
     </div>
   );
 }

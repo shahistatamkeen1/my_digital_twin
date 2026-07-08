@@ -4,6 +4,9 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.personal_memory import PersonalMemory
+from app.services.executive_intelligence_service import (
+    generate_executive_intelligence,
+)
 
 router = APIRouter()
 

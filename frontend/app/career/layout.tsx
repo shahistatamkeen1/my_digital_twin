@@ -1,4 +1,4 @@
-import Sidebar from "../components/Sidebar";
+import CareerSidebar from "./components/CareerSidebar";
 
 export default function CareerLayout({
   children,
@@ -7,10 +7,8 @@ export default function CareerLayout({
 }) {
   return (
     <div className="min-h-screen bg-slate-950 text-white">
-      <Sidebar />
-      <div className="ml-64 min-h-screen">
-        {children}
-      </div>
+      <CareerSidebar />
+      <main className="ml-64 min-h-screen">{children}</main>
     </div>
   );
 }

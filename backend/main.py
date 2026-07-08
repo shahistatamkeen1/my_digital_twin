@@ -29,6 +29,15 @@ from app.routes import twin_brief
 from app.routes import twin_notifications
 from app.routes import master_context
 from app.routes import progress
+from app.models.agent_memory import AgentMemory
+from app.routes import agent_memory
+from app.models.agent_profile import AgentProfile
+from app.routes import agent_profiles
+from app.models.agent_reflection import AgentReflection
+from app.routes import agent_reflections
+from app.routes import twin_journal
+from app.routes import agent_plans
+from app.routes import predictive_insights
 
 app = FastAPI()
 
@@ -146,6 +155,36 @@ app.include_router(
     progress.router,
     prefix="/api/progress",
     tags=["Progress"],
+)
+app.include_router(
+    agent_memory.router,
+    prefix="/api/agent-memory",
+    tags=["Agent Memory"],
+)
+app.include_router(
+    agent_profiles.router,
+    prefix="/api/agent-profiles",
+    tags=["Agent Profiles"],
+)
+app.include_router(
+    agent_reflections.router,
+    prefix="/api/agent-reflections",
+    tags=["Agent Reflections"],
+)
+app.include_router(
+    twin_journal.router,
+    prefix="/api/twin-journal",
+    tags=["Twin Journal"],
+)
+app.include_router(
+    agent_plans.router,
+    prefix="/api/agent-plans",
+    tags=["Agent Plans"],
+)
+app.include_router(
+    predictive_insights.router,
+    prefix="/api/predictive-insights",
+    tags=["Predictive Insights"],
 )
 app.include_router(twin_context.router, prefix="/api/twin-context", tags=["Twin Context"])
 app.include_router(autofill.router, prefix="/api/autofill", tags=["Application Autofill"])
