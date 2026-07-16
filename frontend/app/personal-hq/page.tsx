@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import AppShell from "@/components/AppShell";
 
 type FocusScores = {
   career_score: number;
@@ -136,12 +137,12 @@ export default function CommandCenterPage() {
   const dailyPriorities = data?.notifications?.slice(0, 4) || [];
 
   return (
-    <main className="min-h-screen bg-slate-950 p-8 text-white">
+    <AppShell>
       <div className="mx-auto max-w-7xl">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm text-cyan-300">My Digital Twin</p>
-            <h1 className="mt-2 text-4xl font-bold">
+            <h1 className="mt-2 text-3xl font-bold sm:text-4xl">
               Personal HQ
             </h1>
             <p className="mt-3 max-w-3xl text-slate-400">
@@ -171,7 +172,7 @@ export default function CommandCenterPage() {
                 <p className="text-sm text-cyan-300">Digital Twin Score</p>
 
                 <div className="mt-6 flex items-end gap-3">
-                  <h2 className="text-7xl font-bold text-cyan-300">
+                  <h2 className="text-5xl font-bold text-cyan-300 sm:text-7xl">
                     {data.focus_scores.overall_score}%
                   </h2>
                   <span className="mb-3 rounded-full border border-cyan-400/40 bg-cyan-400/10 px-4 py-1 text-sm text-cyan-200">
@@ -198,7 +199,7 @@ export default function CommandCenterPage() {
               </div>
             </section>
 
-            <section className="grid grid-cols-1 gap-5 md:grid-cols-5">
+            <section className="grid grid-cols-2 gap-4 lg:grid-cols-5">
               <ScoreCard
                 label="Career"
                 value={data.focus_scores.career_score}
@@ -246,7 +247,7 @@ export default function CommandCenterPage() {
             </section>
 
             <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-              <div className="rounded-2xl border border-violet-500/30 bg-violet-500/10 p-6">
+              <div className="rounded-2xl border border-violet-500/30 bg-violet-500/10 p-6 h-fit">
                 <p className="text-sm text-violet-300">
                   Highest ROI Focus
                 </p>
@@ -275,13 +276,13 @@ export default function CommandCenterPage() {
                       <button
                         key={index}
                         onClick={() => openAction(item)}
-                        className="flex w-full items-start gap-4 rounded-xl border border-slate-700 bg-slate-800 p-4 text-left hover:bg-slate-700"
+                        className="flex w-full flex-col gap-3 rounded-xl border border-slate-700 bg-slate-800 p-4 text-left hover:bg-slate-700 sm:flex-row sm:items-start"
                       >
                         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cyan-500/20 text-sm font-bold text-cyan-300">
                           {index + 1}
                         </span>
 
-                        <div>
+                        <div className="flex-1">
                           <h3 className="font-semibold">{item.title}</h3>
                           <p className="mt-1 text-sm text-slate-400">
                             {item.recommended_action}
@@ -294,7 +295,7 @@ export default function CommandCenterPage() {
               </div>
             </section>
 
-            <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <section className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
               <QuickAction
                 title="Ask Digital Twin Advisor"
                 description="Ask one question across Career, Finance, and Health."
@@ -349,6 +350,13 @@ export default function CommandCenterPage() {
   button="Open Planner"
   onClick={() => router.push("/agent-plans")}
 />
+
+<QuickAction
+  title="Predictive Insights"
+  description="Forecast career, finance, health, and learning momentum from your Digital Twin data."
+  button="Open Predictions"
+  onClick={() => router.push("/predictive-insights")}
+/>
             </section>
 
             <section className="rounded-2xl bg-slate-900 p-6">
@@ -357,7 +365,7 @@ export default function CommandCenterPage() {
                 System Health
               </h2>
 
-              <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-5">
+              <div className="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-5">
                 <StatusCard label="Career Twin" />
                 <StatusCard label="Finance Twin" />
                 <StatusCard label="Health Twin" />
@@ -388,7 +396,7 @@ export default function CommandCenterPage() {
                   No priority alerts available right now.
                 </p>
               ) : (
-                <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
+                <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {topNotifications.map((item, index) => (
                     <div
                       key={index}
@@ -434,7 +442,7 @@ export default function CommandCenterPage() {
           </div>
         )}
       </div>
-    </main>
+    </AppShell>
   );
 }
 
@@ -483,8 +491,8 @@ function QuickAction({
   onClick: () => void;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
-      <h3 className="text-xl font-semibold">{title}</h3>
+    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
+      <h3 className="text-lg font-semibold sm:text-xl">{title}</h3>
       <p className="mt-3 text-sm leading-6 text-slate-400">{description}</p>
 
       <button

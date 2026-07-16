@@ -191,17 +191,17 @@ const clearRoadmap = async () => {
     items.length === 0 ? 0 : Math.round((completedCount / items.length) * 100);
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white p-8">
-      <h1 className="text-3xl font-bold">Career Roadmap</h1>
+    <>
+      <h1 className="text-3xl font-bold sm:text-4xl">Career Roadmap</h1>
 
       <p className="mt-2 text-slate-400">
         Build and track your 30-day career growth plan.
       </p>
 
-      <div className="mt-8 bg-slate-900 p-6 rounded-xl">
+      <div className="mt-8 rounded-xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
         <h2 className="text-xl font-semibold">Roadmap Progress</h2>
 
-        <p className="mt-4 text-5xl font-bold text-indigo-400">
+        <p className="mt-4 text-4xl font-bold text-indigo-400 sm:text-5xl">
           {progress}%
         </p>
 
@@ -217,11 +217,11 @@ const clearRoadmap = async () => {
         </p>
       </div>
 
-      <div className="mt-8 bg-slate-900 p-6 rounded-xl">
-        <div className="flex items-center justify-between">
+      <div className="mt-8 rounded-xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <h2 className="text-xl font-semibold">Add Roadmap Item</h2>
 
-          <div className="flex gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:flex">
   <button
     onClick={generatePersonalizedRoadmap}
     className="rounded-lg bg-indigo-600 px-4 py-2 text-sm hover:bg-indigo-500"
@@ -245,13 +245,13 @@ const clearRoadmap = async () => {
 </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
+        <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
           <input
             name="week"
             value={form.week}
             onChange={handleChange}
             placeholder="Week 1"
-            className="bg-slate-800 p-3 rounded-lg outline-none"
+            className="w-full rounded-lg bg-slate-800 p-3.5 outline-none focus:ring-2 focus:ring-indigo-500/40"
           />
 
           <input
@@ -259,7 +259,7 @@ const clearRoadmap = async () => {
             value={form.title}
             onChange={handleChange}
             placeholder="Learn Docker Basics"
-            className="bg-slate-800 p-3 rounded-lg outline-none"
+            className="w-full rounded-lg bg-slate-800 p-3.5 outline-none focus:ring-2 focus:ring-indigo-500/40"
           />
 
           <textarea
@@ -267,7 +267,7 @@ const clearRoadmap = async () => {
             value={form.description}
             onChange={handleChange}
             placeholder="Describe this roadmap step..."
-            className="bg-slate-800 p-3 rounded-lg outline-none md:col-span-2"
+            className="w-full rounded-lg bg-slate-800 p-3.5 outline-none focus:ring-2 focus:ring-indigo-500/40 lg:col-span-2"
             rows={3}
           />
 
@@ -276,7 +276,7 @@ const clearRoadmap = async () => {
             value={form.tasks}
             onChange={handleChange}
             placeholder="Add tasks, one per line..."
-            className="bg-slate-800 p-3 rounded-lg outline-none md:col-span-2"
+            className="w-full rounded-lg bg-slate-800 p-3.5 outline-none focus:ring-2 focus:ring-indigo-500/40 lg:col-span-2"
             rows={4}
           />
         </div>
@@ -284,7 +284,7 @@ const clearRoadmap = async () => {
         <button
           onClick={addItem}
           disabled={loading}
-          className="mt-5 bg-indigo-600 px-5 py-3 rounded-lg font-medium hover:bg-indigo-500 disabled:opacity-50"
+          className="mt-5 w-full rounded-lg bg-indigo-600 px-5 py-3 font-medium hover:bg-indigo-500 disabled:opacity-50 sm:w-auto"
         >
           {loading ? "Adding..." : "Add Roadmap Item"}
         </button>
@@ -292,7 +292,7 @@ const clearRoadmap = async () => {
 
       <div className="mt-8 space-y-6">
         {items.length === 0 ? (
-          <div className="bg-slate-900 p-6 rounded-xl">
+          <div className="rounded-xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
             <p className="text-slate-400">
               No roadmap items yet. Add one manually or generate the sample 30-day plan.
             </p>
@@ -301,9 +301,9 @@ const clearRoadmap = async () => {
           items.map((item) => (
             <div
               key={item.id}
-              className="bg-slate-900 p-6 rounded-xl border border-slate-800"
+              className="rounded-xl border border-slate-800 bg-slate-900 p-5 sm:p-6 border border-slate-800"
             >
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                   <p className="text-indigo-400 text-sm font-medium">
                     {item.week}
@@ -318,7 +318,7 @@ const clearRoadmap = async () => {
                   </h2>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row">
                   <button
                     onClick={() => toggleComplete(item)}
                     className={`px-4 py-2 rounded-lg text-sm ${
@@ -339,7 +339,7 @@ const clearRoadmap = async () => {
                 </div>
               </div>
 
-              <p className="mt-4 text-slate-300">
+              <p className="mt-4 break-words leading-6 text-slate-300">
                 {item.description}
               </p>
 
@@ -347,7 +347,7 @@ const clearRoadmap = async () => {
                 <div className="mt-5">
                   <h3 className="font-semibold">Tasks</h3>
 
-                  <ul className="list-disc list-inside mt-2 text-slate-300 space-y-1">
+                  <ul className="mt-2 list-disc space-y-2 break-words pl-5 text-sm leading-6 text-slate-300">
                     {item.tasks.split("\n").map((task, index) => (
                       <li key={index}>{task}</li>
                     ))}
@@ -358,6 +358,6 @@ const clearRoadmap = async () => {
           ))
         )}
       </div>
-    </main>
+    </>
   );
 }

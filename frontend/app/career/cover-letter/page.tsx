@@ -71,28 +71,28 @@ export default function CoverLetterPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white p-8">
-      <h1 className="text-3xl font-bold">Cover Letter Agent</h1>
+    <>
+      <h1 className="text-3xl font-bold sm:text-4xl">Cover Letter Agent</h1>
 
       <p className="mt-2 text-slate-400">
         Generate a professional cover letter using your resume, career memory,
         and job description.
       </p>
 
-      <div className="mt-8 bg-slate-900 p-6 rounded-xl">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="mt-8 rounded-xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <input
             value={company}
             onChange={(e) => setCompany(e.target.value)}
             placeholder="Company"
-            className="bg-slate-800 p-3 rounded-lg outline-none"
+            className="w-full rounded-lg bg-slate-800 p-3.5 outline-none focus:ring-2 focus:ring-pink-500/40"
           />
 
           <input
             value={role}
             onChange={(e) => setRole(e.target.value)}
             placeholder="Role"
-            className="bg-slate-800 p-3 rounded-lg outline-none"
+            className="w-full rounded-lg bg-slate-800 p-3.5 outline-none focus:ring-2 focus:ring-pink-500/40"
           />
 
           <textarea
@@ -100,37 +100,37 @@ export default function CoverLetterPage() {
             onChange={(e) => setJobDescription(e.target.value)}
             placeholder="Paste job description here..."
             rows={10}
-            className="bg-slate-800 p-3 rounded-lg outline-none md:col-span-2"
+            className="w-full rounded-lg bg-slate-800 p-3.5 outline-none focus:ring-2 focus:ring-pink-500/40 lg:col-span-2"
           />
         </div>
 
         <button
           onClick={generateCoverLetter}
           disabled={loading}
-          className="mt-5 bg-pink-600 px-5 py-3 rounded-lg hover:bg-pink-500 disabled:opacity-50"
+          className="mt-5 w-full rounded-lg bg-pink-600 px-5 py-3 font-medium hover:bg-pink-500 disabled:opacity-50 sm:w-auto"
         >
           {loading ? "Generating..." : "Generate Cover Letter"}
         </button>
       </div>
 
       {coverLetter && (
-        <div className="mt-8 bg-slate-900 p-6 rounded-xl">
-          <div className="flex items-center justify-between">
+        <div className="mt-8 rounded-xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-xl font-semibold">Generated Cover Letter</h2>
 
             <button
               onClick={copyCoverLetter}
-              className="bg-slate-700 px-4 py-2 rounded-lg hover:bg-slate-600"
+              className="w-full rounded-lg bg-slate-700 px-4 py-2.5 hover:bg-slate-600 sm:w-auto"
             >
               Copy
             </button>
           </div>
 
-          <pre className="mt-5 whitespace-pre-wrap text-sm text-slate-300 bg-slate-800 p-5 rounded-lg">
+          <pre className="mt-5 max-h-[800px] max-w-full overflow-auto whitespace-pre-wrap break-words rounded-lg bg-slate-800 p-5 font-sans text-sm leading-6 text-slate-300">
             {coverLetter}
           </pre>
         </div>
       )}
-    </main>
+    </>
   );
 }

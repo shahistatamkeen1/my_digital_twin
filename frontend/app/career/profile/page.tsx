@@ -35,13 +35,13 @@ export default function CareerProfilePage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white p-8">
-      <h1 className="text-3xl font-bold">Career Profile</h1>
+    <>
+      <h1 className="text-3xl font-bold sm:text-4xl">Career Profile</h1>
       <p className="mt-2 text-slate-400">
         Tell your Career Twin what kind of roles you are targeting.
       </p>
 
-      <div className="mt-8 max-w-2xl bg-slate-900 p-6 rounded-xl space-y-5">
+      <div className="mt-8 max-w-2xl rounded-xl border border-slate-800 bg-slate-900 p-5 sm:p-6 space-y-5">
         <div>
           <label className="block mb-2 text-sm text-slate-300">
             Target Role
@@ -51,7 +51,7 @@ export default function CareerProfilePage() {
             value={profile.targetRole}
             onChange={handleChange}
             placeholder="Software Engineer"
-            className="w-full rounded-lg bg-slate-800 p-3 outline-none"
+            className="w-full rounded-lg bg-slate-800 p-3.5 outline-none focus:ring-2 focus:ring-indigo-500/40"
           />
         </div>
 
@@ -63,7 +63,7 @@ export default function CareerProfilePage() {
             name="experienceLevel"
             value={profile.experienceLevel}
             onChange={handleChange}
-            className="w-full rounded-lg bg-slate-800 p-3 outline-none"
+            className="w-full rounded-lg bg-slate-800 p-3.5 outline-none focus:ring-2 focus:ring-indigo-500/40"
           >
             <option value="">Select level</option>
             <option value="Entry Level">Entry Level</option>
@@ -81,7 +81,7 @@ export default function CareerProfilePage() {
             value={profile.preferredLocation}
             onChange={handleChange}
             placeholder="Chicago, Remote, New York"
-            className="w-full rounded-lg bg-slate-800 p-3 outline-none"
+            className="w-full rounded-lg bg-slate-800 p-3.5 outline-none focus:ring-2 focus:ring-indigo-500/40"
           />
         </div>
 
@@ -93,7 +93,7 @@ export default function CareerProfilePage() {
             name="workPreference"
             value={profile.workPreference}
             onChange={handleChange}
-            className="w-full rounded-lg bg-slate-800 p-3 outline-none"
+            className="w-full rounded-lg bg-slate-800 p-3.5 outline-none focus:ring-2 focus:ring-indigo-500/40"
           >
             <option value="">Select preference</option>
             <option value="Remote">Remote</option>
@@ -112,23 +112,23 @@ export default function CareerProfilePage() {
             value={profile.salaryExpectation}
             onChange={handleChange}
             placeholder="90000"
-            className="w-full rounded-lg bg-slate-800 p-3 outline-none"
+            className="w-full rounded-lg bg-slate-800 p-3.5 outline-none focus:ring-2 focus:ring-indigo-500/40"
           />
         </div>
 
         <button
           onClick={saveProfile}
-          className="rounded-lg bg-indigo-600 px-5 py-3 font-medium hover:bg-indigo-500"
+          className="w-full rounded-lg bg-indigo-600 px-5 py-3 font-medium hover:bg-indigo-500 sm:w-auto"
         >
           Save Career Profile
         </button>
 
         {saved && (
-          <p className="text-green-400">
+          <p className="rounded-lg bg-green-500/10 p-3 text-green-400">
             Career profile saved successfully.
           </p>
         )}
       </div>
-    </main>
+    </>
   );
 }

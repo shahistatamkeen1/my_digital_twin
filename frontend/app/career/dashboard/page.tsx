@@ -124,8 +124,8 @@ const twinIntelligenceScore = Math.round(
   ];
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white p-8">
-      <div className="flex items-center justify-between">
+    <>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold">Career Twin Dashboard</h1>
           <p className="mt-2 text-slate-400">
@@ -141,7 +141,7 @@ const twinIntelligenceScore = Math.round(
         </Link>
       </div>
 
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-5">
+      <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-5">
         <div className="bg-slate-900 p-5 rounded-xl">
           <p className="text-slate-400 text-sm">Total Applications</p>
           <h2 className="text-4xl font-bold mt-2">{total}</h2>
@@ -165,7 +165,7 @@ const twinIntelligenceScore = Math.round(
         </div>
       </div>
 
-          <div className="mt-8 bg-slate-900 p-6 rounded-xl">
+          <div className="mt-8 rounded-xl bg-slate-900 p-5 sm:p-6">
   <h2 className="text-xl font-semibold">Twin Intelligence Score</h2>
 
   <p className="text-slate-400 mt-1">
@@ -173,7 +173,7 @@ const twinIntelligenceScore = Math.round(
     interviews, and offer progress.
   </p>
 
-  <p className="mt-5 text-5xl font-bold text-indigo-400">
+  <p className="mt-5 text-4xl font-bold text-indigo-400 sm:text-5xl">
     {twinIntelligenceScore}%
   </p>
 
@@ -184,7 +184,7 @@ const twinIntelligenceScore = Math.round(
     />
   </div>
 
-  <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+  <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
     <div className="bg-slate-800 p-4 rounded-lg">
       <p className="text-slate-400 text-sm">Memory Completion</p>
       <p className="text-2xl font-bold mt-2">{memoryCompletion}%</p>
@@ -206,22 +206,33 @@ const twinIntelligenceScore = Math.round(
     </div>
   </div>
 
-  <p className="mt-4 text-sm text-slate-400">
+  <div className="mt-5 rounded-xl border border-indigo-500/20 bg-indigo-500/10 p-4">
+  <p className="text-sm font-semibold text-indigo-300">
     AI Insight of the Day
+  </p>
 
-Your interview readiness is currently lower than your application activity.
+  <p className="mt-2 text-sm leading-6 text-slate-300">
+    Your interview readiness is currently lower than your application
+    activity.
+  </p>
 
-Recommended next step:
-Generate an interview preparation plan and complete 3 mock questions.
+  <p className="mt-3 text-sm font-medium text-white">
+    Recommended next step
+  </p>
+
+  <p className="mt-1 text-sm leading-6 text-slate-300">
+    Generate an interview preparation plan and complete three mock
+    questions.
   </p>
 </div>
+</div>
 
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-5">
+      <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {quickActions.map((item) => (
           <Link
             key={item.href}
             href={item.href}
-            className="bg-slate-900 p-5 rounded-xl hover:bg-slate-800"
+            className="rounded-xl border border-slate-800 bg-slate-900 p-5 transition hover:border-indigo-500/40 hover:bg-slate-800"
           >
             <h2 className="font-semibold">{item.title}</h2>
             <p className="text-slate-400 text-sm mt-2">{item.description}</p>
@@ -230,7 +241,7 @@ Generate an interview preparation plan and complete 3 mock questions.
       </div>
 
 
-      <div className="mt-8 bg-slate-900 p-6 rounded-xl">
+      <div className="mt-8 rounded-xl bg-slate-900 p-5 sm:p-6">
         <h2 className="text-xl font-semibold">Application Pipeline</h2>
         <p className="text-slate-400 mt-1">
           Your progress through the hiring pipeline.
@@ -242,11 +253,11 @@ Generate an interview preparation plan and complete 3 mock questions.
 
             return (
               <div key={item.label}>
-                <div className="flex justify-between text-sm">
+                <div className="flex items-center justify-between gap-3 text-sm">
                   <span>{item.label}</span>
-                  <span className="text-slate-400">
-                    {item.value} jobs · {percent}%
-                  </span>
+                 <span className="shrink-0 text-xs text-slate-400 sm:text-sm">
+  {item.value} jobs · {percent}%
+</span>
                 </div>
 
                 <div className="mt-2 h-3 bg-slate-800 rounded-full">
@@ -261,8 +272,8 @@ Generate an interview preparation plan and complete 3 mock questions.
         </div>
       </div>
 
-      <div className="mt-8 bg-slate-900 p-6 rounded-xl">
-        <div className="flex items-center justify-between">
+      <div className="mt-8 rounded-xl bg-slate-900 p-5 sm:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-xl font-semibold">Career Memory</h2>
             <p className="text-slate-400 mt-1">
@@ -279,7 +290,7 @@ Generate an interview preparation plan and complete 3 mock questions.
         </div>
 
         {memory ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 mt-5">
             <div className="bg-slate-800 p-4 rounded-lg">
               <p className="text-slate-400 text-sm">Career Goal</p>
               <p className="font-medium mt-2 whitespace-pre-wrap">
@@ -320,8 +331,8 @@ Generate an interview preparation plan and complete 3 mock questions.
         )}
       </div>
 
-      <div className="mt-8 bg-slate-900 p-6 rounded-xl">
-        <div className="flex items-center justify-between">
+      <div className="mt-8 rounded-xl bg-slate-900 p-5 sm:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-xl font-semibold">Career Intelligence</h2>
             <p className="text-slate-400 mt-1">
@@ -338,7 +349,7 @@ Generate an interview preparation plan and complete 3 mock questions.
         </div>
 
         {careerIntelligence ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-5">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 mt-5">
             <div className="bg-slate-800 p-4 rounded-lg">
               <p className="text-slate-400 text-sm">Daily Focus</p>
               <p className="font-medium mt-2">
@@ -390,7 +401,7 @@ Generate an interview preparation plan and complete 3 mock questions.
         )}
       </div>
 
-      <div className="mt-8 bg-slate-900 p-6 rounded-xl">
+      <div className="mt-8 rounded-xl bg-slate-900 p-5 sm:p-6">
         <h2 className="text-xl font-semibold">Recent Applications</h2>
 
         {recentApplications.length === 0 ? (
@@ -425,6 +436,6 @@ Generate an interview preparation plan and complete 3 mock questions.
           </div>
         )}
       </div>
-    </main>
+    </>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 type Application = {
   id: number;
@@ -12,169 +12,297 @@ type Application = {
   notes: string;
 };
 
-const statuses = ["Saved", "Applied", "Interview", "Offer", "Rejected"];
+const STATUSES = [
+  "Saved",
+  "Applied",
+  "Interview",
+  "Offer",
+  "Rejected",
+] as const;
+
+type ApplicationStatus = (typeof STATUSES)[number];
 
 export default function ApplicationKanbanPage() {
   const [applications, setApplications] = useState<Application[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loadingApplications, setLoadingApplications] = useState(true);
+  const [updatingApplicationId, setUpdatingApplicationId] = useState<
+    number | null
+  >(null);
 
-  const fetchApplications = async () => {
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/applications/`
-      );
-      const data = await res.json();
-      setApplications(data);
-    } catch (error) {
-      alert("Could not load applications.");
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+  const fetchApplications = useCallback(async () => {
+    if (!apiUrl) {
+      alert("NEXT_PUBLIC_API_URL is not configured.");
+      setLoadingApplications(false);
+      return;
     }
-  };
+
+    try {
+      setLoadingApplications(true);
+
+      const response = await fetch(`${apiUrl}/api/applications/`, {
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to load applications: ${response.status}`
+        );
+      }
+
+      const data = await response.json();
+
+      setApplications(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Could not load applications:", error);
+      alert("Could not load applications.");
+    } finally {
+      setLoadingApplications(false);
+    }
+  }, [apiUrl]);
 
   useEffect(() => {
     fetchApplications();
-  }, []);
+  }, [fetchApplications]);
 
-  const updateStatus = async (id: number, status: string) => {
-    setLoading(true);
+  const updateStatus = async (
+    id: number,
+    status: ApplicationStatus
+  ) => {
+    if (!apiUrl) {
+      alert("NEXT_PUBLIC_API_URL is not configured.");
+      return;
+    }
+
+    const previousApplications = applications;
+
+    setUpdatingApplicationId(id);
+
+    setApplications((currentApplications) =>
+      currentApplications.map((application) =>
+        application.id === id
+          ? {
+              ...application,
+              status,
+            }
+          : application
+      )
+    );
 
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/applications/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status }),
-      });
+      const response = await fetch(
+        `${apiUrl}/api/applications/${id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            status,
+          }),
+        }
+      );
 
-      fetchApplications();
+      if (!response.ok) {
+        throw new Error(
+          `Failed to update application: ${response.status}`
+        );
+      }
+
+      await fetchApplications();
     } catch (error) {
+      console.error("Could not update application status:", error);
+
+      setApplications(previousApplications);
       alert("Could not update application status.");
     } finally {
-      setLoading(false);
+      setUpdatingApplicationId(null);
     }
   };
 
-  const getApplicationsByStatus = (status: string) => {
-    return applications.filter((app) => app.status === status);
+  const getApplicationsByStatus = (
+    status: ApplicationStatus
+  ) => {
+    return applications.filter(
+      (application) => application.status === status
+    );
   };
 
-  const getColumnColor = (status: string) => {
-    if (status === "Saved") return "border-slate-700";
-    if (status === "Applied") return "border-blue-500/40";
-    if (status === "Interview") return "border-yellow-500/40";
-    if (status === "Offer") return "border-green-500/40";
-    if (status === "Rejected") return "border-red-500/40";
-    return "border-slate-700";
+  const getColumnColor = (
+    status: ApplicationStatus
+  ): string => {
+    const colors: Record<ApplicationStatus, string> = {
+      Saved: "border-slate-700",
+      Applied: "border-blue-500/40",
+      Interview: "border-yellow-500/40",
+      Offer: "border-green-500/40",
+      Rejected: "border-red-500/40",
+    };
+
+    return colors[status];
   };
 
-  const getBadgeColor = (status: string) => {
-    if (status === "Saved") return "bg-slate-700 text-slate-300";
-    if (status === "Applied") return "bg-blue-500/20 text-blue-300";
-    if (status === "Interview") return "bg-yellow-500/20 text-yellow-300";
-    if (status === "Offer") return "bg-green-500/20 text-green-300";
-    if (status === "Rejected") return "bg-red-500/20 text-red-300";
-    return "bg-slate-700 text-slate-300";
+  const getBadgeColor = (
+    status: ApplicationStatus
+  ): string => {
+    const colors: Record<ApplicationStatus, string> = {
+      Saved: "bg-slate-700 text-slate-300",
+      Applied: "bg-blue-500/20 text-blue-300",
+      Interview: "bg-yellow-500/20 text-yellow-300",
+      Offer: "bg-green-500/20 text-green-300",
+      Rejected: "bg-red-500/20 text-red-300",
+    };
+
+    return colors[status];
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white p-8">
-      <h1 className="text-3xl font-bold">Application Kanban Board</h1>
+    <>
+      <header>
+        <h1 className="text-3xl font-bold sm:text-4xl">
+          Application Kanban Board
+        </h1>
 
-      <p className="mt-2 text-slate-400">
-        Track your job applications through each stage of the hiring pipeline.
-      </p>
-
-      {loading && (
-        <p className="mt-4 text-indigo-400">
-          Updating status...
+        <p className="mt-2 max-w-3xl text-slate-400">
+          Track your job applications through each stage of the
+          hiring pipeline.
         </p>
+      </header>
+
+      {updatingApplicationId !== null && (
+        <div
+          className="mt-4 inline-flex rounded-lg bg-indigo-500/10 px-4 py-2 text-sm text-indigo-300"
+          role="status"
+          aria-live="polite"
+        >
+          Updating application status...
+        </div>
       )}
 
-      <div className="mt-8 grid grid-cols-1 xl:grid-cols-5 gap-5">
-        {statuses.map((status) => {
-          const columnApps = getApplicationsByStatus(status);
-
-          return (
-            <div
-              key={status}
-              className={`bg-slate-900 border ${getColumnColor(
-                status
-              )} rounded-xl p-4 min-h-[500px]`}
-            >
-              <div className="flex items-center justify-between mb-5">
-                <h2 className="font-semibold text-lg">{status}</h2>
-
-                <span className={`text-xs px-2 py-1 rounded-full ${getBadgeColor(status)}`}>
-                  {columnApps.length}
-                </span>
-              </div>
-
-              <div className="space-y-4">
-                {columnApps.length === 0 ? (
-                  <p className="text-slate-500 text-sm">
-                    No applications
-                  </p>
-                ) : (
-                  columnApps.map((app) => (
-                    <div
-                      key={app.id}
-                      className="bg-slate-800 rounded-lg p-4 border border-slate-700"
-                    >
-                      <h3 className="font-semibold">{app.role}</h3>
-
-                      <p className="text-slate-400 text-sm mt-1">
-                        {app.company}
-                      </p>
-
-                      <p className="text-slate-500 text-xs mt-1">
-                        {app.location || "-"}
-                      </p>
-
-                      {app.date_applied && (
-                        <p className="text-slate-500 text-xs mt-2">
-                          Applied: {app.date_applied}
-                        </p>
-                      )}
-
-                      {app.notes && (
-                        <details className="mt-3">
-                          <summary className="text-xs text-indigo-400 cursor-pointer">
-                            View Notes
-                          </summary>
-
-                          <p className="mt-2 text-xs text-slate-300 whitespace-pre-wrap max-h-40 overflow-auto">
-                            {app.notes}
-                          </p>
-                        </details>
-                      )}
-
-                      <div className="mt-4">
-                        <label className="text-xs text-slate-400">
-                          Move to
-                        </label>
-
-                        <select
-                          value={app.status}
-                          onChange={(e) =>
-                            updateStatus(app.id, e.target.value)
-                          }
-                          className="mt-2 w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm outline-none"
-                        >
-                          {statuses.map((item) => (
-                            <option key={item} value={item}>
-                              {item}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          );
-        })}
+      <div className="mt-6 rounded-xl border border-indigo-500/20 bg-indigo-500/10 p-3 text-sm text-indigo-300 xl:hidden">
+        ← Swipe horizontally to view all application stages →
       </div>
-    </main>
+
+      {loadingApplications ? (
+        <div
+          className="mt-8 rounded-xl border border-slate-800 bg-slate-900 p-6 text-slate-400"
+          role="status"
+          aria-live="polite"
+        >
+          Loading applications...
+        </div>
+      ) : (
+        <div className="mt-8 flex snap-x snap-mandatory gap-5 overflow-x-auto pb-5">
+          {STATUSES.map((status) => {
+            const columnApplications =
+              getApplicationsByStatus(status);
+
+            return (
+              <section
+                key={status}
+                className={`min-h-[500px] min-w-[300px] flex-shrink-0 snap-start rounded-xl border bg-slate-900 p-4 sm:min-w-[320px] ${getColumnColor(
+                  status
+                )}`}
+              >
+                <div className="mb-5 flex items-center justify-between gap-3">
+                  <h2 className="text-lg font-semibold">
+                    {status}
+                  </h2>
+
+                  <span
+                    className={`rounded-full px-2 py-1 text-xs ${getBadgeColor(
+                      status
+                    )}`}
+                  >
+                    {columnApplications.length}
+                  </span>
+                </div>
+
+                <div className="space-y-4">
+                  {columnApplications.length === 0 ? (
+                    <div className="rounded-lg border border-dashed border-slate-700 p-5 text-center">
+                      <p className="text-sm text-slate-500">
+                        No applications
+                      </p>
+                    </div>
+                  ) : (
+                    columnApplications.map((application) => (
+                      <article
+                        key={application.id}
+                        className="min-w-0 rounded-lg border border-slate-700 bg-slate-800 p-4 transition hover:border-indigo-500/40"
+                      >
+                        <h3 className="break-words font-semibold">
+                          {application.role}
+                        </h3>
+
+                        <p className="mt-1 break-words text-sm text-slate-400">
+                          {application.company}
+                        </p>
+
+                        <p className="mt-1 break-words text-xs text-slate-500">
+                          {application.location ||
+                            "Location not provided"}
+                        </p>
+
+                        {application.date_applied && (
+                          <p className="mt-2 text-xs text-slate-500">
+                            Applied: {application.date_applied}
+                          </p>
+                        )}
+
+                        {application.notes && (
+                          <details className="mt-3">
+                            <summary className="cursor-pointer text-xs text-indigo-400">
+                              View Notes
+                            </summary>
+
+                            <p className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words text-xs leading-5 text-slate-300">
+                              {application.notes}
+                            </p>
+                          </details>
+                        )}
+
+                        <div className="mt-4">
+                          <label
+                            htmlFor={`application-status-${application.id}`}
+                            className="text-xs text-slate-400"
+                          >
+                            Move to
+                          </label>
+
+                          <select
+                            id={`application-status-${application.id}`}
+                            value={application.status}
+                            disabled={
+                              updatingApplicationId ===
+                              application.id
+                            }
+                            onChange={(event) =>
+                              updateStatus(
+                                application.id,
+                                event.target
+                                  .value as ApplicationStatus
+                              )
+                            }
+                            className="mt-2 w-full rounded-lg bg-slate-900 p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/40 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {STATUSES.map((item) => (
+                              <option key={item} value={item}>
+                                {item}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </article>
+                    ))
+                  )}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      )}
+    </>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import AppShell from "@/components/AppShell";
 import { useEffect, useState } from "react";
 
 type AgentPlan = {
@@ -89,15 +90,15 @@ export default function AgentPlansPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 p-8 text-white">
-      <div className="mx-auto max-w-7xl">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+    <AppShell>
+      <div>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm text-cyan-300">
               Digital Twin Intelligence
             </p>
 
-            <h1 className="mt-2 text-4xl font-bold">
+            <h1 className="mt-2 text-3xl font-bold sm:text-4xl">
               Autonomous Planning
             </h1>
 
@@ -129,7 +130,7 @@ export default function AgentPlansPage() {
               {weeklyPlan.summary}
             </p>
 
-            <div className="mt-5 grid gap-3 md:grid-cols-2">
+            <div className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-2">
               {weeklyPlan.tasks?.map((item: any, index: number) => (
                 <div
                   key={index}
@@ -148,14 +149,14 @@ export default function AgentPlansPage() {
             Loading plans...
           </div>
         ) : (
-          <div className="mt-8 grid gap-6 lg:grid-cols-2">
+          <div className="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-2">
             {plans.map((plan) => {
               const theme = getTheme(plan.agent_name);
 
               return (
                 <div
                   key={plan.id}
-                  className={`rounded-2xl border ${theme.border} ${theme.bg} p-6`}
+                  className={`rounded-2xl border ${theme.border} ${theme.bg} p-5 sm:p-6`}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
@@ -165,7 +166,7 @@ export default function AgentPlansPage() {
                         {plan.agent_name}
                       </p>
 
-                      <h2 className="mt-2 text-2xl font-bold">
+                      <h2 className="mt-2 text-xl font-bold sm:text-2xl">
                         {plan.title}
                       </h2>
                     </div>
@@ -209,7 +210,7 @@ export default function AgentPlansPage() {
                         return (
                           <li
                             key={index}
-                            className="flex items-start gap-3 rounded-xl bg-slate-900 p-4 text-sm text-slate-300"
+                            className="flex items-start gap-3 rounded-xl bg-slate-900 p-3 text-sm text-slate-300 sm:p-4"
                           >
                             <button
                               onClick={() => toggleTask(plan.id, index)}
@@ -274,9 +275,9 @@ export default function AgentPlansPage() {
             )}
           </div>
         )}
-      </div>
-    </main>
-  );
+         </div>
+  </AppShell>
+);
 }
 
 function getTheme(agent: string) {

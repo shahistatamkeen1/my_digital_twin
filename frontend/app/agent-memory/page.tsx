@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AppShell from "@/components/AppShell";
 
 type AgentMemory = {
   id: number;
@@ -55,13 +56,13 @@ export default function AgentMemoryPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 p-8 text-white">
+    <AppShell>
       <div className="mx-auto max-w-7xl">
         <p className="text-sm text-cyan-300">
           Multi-Agent Intelligence
         </p>
 
-        <h1 className="mt-2 text-4xl font-bold">
+        <h1 className="mt-2 text-3xl sm:text-4xl font-bold">
           Agent Memory Dashboard
         </h1>
 
@@ -70,7 +71,7 @@ export default function AgentMemoryPage() {
           Finance, Health, and Learning agents.
         </p>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-4">
+        <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
           <StatCard
             label="Total Memories"
             value={memories.length}
@@ -107,7 +108,7 @@ export default function AgentMemoryPage() {
         </div>
 
         {loading ? (
-          <div className="mt-8 rounded-2xl bg-slate-900 p-8">
+          <div className="mt-8 rounded-2xl bg-slate-900 p-5 sm:p-8">
             Loading agent memories...
           </div>
         ) : (
@@ -115,11 +116,11 @@ export default function AgentMemoryPage() {
             {memories.map((memory) => (
               <div
                 key={memory.id}
-                className={`rounded-2xl border p-6 ${getAgentColor(
+                className={`rounded-2xl border p-5 sm:p-6 ${getAgentColor(
                   memory.agent_name
                 )}`}
               >
-                <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h2 className="text-xl font-bold">
                       {memory.agent_name}
@@ -130,7 +131,7 @@ export default function AgentMemoryPage() {
                     </p>
                   </div>
 
-                  <div className="rounded-full bg-slate-900 px-4 py-2 text-sm">
+                  <div className="w-fit rounded-full bg-slate-900 px-4 py-2 text-sm">
                     Confidence: {memory.confidence}%
                   </div>
                 </div>
@@ -151,7 +152,7 @@ export default function AgentMemoryPage() {
                   </p>
 
                   <ul className="mt-3 space-y-2">
-                    {memory.recommendation.map(
+                    {(memory.recommendation || []).map(
                       (item, index) => (
                         <li
                           key={index}
@@ -170,7 +171,7 @@ export default function AgentMemoryPage() {
                   </p>
 
                   <ul className="mt-3 space-y-2">
-                    {memory.risks.map((item, index) => (
+                    {(memory.risks || []).map((item, index) => (
                       <li
                         key={index}
                         className="text-slate-300"
@@ -201,7 +202,7 @@ export default function AgentMemoryPage() {
             ))}
 
             {memories.length === 0 && (
-              <div className="rounded-2xl bg-slate-900 p-8 text-center text-slate-400">
+              <div className="rounded-2xl bg-slate-900 p-5 sm:p-8 text-center text-slate-400">
                 No agent memories found yet.
 
                 <div className="mt-3">
@@ -213,7 +214,7 @@ export default function AgentMemoryPage() {
           </div>
         )}
       </div>
-    </main>
+    </AppShell>
   );
 }
 

@@ -65,7 +65,7 @@ export default function InterviewPrepPage() {
     }
 
     return (
-      <ul className="list-decimal list-inside space-y-2 text-slate-300">
+      <ul className="list-decimal space-y-2 break-words pl-5 text-sm leading-6 text-slate-300">
         {items.map((q, index) => (
           <li key={index}>{q}</li>
         ))}
@@ -74,27 +74,27 @@ export default function InterviewPrepPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white p-8">
-      <h1 className="text-3xl font-bold">Interview Preparation Agent</h1>
+    <>
+      <h1 className="text-3xl font-bold sm:text-4xl">Interview Preparation Agent</h1>
 
       <p className="mt-2 text-slate-400">
         Generate role-specific technical, behavioral, and system design interview questions.
       </p>
 
-      <div className="mt-8 bg-slate-900 p-6 rounded-xl">
+      <div className="mt-8 rounded-xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
         <div className="space-y-4">
           <input
             value={role}
             onChange={(e) => setRole(e.target.value)}
             placeholder="Role"
-            className="w-full p-3 bg-slate-800 rounded-lg outline-none"
+            className="w-full rounded-lg bg-slate-800 p-3.5 outline-none focus:ring-2 focus:ring-purple-500/40"
           />
 
           <input
             value={company}
             onChange={(e) => setCompany(e.target.value)}
             placeholder="Company"
-            className="w-full p-3 bg-slate-800 rounded-lg outline-none"
+            className="w-full rounded-lg bg-slate-800 p-3.5 outline-none focus:ring-2 focus:ring-purple-500/40"
           />
 
           <textarea
@@ -102,13 +102,13 @@ export default function InterviewPrepPage() {
             onChange={(e) => setJobDescription(e.target.value)}
             placeholder="Optional: Paste job description here..."
             rows={8}
-            className="w-full p-3 bg-slate-800 rounded-lg outline-none"
+            className="w-full rounded-lg bg-slate-800 p-3.5 outline-none focus:ring-2 focus:ring-purple-500/40"
           />
 
           <button
             onClick={generateInterview}
             disabled={loading}
-            className="px-5 py-3 bg-purple-600 rounded-lg hover:bg-purple-500 disabled:opacity-50"
+            className="w-full rounded-lg bg-purple-600 px-5 py-3 font-medium hover:bg-purple-500 disabled:opacity-50 sm:w-auto"
           >
             {loading ? "Generating..." : "Generate Interview Questions"}
           </button>
@@ -117,49 +117,49 @@ export default function InterviewPrepPage() {
 
       {result && (
         <div className="mt-8 space-y-6">
-          <div className="bg-slate-900 p-5 rounded-xl">
+          <div className="rounded-xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
             <h2 className="text-xl font-bold">Interview Readiness Score</h2>
 
-            <div className="text-5xl font-bold text-purple-400 mt-3">
+            <div className="mt-3 text-4xl font-bold text-purple-400 sm:text-5xl">
               {result.readiness_score}%
             </div>
           </div>
 
-          <div className="bg-slate-900 p-5 rounded-xl">
+          <div className="rounded-xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
             <h2 className="font-bold text-xl mb-3">Technical Questions</h2>
             {renderQuestions(result.technical_questions)}
           </div>
 
-          <div className="bg-slate-900 p-5 rounded-xl">
+          <div className="rounded-xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
             <h2 className="font-bold text-xl mb-3">Behavioral Questions</h2>
             {renderQuestions(result.behavioral_questions)}
           </div>
 
-          <div className="bg-slate-900 p-5 rounded-xl">
+          <div className="rounded-xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
             <h2 className="font-bold text-xl mb-3">System Design Questions</h2>
             {renderQuestions(result.system_design_questions)}
           </div>
 
-          <div className="bg-slate-900 p-5 rounded-xl">
+          <div className="rounded-xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
             <h2 className="font-bold text-xl mb-4">Sample Answers</h2>
 
             <div className="space-y-5">
               {result.sample_answers?.map((item, index) => (
                 <div
                   key={index}
-                  className="border border-slate-700 rounded-lg p-4 bg-slate-800"
+                  className="min-w-0 rounded-lg border border-slate-700 bg-slate-800 p-4"
                 >
                   <h3 className="font-semibold text-purple-400">
                     {item.question}
                   </h3>
 
-                  <p className="text-slate-300 mt-2">{item.answer}</p>
+                  <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-300">{item.answer}</p>
                 </div>
               ))}
             </div>
           </div>
         </div>
       )}
-    </main>
+    </>
   );
 }

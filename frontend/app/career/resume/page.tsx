@@ -86,10 +86,11 @@ export default function ResumePage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white p-8">
-      <h1 className="text-3xl font-bold">Resume Center</h1>
+    <>
+      <h1 className="text-3xl font-bold sm:text-4xl">Resume Center</h1>
 
-      <div className="mt-8 bg-slate-900 p-6 rounded-xl">
+      <div className="mt-8 rounded-xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <input
           type="file"
           accept="application/pdf"
@@ -99,31 +100,32 @@ export default function ResumePage() {
         <button
           onClick={uploadResume}
           disabled={loading}
-          className="ml-4 bg-indigo-600 px-4 py-2 rounded-lg disabled:opacity-50"
+          className="mt-3 w-full rounded-lg bg-indigo-600 px-5 py-3 font-medium hover:bg-indigo-500 disabled:opacity-50 sm:mt-0 sm:w-auto"
         >
           {loading ? "Analyzing..." : "Upload Resume"}
         </button>
 
         <button
           onClick={clearResume}
-          className="ml-4 bg-red-600 px-4 py-2 rounded-lg"
+          className="mt-3 w-full rounded-lg bg-red-600 px-5 py-3 font-medium hover:bg-red-500 sm:mt-0 sm:w-auto"
         >
           Clear Resume
         </button>
+        </div>
       </div>
 
       {analysis && (
-        <div className="mt-8 bg-slate-900 p-6 rounded-xl">
+        <div className="mt-8 rounded-xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
           <h2 className="text-xl font-semibold">AI Resume Analysis</h2>
 
           <div className="mt-5">
             <p className="text-slate-400">Resume Score</p>
-            <p className="text-5xl font-bold text-indigo-400 mt-2">
+            <p className="mt-2 text-4xl font-bold text-indigo-400 sm:text-5xl">
               {analysis.resume_score ?? "--"}%
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+          <div className="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-2">
             <div className="bg-slate-800 p-5 rounded-lg">
               <h3 className="font-semibold">Top Skills</h3>
               {renderList(analysis.top_skills)}
@@ -144,7 +146,7 @@ export default function ResumePage() {
               {renderList(analysis.weaknesses)}
             </div>
 
-            <div className="bg-slate-800 p-5 rounded-lg md:col-span-2">
+            <div className="rounded-lg bg-slate-800 p-5 xl:col-span-2">
               <h3 className="font-semibold">Improvement Suggestions</h3>
               {renderList(analysis.improvement_suggestions)}
             </div>
@@ -153,14 +155,14 @@ export default function ResumePage() {
       )}
 
       {resumeText && (
-        <div className="mt-8 bg-slate-900 p-6 rounded-xl">
+        <div className="mt-8 rounded-xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
           <h2 className="text-xl font-semibold">Extracted Resume Text</h2>
 
-          <pre className="mt-4 whitespace-pre-wrap text-sm text-slate-300">
+          <pre className="mt-4 max-h-[700px] max-w-full overflow-auto whitespace-pre-wrap break-words rounded-lg bg-slate-800 p-4 font-sans text-sm leading-6 text-slate-300">
             {resumeText}
           </pre>
         </div>
       )}
-    </main>
+    </>
   );
 }

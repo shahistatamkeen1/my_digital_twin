@@ -64,14 +64,14 @@ export default function MemoryPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white p-8">
-      <h1 className="text-3xl font-bold">Career Memory</h1>
+    <>
+      <h1 className="text-3xl font-bold sm:text-4xl">Career Memory</h1>
 
       <p className="mt-2 text-slate-400">
         Store your long-term career goals so your Digital Twin can remember them.
       </p>
 
-      <div className="mt-8 max-w-3xl bg-slate-900 p-6 rounded-xl space-y-5">
+      <div className="mt-8 max-w-3xl rounded-xl border border-slate-800 bg-slate-900 p-5 sm:p-6 space-y-5">
         <div>
           <label className="block mb-2 text-sm text-slate-300">
             Career Goal
@@ -82,7 +82,7 @@ export default function MemoryPage() {
             onChange={handleChange}
             placeholder="Example: I want to become an AI Engineer in the next 6 months."
             rows={3}
-            className="w-full bg-slate-800 p-3 rounded-lg outline-none"
+            className="w-full rounded-lg bg-slate-800 p-3.5 outline-none focus:ring-2 focus:ring-indigo-500/40"
           />
         </div>
 
@@ -95,7 +95,7 @@ export default function MemoryPage() {
             value={memory.target_role}
             onChange={handleChange}
             placeholder="AI Engineer"
-            className="w-full bg-slate-800 p-3 rounded-lg outline-none"
+            className="w-full rounded-lg bg-slate-800 p-3.5 outline-none focus:ring-2 focus:ring-indigo-500/40"
           />
         </div>
 
@@ -109,7 +109,7 @@ export default function MemoryPage() {
             onChange={handleChange}
             placeholder="Python, FastAPI, React, SQL, OpenAI API"
             rows={3}
-            className="w-full bg-slate-800 p-3 rounded-lg outline-none"
+            className="w-full rounded-lg bg-slate-800 p-3.5 outline-none focus:ring-2 focus:ring-indigo-500/40"
           />
         </div>
 
@@ -123,7 +123,7 @@ export default function MemoryPage() {
             onChange={handleChange}
             placeholder="LangGraph, RAG, Vector Databases, Docker, AWS"
             rows={3}
-            className="w-full bg-slate-800 p-3 rounded-lg outline-none"
+            className="w-full rounded-lg bg-slate-800 p-3.5 outline-none focus:ring-2 focus:ring-indigo-500/40"
           />
         </div>
 
@@ -137,23 +137,23 @@ export default function MemoryPage() {
             onChange={handleChange}
             placeholder="Any career notes your twin should remember."
             rows={4}
-            className="w-full bg-slate-800 p-3 rounded-lg outline-none"
+            className="w-full rounded-lg bg-slate-800 p-3.5 outline-none focus:ring-2 focus:ring-indigo-500/40"
           />
         </div>
 
         <button
           onClick={saveMemory}
-          className="bg-indigo-600 px-5 py-3 rounded-lg font-medium hover:bg-indigo-500"
+          className="w-full rounded-lg bg-indigo-600 px-5 py-3 font-medium hover:bg-indigo-500 sm:w-auto"
         >
           Save Memory
         </button>
 
         {saved && (
-          <p className="text-green-400">
+          <p className="rounded-lg bg-green-500/10 p-3 text-green-400">
             Career memory saved successfully.
           </p>
         )}
       </div>
-    </main>
+    </>
   );
 }

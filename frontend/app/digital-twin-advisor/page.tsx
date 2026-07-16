@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import AppShell from "@/components/AppShell";
 
 type AdvisorReply = {
   executive_summary: string;
@@ -197,22 +198,26 @@ export default function DigitalTwinAdvisorPage() {
 
   if (!mounted) {
     return (
-      <main className="min-h-screen bg-slate-950 p-8 text-white">
-        <div className="mx-auto max-w-7xl">
-          <p className="text-sm text-cyan-300">Master Digital Twin</p>
-          <h1 className="mt-2 text-4xl font-bold">Digital Twin Advisor</h1>
-          <p className="mt-3 text-slate-400">Loading advisor...</p>
-        </div>
-      </main>
-    );
+  <AppShell>
+    <div>
+      <p className="text-sm text-cyan-300">Master Digital Twin</p>
+      <h1 className="mt-2 text-3xl font-bold sm:text-4xl">
+        Digital Twin Advisor
+      </h1>
+      <p className="mt-3 text-slate-400">Loading advisor...</p>
+    </div>
+  </AppShell>
+);
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 p-8 text-white">
-      <div className="mx-auto max-w-7xl">
+    <AppShell>
+      <div>
         <p className="text-sm text-cyan-300">Master Digital Twin</p>
 
-        <h1 className="mt-2 text-4xl font-bold">Digital Twin Advisor</h1>
+        <h1 className="mt-2 text-3xl font-bold sm:text-4xl">
+  Digital Twin Advisor
+</h1>
 
         <p className="mt-3 max-w-3xl text-slate-400">
           Unified AI advisor that combines your Career, Finance, Health,
@@ -221,8 +226,8 @@ export default function DigitalTwinAdvisorPage() {
         </p>
 
         {focusScores && (
-          <section className="mt-8 rounded-2xl bg-slate-900 p-6">
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <section className="mt-8 rounded-2xl bg-slate-900 p-5 sm:p-6">
+            <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
               <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-6">
                 <p className="text-sm text-cyan-300">Current Mission</p>
                 <h2 className="mt-2 text-2xl font-bold">
@@ -252,7 +257,7 @@ export default function DigitalTwinAdvisorPage() {
               </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-5">
+            <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-5">
               <ScoreCard label="Career" value={focusScores.career_score} />
               <ScoreCard label="Finance" value={focusScores.finance_score} />
               <ScoreCard label="Health" value={focusScores.health_score} />
@@ -279,8 +284,8 @@ export default function DigitalTwinAdvisorPage() {
           </div>
         </section>
 
-        <section className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px]">
-          <div className="custom-scrollbar h-[720px] overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900 p-5">
+        <section className="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-[1fr_300px]">
+          <div className="custom-scrollbar h-[60vh] overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900 p-4 sm:h-[720px] sm:p-5">
             <div className="space-y-5">
               {messages.map((message, index) => (
                 <div
@@ -325,7 +330,7 @@ export default function DigitalTwinAdvisorPage() {
             </div>
           </div>
 
-          <aside className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+          <aside className="hidden rounded-2xl border border-slate-800 bg-slate-900 p-6 xl:block">
             <h2 className="text-xl font-bold">How to use Advisor</h2>
 
             <div className="mt-5 space-y-4 text-sm leading-6 text-slate-400">
@@ -357,32 +362,32 @@ export default function DigitalTwinAdvisorPage() {
           </aside>
         </section>
 
-        <div className="mt-5 flex gap-3">
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask your Digital Twin Advisor anything..."
             rows={3}
-            className="flex-1 rounded-2xl border border-slate-800 bg-slate-900 p-4 outline-none focus:border-cyan-500"
+            className="min-h-[110px] flex-1 rounded-2xl border border-slate-800 bg-slate-900 p-4 outline-none focus:border-cyan-500"
           />
 
           <button
             onClick={() => sendMessage()}
             disabled={loading}
-            className="rounded-2xl bg-cyan-600 px-6 font-semibold hover:bg-cyan-500 disabled:opacity-50"
+            className="rounded-2xl bg-cyan-600 px-6 py-3 font-semibold hover:bg-cyan-500 disabled:opacity-50"
           >
             Send
           </button>
 
           <button
             onClick={clearChat}
-            className="rounded-2xl border border-slate-700 px-4 text-sm hover:bg-slate-800"
+            className="rounded-2xl border border-slate-700 px-4 py-3 text-sm hover:bg-slate-800"
           >
             Clear
           </button>
         </div>
       </div>
-    </main>
+    </AppShell>
   );
 }
 

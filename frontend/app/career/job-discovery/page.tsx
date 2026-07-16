@@ -79,38 +79,101 @@ type TailoredResumeResult = {
   final_notes: string;
 };
 
+const stripHtml = (value: string) => {
+  return value.replace(/<[^>]*>/g, "");
+};
+
+const formatSalary = (value?: number) => {
+  if (typeof value !== "number") {
+    return "?";
+  }
+
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(value);
+};
+
 export default function JobDiscoveryPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
-  const [memory, setMemory] = useState<CareerMemory | null>(null);
-  const [role, setRole] = useState("Software Engineer");
-  const [location, setLocation] = useState("remote");
-  const [loading, setLoading] = useState(false);
-  const [savedJobs, setSavedJobs] = useState<Record<string, number>>({});
-  const [appliedJobs, setAppliedJobs] = useState<string[]>([]);
-  const [resumeText, setResumeText] = useState("");
-  const [matchResults, setMatchResults] = useState<Record<string, MatchResult>>({});
-  const [analyzingJobId, setAnalyzingJobId] = useState<string | null>(null);
-  const [atsResults, setAtsResults] = useState<Record<string, ATSResult>>({});
-  const [interviewResults, setInterviewResults] = useState<
-  Record<string, InterviewResult>
-  
->({});
+  const [memory, setMemory] =
+    useState<CareerMemory | null>(null);
 
-const [generatingInterviewJobId, setGeneratingInterviewJobId] =
-  useState<string | null>(null);
-  const [generatingAtsJobId, setGeneratingAtsJobId] = useState<string | null>(null);
+  const [role, setRole] =
+    useState("Software Engineer");
 
-  const [coverLetters, setCoverLetters] = useState<Record<string, CoverLetterResult>>({});
-const [generatingCoverLetterJobId, setGeneratingCoverLetterJobId] = useState<string | null>(null);
-const [autofillResults, setAutofillResults] = useState<Record<string, AutofillResult>>({});
-const [generatingAutofillJobId, setGeneratingAutofillJobId] = useState<string | null>(null);
-const [tailoredResumes, setTailoredResumes] = useState<Record<string, TailoredResumeResult>>({});
-const [tailoringJobId, setTailoringJobId] = useState<string | null>(null);
+  const [location, setLocation] =
+    useState("remote");
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [savedJobs, setSavedJobs] = useState<
+    Record<string, number>
+  >({});
+
+  const [appliedJobs, setAppliedJobs] =
+    useState<string[]>([]);
+
+  const [resumeText, setResumeText] =
+    useState("");
+
+  const [matchResults, setMatchResults] = useState<
+    Record<string, MatchResult>
+  >({});
+
+  const [analyzingJobId, setAnalyzingJobId] =
+    useState<string | null>(null);
+
+  const [atsResults, setAtsResults] = useState<
+    Record<string, ATSResult>
+  >({});
+
+  const [interviewResults, setInterviewResults] =
+    useState<Record<string, InterviewResult>>({});
+
+  const [
+    generatingInterviewJobId,
+    setGeneratingInterviewJobId,
+  ] = useState<string | null>(null);
+
+  const [
+    generatingAtsJobId,
+    setGeneratingAtsJobId,
+  ] = useState<string | null>(null);
+
+  const [coverLetters, setCoverLetters] =
+    useState<Record<string, CoverLetterResult>>({});
+
+  const [
+    generatingCoverLetterJobId,
+    setGeneratingCoverLetterJobId,
+  ] = useState<string | null>(null);
+
+  const [autofillResults, setAutofillResults] =
+    useState<Record<string, AutofillResult>>({});
+
+  const [
+    generatingAutofillJobId,
+    setGeneratingAutofillJobId,
+  ] = useState<string | null>(null);
+
+  const [tailoredResumes, setTailoredResumes] =
+    useState<Record<string, TailoredResumeResult>>({});
+
+  const [tailoringJobId, setTailoringJobId] =
+    useState<string | null>(null);
+
+  const apiUrl =
+    process.env.NEXT_PUBLIC_API_URL;
 
   const normalizeLocation = (value: string) => {
     const clean = value.trim().toLowerCase();
 
-    if (!clean) return "remote";
+    if (!clean) {
+      return "remote";
+    }
 
     if (
       clean === "on-site" ||
@@ -124,11 +187,53 @@ const [tailoringJobId, setTailoringJobId] = useState<string | null>(null);
     return value.trim();
   };
 
+  const ensureApiUrl = () => {
+    if (!apiUrl) {
+      alert(
+        "NEXT_PUBLIC_API_URL is not configured."
+      );
+
+      return false;
+    }
+
+    return true;
+  };
+
+  const copyText = async (
+    text: string,
+    label: string
+  ) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      alert(`${label} copied.`);
+    } catch (error) {
+      console.error(
+        `Could not copy ${label}:`,
+        error
+      );
+
+      alert(`Could not copy ${label}.`);
+    }
+  };
 
   const fetchMemory = async () => {
+    if (!apiUrl) {
+      return;
+    }
+
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/memory/`);
-      const data = await res.json();
+      const response = await fetch(
+        `${apiUrl}/api/memory/`,
+        {
+          cache: "no-store",
+        }
+      );
+
+      if (!response.ok) {
+        return;
+      }
+
+      const data = await response.json();
 
       if (data) {
         setMemory(data);
@@ -137,62 +242,91 @@ const [tailoringJobId, setTailoringJobId] = useState<string | null>(null);
           setRole(data.target_role);
         }
 
-        const memoryText = `${data.career_goal || ""} ${data.target_role || ""} ${
-          data.current_skills || ""
-        } ${data.skills_to_learn || ""} ${data.notes || ""}`.toLowerCase();
+        const memoryText = `
+          ${data.career_goal || ""}
+          ${data.target_role || ""}
+          ${data.current_skills || ""}
+          ${data.skills_to_learn || ""}
+          ${data.notes || ""}
+        `.toLowerCase();
 
         if (memoryText.includes("chicago")) {
           setLocation("Chicago");
-        } else if (memoryText.includes("remote")) {
-          setLocation("remote");
         } else {
           setLocation("remote");
         }
       }
     } catch (error) {
-      console.log("No memory found", error);
+      console.log(
+        "No career memory found:",
+        error
+      );
     }
   };
 
   useEffect(() => {
     fetchMemory();
 
-    const savedResume = localStorage.getItem("resumeText");
+    const savedResume =
+      localStorage.getItem("resumeText");
+
     if (savedResume) {
       setResumeText(savedResume);
     }
   }, []);
 
   const searchJobs = async () => {
+    if (!ensureApiUrl()) {
+      return;
+    }
+
+    if (!role.trim()) {
+      alert("Please enter a role.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const cleanLocation = normalizeLocation(location);
+      const cleanLocation =
+        normalizeLocation(location);
 
-      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/jobs/search?role=${encodeURIComponent(
-        role
-      )}&location=${encodeURIComponent(cleanLocation)}&country=us`;
+      const requestUrl =
+        `${apiUrl}/api/jobs/search` +
+        `?role=${encodeURIComponent(
+          role.trim()
+        )}` +
+        `&location=${encodeURIComponent(
+          cleanLocation
+        )}` +
+        `&country=us`;
 
-      console.log("Calling jobs API:", apiUrl);
+      const response = await fetch(requestUrl, {
+        cache: "no-store",
+      });
 
-      const res = await fetch(apiUrl);
-
-      if (!res.ok) {
-        alert("Jobs API failed.");
-        return;
+      if (!response.ok) {
+        throw new Error(
+          `Jobs API failed with status ${response.status}.`
+        );
       }
 
-      const data = await res.json();
-
-      console.log("Jobs API response:", data);
+      const data = await response.json();
 
       if (data.error) {
         alert(data.error);
+        setJobs([]);
         return;
       }
 
-      if (!data.jobs || data.jobs.length === 0) {
-        alert("No jobs found for this search.");
+      if (
+        !Array.isArray(data.jobs) ||
+        data.jobs.length === 0
+      ) {
+        alert(
+          "No jobs found for this search."
+        );
+
         setJobs([]);
         return;
       }
@@ -200,814 +334,1458 @@ const [tailoringJobId, setTailoringJobId] = useState<string | null>(null);
       setLocation(cleanLocation);
       setJobs(data.jobs);
     } catch (error) {
-      console.error("Job fetch error:", error);
+      console.error(
+        "Job fetch error:",
+        error
+      );
+
       alert("Could not fetch real jobs.");
     } finally {
       setLoading(false);
     }
   };
 
-  const analyzeJobMatch = async (job: Job) => {
+  const analyzeJobMatch = async (
+    job: Job
+  ) => {
+    if (!ensureApiUrl()) {
+      return;
+    }
+
     if (!resumeText) {
-      alert("Please upload your resume first in Resume Center.");
+      alert(
+        "Please upload your resume first in Resume Center."
+      );
+
       return;
     }
 
     setAnalyzingJobId(job.id);
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/job-match/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          resume_text: resumeText,
-          job_description: job.description,
-        }),
-      });
+      const response = await fetch(
+        `${apiUrl}/api/job-match/`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            resume_text: resumeText,
+            job_description:
+              job.description,
+          }),
+        }
+      );
 
-      const data = await res.json();
+      if (!response.ok) {
+        throw new Error(
+          `Match analysis failed with status ${response.status}.`
+        );
+      }
+
+      const data = await response.json();
 
       if (data.error) {
         alert(data.error);
         return;
       }
 
-      setMatchResults((prev) => ({
-        ...prev,
+      setMatchResults((previous) => ({
+        ...previous,
         [job.id]: data,
       }));
     } catch (error) {
-      console.error("Analyze match error:", error);
-      alert("Could not analyze job match.");
+      console.error(
+        "Analyze match error:",
+        error
+      );
+
+      alert(
+        "Could not analyze job match."
+      );
     } finally {
       setAnalyzingJobId(null);
     }
   };
 
-const saveJob = async (job: Job) => {
-  const match = matchResults[job.id];
-  const ats = atsResults[job.id];
+  const saveJob = async (job: Job) => {
+    if (!ensureApiUrl()) {
+      return;
+    }
 
-  const aiNotes = `
-Saved from real Job Discovery.
+    const match =
+      matchResults[job.id];
+
+    const ats =
+      atsResults[job.id];
+
+    const aiNotes = `
+Saved from Real Job Discovery.
+
 Source: ${job.source || "Unknown"}
 Apply link: ${job.url}
 
 AI Match Analysis:
-Match Score: ${match?.match_score ?? "Not analyzed"}%
-Missing Skills: ${match?.missing_skills?.join(", ") || "Not analyzed"}
-Keywords to Add: ${match?.keywords_to_add?.join(", ") || "Not analyzed"}
-Recommendation: ${match?.recommendation || "Not analyzed"}
+Match Score: ${
+      match?.match_score ?? "Not analyzed"
+    }%
+Missing Skills: ${
+      match?.missing_skills?.join(", ") ||
+      "Not analyzed"
+    }
+Keywords to Add: ${
+      match?.keywords_to_add?.join(", ") ||
+      "Not analyzed"
+    }
+Recommendation: ${
+      match?.recommendation ||
+      "Not analyzed"
+    }
 
 ATS Resume Optimization:
-ATS Score: ${ats?.ats_score ?? "Not generated"}%
-Missing Keywords: ${ats?.missing_keywords?.join(", ") || "Not generated"}
-Keywords to Add: ${ats?.keywords_to_add?.join(", ") || "Not generated"}
-Optimized Summary: ${ats?.optimized_summary || "Not generated"}
+ATS Score: ${
+      ats?.ats_score ?? "Not generated"
+    }%
+Missing Keywords: ${
+      ats?.missing_keywords?.join(", ") ||
+      "Not generated"
+    }
+Keywords to Add: ${
+      ats?.keywords_to_add?.join(", ") ||
+      "Not generated"
+    }
+Optimized Summary: ${
+      ats?.optimized_summary ||
+      "Not generated"
+    }
+
 Optimized Bullets:
-${ats?.optimized_bullets?.map((bullet: string) => `- ${bullet}`).join("\n") || "Not generated"}
+${
+  ats?.optimized_bullets
+    ?.map((bullet) => `- ${bullet}`)
+    .join("\n") || "Not generated"
+}
 `;
 
-  try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/applications/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        company: job.company,
-        role: job.role,
-        location: job.location,
-        status: "Saved",
-        date_applied: "",
-        notes: aiNotes,
-      }),
-    });
+    try {
+      const response = await fetch(
+        `${apiUrl}/api/applications/`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            company: job.company,
+            role: job.role,
+            location: job.location,
+            status: "Saved",
+            date_applied: "",
+            notes: aiNotes,
+          }),
+        }
+      );
 
-    const data = await res.json();
+      const data = await response.json();
 
-    if (data.error) {
-      alert(data.error);
+      if (!response.ok || data.error) {
+        if (
+          data.existing_application?.id
+        ) {
+          setSavedJobs((previous) => ({
+            ...previous,
+            [job.id]:
+              data.existing_application.id,
+          }));
+        }
 
-      if (data.existing_application?.id) {
-        setSavedJobs((prev) => ({
-          ...prev,
-          [job.id]: data.existing_application.id,
-        }));
+        alert(
+          data.error ||
+            "Could not save job."
+        );
+
+        return;
       }
 
+      setSavedJobs((previous) => ({
+        ...previous,
+        [job.id]: data.id,
+      }));
+    } catch (error) {
+      console.error(
+        "Save job error:",
+        error
+      );
+
+      alert("Could not save job.");
+    }
+  };
+
+  const markApplied = async (
+    job: Job
+  ) => {
+    if (!ensureApiUrl()) {
       return;
     }
 
-    setSavedJobs((prev) => ({
-      ...prev,
-      [job.id]: data.id,
-    }));
-  } catch (error) {
-    console.error("Save job error:", error);
-    alert("Could not save job.");
-  }
-};
-
-  const markApplied = async (job: Job) => {
-    const applicationId = savedJobs[job.id];
+    const applicationId =
+      savedJobs[job.id];
 
     if (!applicationId) {
-      alert("Please save this job first.");
+      alert(
+        "Please save this job first."
+      );
+
       return;
     }
 
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/applications/${applicationId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          status: "Applied",
-        }),
-      });
+      const response = await fetch(
+        `${apiUrl}/api/applications/${applicationId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            status: "Applied",
+          }),
+        }
+      );
 
-      setAppliedJobs((prev) =>
-        prev.includes(job.id) ? prev : [...prev, job.id]
+      if (!response.ok) {
+        throw new Error(
+          `Could not mark as applied: ${response.status}`
+        );
+      }
+
+      setAppliedJobs((previous) =>
+        previous.includes(job.id)
+          ? previous
+          : [...previous, job.id]
       );
     } catch (error) {
-      console.error("Mark applied error:", error);
-      alert("Could not mark as applied.");
+      console.error(
+        "Mark applied error:",
+        error
+      );
+
+      alert(
+        "Could not mark as applied."
+      );
     }
   };
 
-  const generateATSResume = async (job: Job) => {
-  if (!resumeText) {
-    alert("Please upload your resume first in Resume Center.");
-    return;
-  }
-
-  setGeneratingAtsJobId(job.id);
-
-  try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ats-resume/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        resume_text: resumeText,
-        job_description: job.description,
-      }),
-    });
-
-    const data = await res.json();
-
-    if (data.error) {
-      alert(data.error);
+  const tailorResumeForJob = async (
+    job: Job
+  ) => {
+    if (!ensureApiUrl()) {
       return;
     }
 
-    setAtsResults((prev) => ({
-      ...prev,
-      [job.id]: data,
-    }));
+    if (!resumeText) {
+      alert(
+        "Please upload your resume first in Resume Center."
+      );
 
-    await tailorResumeForJob(job);
-  } catch (error) {
-    console.error("ATS resume error:", error);
-    alert("Could not generate ATS resume.");
-  } finally {
-    setGeneratingAtsJobId(null);
-  }
-};
+      return;
+    }
 
-const generateInterviewPrep = async (job: Job) => {
+    setTailoringJobId(job.id);
 
-  setGeneratingInterviewJobId(job.id);
+    try {
+      const response = await fetch(
+        `${apiUrl}/api/resume-tailor/`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            resume_text: resumeText,
+            job_description:
+              job.description,
+            company: job.company,
+            role: job.role,
+          }),
+        }
+      );
 
-  try {
-
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/interview/`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          role: job.role,
-          company: job.company,
-          job_description: job.description,
-        }),
+      if (!response.ok) {
+        throw new Error(
+          `Resume tailoring failed with status ${response.status}.`
+        );
       }
-    );
 
-    const data = await res.json();
+      const data = await response.json();
 
-    setInterviewResults((prev) => ({
-      ...prev,
-      [job.id]: data,
-    }));
+      if (data.error) {
+        alert(data.error);
+        return;
+      }
 
-  } catch (error) {
+      setTailoredResumes(
+        (previous) => ({
+          ...previous,
+          [job.id]: data,
+        })
+      );
+    } catch (error) {
+      console.error(
+        "Resume tailoring error:",
+        error
+      );
 
-    console.error(error);
-    alert("Failed to generate interview prep.");
+      alert(
+        "Could not tailor resume."
+      );
+    } finally {
+      setTailoringJobId(null);
+    }
+  };
 
-  } finally {
-
-    setGeneratingInterviewJobId(null);
-
-  }
-};
-
-
-
-const generateCoverLetterForJob = async (job: Job) => {
-  if (!resumeText) {
-    alert("Please upload your resume first in Resume Center.");
-    return;
-  }
-
-  setGeneratingCoverLetterJobId(job.id);
-
-  try {
-    const careerGoal = memory?.career_goal || "";
-
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/cover-letter/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        resume_text: resumeText,
-        company: job.company,
-        role: job.role,
-        job_description: job.description,
-        career_goal: careerGoal,
-      }),
-    });
-
-    const data = await res.json();
-
-    if (data.error) {
-      alert(data.error);
+  const generateATSResume = async (
+    job: Job
+  ) => {
+    if (!ensureApiUrl()) {
       return;
     }
 
-    setCoverLetters((prev) => ({
-      ...prev,
-      [job.id]: data,
-    }));
-  } catch (error) {
-    console.error("Cover letter error:", error);
-    alert("Could not generate cover letter.");
-  } finally {
-    setGeneratingCoverLetterJobId(null);
-  }
-};
+    if (!resumeText) {
+      alert(
+        "Please upload your resume first in Resume Center."
+      );
 
-const generateAutofillAnswers = async (job: Job) => {
-  console.log("Autofill clicked for:", job);
-  if (!resumeText) {
-    alert("Please upload your resume first in Resume Center.");
-    return;
-  }
-
-  setGeneratingAutofillJobId(job.id);
-
-  try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/autofill/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        resume_text: resumeText,
-        company: job.company,
-        role: job.role,
-        job_description: job.description,
-        career_goal: memory?.career_goal || "",
-      }),
-    });
-
-    const data = await res.json();
-    console.log("Autofill response:", data);
-
-    if (data.error) {
-      alert(data.error);
       return;
     }
 
-    setAutofillResults((prev) => ({
-      ...prev,
-      [job.id]: data,
-    }));
-  } catch (error) {
-    console.error("Autofill error:", error);
-    alert("Could not generate autofill answers.");
-  } finally {
-    setGeneratingAutofillJobId(null);
-  }
-};
+    setGeneratingAtsJobId(job.id);
 
-const tailorResumeForJob = async (job: Job) => {
-  if (!resumeText) {
-    alert("Please upload your resume first in Resume Center.");
-    return;
-  }
+    try {
+      const response = await fetch(
+        `${apiUrl}/api/ats-resume/`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            resume_text: resumeText,
+            job_description:
+              job.description,
+          }),
+        }
+      );
 
-  setTailoringJobId(job.id);
+      if (!response.ok) {
+        throw new Error(
+          `ATS generation failed with status ${response.status}.`
+        );
+      }
 
-  try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/resume-tailor/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        resume_text: resumeText,
-        job_description: job.description,
-        company: job.company,
-        role: job.role,
-      }),
-    });
+      const data = await response.json();
 
-    const data = await res.json();
+      if (data.error) {
+        alert(data.error);
+        return;
+      }
 
-    if (data.error) {
-      alert(data.error);
-      return;
+      setAtsResults((previous) => ({
+        ...previous,
+        [job.id]: data,
+      }));
+
+      await tailorResumeForJob(job);
+    } catch (error) {
+      console.error(
+        "ATS resume error:",
+        error
+      );
+
+      alert(
+        "Could not generate ATS resume."
+      );
+    } finally {
+      setGeneratingAtsJobId(null);
     }
+  };
 
-    setTailoredResumes((prev) => ({
-      ...prev,
-      [job.id]: data,
-    }));
-  } catch (error) {
-    console.error("Resume tailoring error:", error);
-    alert("Could not tailor resume.");
-  } finally {
-    setTailoringJobId(null);
-  }
-};
+  const generateInterviewPrep =
+    async (job: Job) => {
+      if (!ensureApiUrl()) {
+        return;
+      }
+
+      setGeneratingInterviewJobId(
+        job.id
+      );
+
+      try {
+        const response = await fetch(
+          `${apiUrl}/api/interview/`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              role: job.role,
+              company: job.company,
+              job_description:
+                job.description,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            `Interview generation failed with status ${response.status}.`
+          );
+        }
+
+        const data =
+          await response.json();
+
+        if (data.error) {
+          alert(data.error);
+          return;
+        }
+
+        setInterviewResults(
+          (previous) => ({
+            ...previous,
+            [job.id]: data,
+          })
+        );
+      } catch (error) {
+        console.error(
+          "Interview preparation error:",
+          error
+        );
+
+        alert(
+          "Failed to generate interview preparation."
+        );
+      } finally {
+        setGeneratingInterviewJobId(
+          null
+        );
+      }
+    };
+
+  const generateCoverLetterForJob =
+    async (job: Job) => {
+      if (!ensureApiUrl()) {
+        return;
+      }
+
+      if (!resumeText) {
+        alert(
+          "Please upload your resume first in Resume Center."
+        );
+
+        return;
+      }
+
+      setGeneratingCoverLetterJobId(
+        job.id
+      );
+
+      try {
+        const response = await fetch(
+          `${apiUrl}/api/cover-letter/`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              resume_text: resumeText,
+              company: job.company,
+              role: job.role,
+              job_description:
+                job.description,
+              career_goal:
+                memory?.career_goal ||
+                "",
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            `Cover letter generation failed with status ${response.status}.`
+          );
+        }
+
+        const data =
+          await response.json();
+
+        if (data.error) {
+          alert(data.error);
+          return;
+        }
+
+        setCoverLetters(
+          (previous) => ({
+            ...previous,
+            [job.id]: data,
+          })
+        );
+      } catch (error) {
+        console.error(
+          "Cover letter error:",
+          error
+        );
+
+        alert(
+          "Could not generate cover letter."
+        );
+      } finally {
+        setGeneratingCoverLetterJobId(
+          null
+        );
+      }
+    };
+
+  const generateAutofillAnswers =
+    async (job: Job) => {
+      if (!ensureApiUrl()) {
+        return;
+      }
+
+      if (!resumeText) {
+        alert(
+          "Please upload your resume first in Resume Center."
+        );
+
+        return;
+      }
+
+      setGeneratingAutofillJobId(
+        job.id
+      );
+
+      try {
+        const response = await fetch(
+          `${apiUrl}/api/autofill/`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              resume_text: resumeText,
+              company: job.company,
+              role: job.role,
+              job_description:
+                job.description,
+              career_goal:
+                memory?.career_goal ||
+                "",
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            `Autofill generation failed with status ${response.status}.`
+          );
+        }
+
+        const data =
+          await response.json();
+
+        if (data.error) {
+          alert(data.error);
+          return;
+        }
+
+        setAutofillResults(
+          (previous) => ({
+            ...previous,
+            [job.id]: data,
+          })
+        );
+      } catch (error) {
+        console.error(
+          "Autofill error:",
+          error
+        );
+
+        alert(
+          "Could not generate autofill answers."
+        );
+      } finally {
+        setGeneratingAutofillJobId(
+          null
+        );
+      }
+    };
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white p-8">
-      <h1 className="text-3xl font-bold">Real Job Discovery</h1>
+    <>
+      <header>
+        <h1 className="text-3xl font-bold sm:text-4xl">
+          Real Job Discovery
+        </h1>
 
-      <p className="mt-2 text-slate-400">
-        Search real job postings using your Career Memory and analyze fit using AI.
-      </p>
+        <p className="mt-2 max-w-3xl text-slate-400">
+          Search real job postings using your Career Memory
+          and analyze your fit with AI.
+        </p>
+      </header>
 
       {memory && (
-        <div className="mt-8 bg-slate-900 p-6 rounded-xl">
-          <h2 className="text-xl font-semibold">Personalization Source</h2>
+        <section className="mt-8 rounded-xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
+          <h2 className="text-xl font-semibold">
+            Personalization Source
+          </h2>
 
-          <p className="mt-3 text-slate-300">
-            Target Role:{" "}
-            <span className="text-white font-medium">
-              {memory.target_role || "-"}
-            </span>
-          </p>
+          <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <div className="rounded-lg bg-slate-800 p-4">
+              <p className="text-xs text-slate-500">
+                Target Role
+              </p>
 
-          <p className="text-slate-300">
-            Notes:{" "}
-            <span className="text-white font-medium">
-              {memory.notes || "-"}
-            </span>
-          </p>
+              <p className="mt-2 break-words font-medium text-white">
+                {memory.target_role || "-"}
+              </p>
+            </div>
 
-          <p className="text-slate-300">
-            Resume Status:{" "}
-            <span className="text-white font-medium">
-              {resumeText ? "Resume loaded" : "No resume uploaded"}
-            </span>
-          </p>
-        </div>
+            <div className="rounded-lg bg-slate-800 p-4 lg:col-span-2">
+              <p className="text-xs text-slate-500">
+                Notes
+              </p>
+
+              <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-300">
+                {memory.notes || "-"}
+              </p>
+            </div>
+
+            <div className="rounded-lg bg-slate-800 p-4 lg:col-span-3">
+              <p className="text-xs text-slate-500">
+                Resume Status
+              </p>
+
+              <p
+                className={`mt-2 font-medium ${
+                  resumeText
+                    ? "text-emerald-300"
+                    : "text-yellow-300"
+                }`}
+              >
+                {resumeText
+                  ? "Resume loaded"
+                  : "No resume uploaded"}
+              </p>
+            </div>
+          </div>
+        </section>
       )}
 
-      <div className="mt-8 bg-slate-900 p-6 rounded-xl">
-        <h2 className="text-xl font-semibold">Search Jobs</h2>
+      <section className="mt-8 rounded-xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
+        <h2 className="text-xl font-semibold">
+          Search Jobs
+        </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
+        <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1fr_auto]">
           <input
             value={role}
-            onChange={(e) => setRole(e.target.value)}
+            onChange={(event) =>
+              setRole(event.target.value)
+            }
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                searchJobs();
+              }
+            }}
             placeholder="AI Engineer"
-            className="bg-slate-800 p-3 rounded-lg outline-none"
+            aria-label="Job role"
+            className="w-full rounded-lg bg-slate-800 p-3.5 outline-none focus:ring-2 focus:ring-indigo-500/40"
           />
 
           <input
             value={location}
-            onChange={(e) => setLocation(e.target.value)}
+            onChange={(event) =>
+              setLocation(
+                event.target.value
+              )
+            }
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                searchJobs();
+              }
+            }}
             placeholder="Chicago or remote"
-            className="bg-slate-800 p-3 rounded-lg outline-none"
+            aria-label="Job location"
+            className="w-full rounded-lg bg-slate-800 p-3.5 outline-none focus:ring-2 focus:ring-indigo-500/40"
           />
 
           <button
+            type="button"
             onClick={searchJobs}
             disabled={loading}
-            className="bg-indigo-600 px-5 py-3 rounded-lg font-medium hover:bg-indigo-500 disabled:opacity-50"
+            className="w-full rounded-lg bg-indigo-600 px-5 py-3 font-medium transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 lg:w-auto"
           >
-            {loading ? "Searching..." : "Search Real Jobs"}
+            {loading
+              ? "Searching..."
+              : "Search Real Jobs"}
           </button>
         </div>
-      </div>
+      </section>
 
       {jobs.length === 0 ? (
-        <div className="mt-8 bg-slate-900 p-6 rounded-xl">
-          <p className="text-slate-400">
-            No jobs loaded yet. Click Search Real Jobs to fetch live jobs.
+        <div className="mt-8 rounded-xl border border-dashed border-slate-700 bg-slate-900 p-6 text-center sm:p-8">
+          <h2 className="text-lg font-semibold text-white">
+            No jobs loaded yet
+          </h2>
+
+          <p className="mt-2 text-sm leading-6 text-slate-400">
+            Enter a role and location, then select Search
+            Real Jobs to fetch current listings.
           </p>
         </div>
       ) : (
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-          {jobs.map((job) => (
-            <div key={job.id} className="bg-slate-900 p-6 rounded-xl">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h2 className="text-xl font-semibold">{job.role}</h2>
-                  <p className="text-slate-400 mt-1">{job.company}</p>
-                  <p className="text-slate-500 text-sm mt-1">{job.location}</p>
+        <div className="mt-8 grid grid-cols-1 gap-6 2xl:grid-cols-2">
+          {jobs.map((job) => {
+            const cleanDescription =
+              stripHtml(
+                job.description || ""
+              );
+
+            return (
+              <article
+                key={job.id}
+                className="min-w-0 rounded-xl border border-slate-800 bg-slate-900 p-5 sm:p-6"
+              >
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <h2 className="break-words text-xl font-semibold">
+                      {job.role}
+                    </h2>
+
+                    <p className="mt-1 break-words text-slate-400">
+                      {job.company}
+                    </p>
+
+                    <p className="mt-1 break-words text-sm text-slate-500">
+                      {job.location ||
+                        "Location not provided"}
+                    </p>
+                  </div>
+
+                  <span className="w-fit shrink-0 rounded-full bg-indigo-500/20 px-3 py-1 text-xs text-indigo-300">
+                    {job.source || "Job"}
+                  </span>
                 </div>
 
-                <span className="text-xs bg-indigo-500/20 text-indigo-300 px-3 py-1 rounded-full">
-                  {job.source || "Job"}
-                </span>
-              </div>
-
-              <p className="mt-5 text-slate-300 text-sm">
-                {job.description
-                  ? `${job.description.replace(/<[^>]*>/g, "").slice(0, 350)}...`
-                  : "No description available."}
-              </p>
-
-              {(job.salary_min || job.salary_max) && (
-                <p className="mt-4 text-sm text-green-400">
-                  Salary: {job.salary_min || "?"} - {job.salary_max || "?"}
+                <p className="mt-5 break-words text-sm leading-6 text-slate-300">
+                  {cleanDescription
+                    ? `${cleanDescription.slice(
+                        0,
+                        350
+                      )}${
+                        cleanDescription.length >
+                        350
+                          ? "..."
+                          : ""
+                      }`
+                    : "No description available."}
                 </p>
-              )}
 
-              <div className="mt-5 flex flex-wrap gap-3">
-                <a
-                  href={job.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="bg-slate-700 px-4 py-2 rounded-lg hover:bg-slate-600"
-                >
-                  View Job
-                </a>
-
-                <button
-                  onClick={() => analyzeJobMatch(job)}
-                  disabled={analyzingJobId === job.id}
-                  className="bg-purple-600 px-4 py-2 rounded-lg hover:bg-purple-500 disabled:opacity-50"
-                >
-                  {analyzingJobId === job.id ? "Analyzing..." : "Analyze Match"}
-                </button>
-
-                <button
-  onClick={() => generateATSResume(job)}
-  disabled={generatingAtsJobId === job.id}
-  className="bg-cyan-600 px-4 py-2 rounded-lg hover:bg-cyan-500 disabled:opacity-50"
->
-  {generatingAtsJobId === job.id ? "Generating..." : "ATS Optimizer"}
-</button>
-
-<button
-  onClick={() => generateInterviewPrep(job)}
-  disabled={generatingInterviewJobId === job.id}
-  className="bg-purple-600 px-4 py-2 rounded-lg hover:bg-purple-500 disabled:opacity-50"
->
-  {generatingInterviewJobId === job.id
-    ? "Generating..."
-    : "Prepare Interview"}
-</button>
-
-<button
-  onClick={() => generateCoverLetterForJob(job)}
-  disabled={generatingCoverLetterJobId === job.id}
-  className="bg-pink-600 px-4 py-2 rounded-lg hover:bg-pink-500 disabled:opacity-50"
->
-  {generatingCoverLetterJobId === job.id ? "Generating..." : "Generate Cover Letter"}
-</button>
-
-<button
-  onClick={() => generateAutofillAnswers(job)}
-  disabled={generatingAutofillJobId === job.id}
-  className="bg-orange-600 px-4 py-2 rounded-lg hover:bg-orange-500 disabled:opacity-50"
->
-  {generatingAutofillJobId === job.id ? "Generating..." : "Autofill Answers"}
-</button>
-
-
-                {!savedJobs[job.id] ? (
-                  <button
-                    onClick={() => saveJob(job)}
-                    className="bg-indigo-600 px-4 py-2 rounded-lg hover:bg-indigo-500"
-                  >
-                    Save to Applications
-                  </button>
-                ) : (
-                  <button
-                    disabled
-                    className="bg-slate-700 px-4 py-2 rounded-lg text-slate-300"
-                  >
-                    Saved
-                  </button>
+                {(job.salary_min ||
+                  job.salary_max) && (
+                  <p className="mt-4 text-sm text-green-400">
+                    Salary:{" "}
+                    {formatSalary(
+                      job.salary_min
+                    )}{" "}
+                    –{" "}
+                    {formatSalary(
+                      job.salary_max
+                    )}
+                  </p>
                 )}
 
-                {savedJobs[job.id] && (
-                  <button
-                    onClick={() => markApplied(job)}
-                    disabled={appliedJobs.includes(job.id)}
-                    className="bg-green-600 px-4 py-2 rounded-lg hover:bg-green-500 disabled:opacity-50"
+                <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  <a
+                    href={job.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full rounded-lg bg-slate-700 px-4 py-2 text-center transition hover:bg-slate-600"
                   >
-                    {appliedJobs.includes(job.id) ? "Applied" : "Mark as Applied"}
+                    View Job
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      analyzeJobMatch(job)
+                    }
+                    disabled={
+                      analyzingJobId ===
+                      job.id
+                    }
+                    className="w-full rounded-lg bg-purple-600 px-4 py-2 transition hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {analyzingJobId ===
+                    job.id
+                      ? "Analyzing..."
+                      : "Analyze Match"}
                   </button>
-                )}
-              </div>
 
-              {matchResults[job.id] && (
-                <div className="mt-5 bg-slate-800 p-4 rounded-lg">
-                  <h3 className="font-semibold">AI Match Analysis</h3>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      generateATSResume(job)
+                    }
+                    disabled={
+                      generatingAtsJobId ===
+                        job.id ||
+                      tailoringJobId ===
+                        job.id
+                    }
+                    className="w-full rounded-lg bg-cyan-600 px-4 py-2 transition hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {generatingAtsJobId ===
+                    job.id
+                      ? "Generating..."
+                      : tailoringJobId ===
+                        job.id
+                      ? "Tailoring..."
+                      : "ATS Optimizer"}
+                  </button>
 
-                  <p className="mt-3 text-3xl font-bold text-indigo-400">
-                    {matchResults[job.id].match_score}%
-                  </p>
-
-                  <p className="mt-4 font-medium">Missing Skills</p>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {matchResults[job.id].missing_skills?.map(
-                      (skill: string, index: number) => (
-                        <span
-                          key={index}
-                          className="bg-red-500/20 text-red-300 px-3 py-1 rounded-full text-xs"
-                        >
-                          {skill}
-                        </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      generateInterviewPrep(
+                        job
                       )
-                    )}
-                  </div>
+                    }
+                    disabled={
+                      generatingInterviewJobId ===
+                      job.id
+                    }
+                    className="w-full rounded-lg bg-violet-600 px-4 py-2 transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {generatingInterviewJobId ===
+                    job.id
+                      ? "Generating..."
+                      : "Prepare Interview"}
+                  </button>
 
-                  <p className="mt-4 font-medium">Keywords to Add</p>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {matchResults[job.id].keywords_to_add?.map(
-                      (keyword: string, index: number) => (
-                        <span
-                          key={index}
-                          className="bg-green-500/20 text-green-300 px-3 py-1 rounded-full text-xs"
-                        >
-                          {keyword}
-                        </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      generateCoverLetterForJob(
+                        job
                       )
-                    )}
-                  </div>
+                    }
+                    disabled={
+                      generatingCoverLetterJobId ===
+                      job.id
+                    }
+                    className="w-full rounded-lg bg-pink-600 px-4 py-2 transition hover:bg-pink-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {generatingCoverLetterJobId ===
+                    job.id
+                      ? "Generating..."
+                      : "Generate Cover Letter"}
+                  </button>
 
-                  <p className="mt-4 font-medium">Recommendation</p>
-                  <p className="text-slate-300 text-sm mt-2">
-                    {matchResults[job.id].recommendation}
-                  </p>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      generateAutofillAnswers(
+                        job
+                      )
+                    }
+                    disabled={
+                      generatingAutofillJobId ===
+                      job.id
+                    }
+                    className="w-full rounded-lg bg-orange-600 px-4 py-2 transition hover:bg-orange-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {generatingAutofillJobId ===
+                    job.id
+                      ? "Generating..."
+                      : "Autofill Answers"}
+                  </button>
+
+                  {!savedJobs[job.id] ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        saveJob(job)
+                      }
+                      className="w-full rounded-lg bg-indigo-600 px-4 py-2 transition hover:bg-indigo-500"
+                    >
+                      Save to Applications
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled
+                      className="w-full rounded-lg bg-slate-700 px-4 py-2 text-slate-300"
+                    >
+                      Saved
+                    </button>
+                  )}
+
+                  {savedJobs[job.id] && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        markApplied(job)
+                      }
+                      disabled={appliedJobs.includes(
+                        job.id
+                      )}
+                      className="w-full rounded-lg bg-green-600 px-4 py-2 transition hover:bg-green-500 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {appliedJobs.includes(
+                        job.id
+                      )
+                        ? "Applied"
+                        : "Mark as Applied"}
+                    </button>
+                  )}
                 </div>
-              )}
 
-              {atsResults[job.id] && (
-  <div className="mt-5 bg-slate-800 p-4 rounded-lg">
-    <h3 className="font-semibold">ATS Resume Optimization</h3>
+                {matchResults[job.id] && (
+                  <section className="mt-5 min-w-0 rounded-lg bg-slate-800 p-4 sm:p-5">
+                    <h3 className="font-semibold">
+                      AI Match Analysis
+                    </h3>
 
-    <p className="mt-3 text-3xl font-bold text-cyan-400">
-      {atsResults[job.id].ats_score}%
-    </p>
+                    <p className="mt-3 text-2xl font-bold text-indigo-400 sm:text-3xl">
+                      {
+                        matchResults[job.id]
+                          .match_score
+                      }
+                      %
+                    </p>
 
-    <p className="mt-4 font-medium">Missing Keywords</p>
-    <div className="flex flex-wrap gap-2 mt-2">
-      {atsResults[job.id].missing_keywords?.map(
-        (keyword: string, index: number) => (
-          <span
-            key={index}
-            className="bg-red-500/20 text-red-300 px-3 py-1 rounded-full text-xs"
-          >
-            {keyword}
-          </span>
-        )
-      )}
-    </div>
+                    <p className="mt-4 font-medium">
+                      Missing Skills
+                    </p>
 
-    <p className="mt-4 font-medium">Keywords to Add</p>
-    <div className="flex flex-wrap gap-2 mt-2">
-      {atsResults[job.id].keywords_to_add?.map(
-        (keyword: string, index: number) => (
-          <span
-            key={index}
-            className="bg-green-500/20 text-green-300 px-3 py-1 rounded-full text-xs"
-          >
-            {keyword}
-          </span>
-        )
-      )}
-    </div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {matchResults[
+                        job.id
+                      ].missing_skills?.map(
+                        (skill, index) => (
+                          <span
+                            key={`${skill}-${index}`}
+                            className="break-words rounded-full bg-red-500/20 px-3 py-1 text-xs text-red-300"
+                          >
+                            {skill}
+                          </span>
+                        )
+                      )}
+                    </div>
 
-    <p className="mt-4 font-medium">Optimized Summary</p>
-    <p className="text-slate-300 text-sm mt-2">
-      {atsResults[job.id].optimized_summary}
-    </p>
+                    <p className="mt-4 font-medium">
+                      Keywords to Add
+                    </p>
 
-    <p className="mt-4 font-medium">Optimized Resume Bullets</p>
-    <ul className="list-disc list-inside text-slate-300 text-sm mt-2 space-y-1">
-      {atsResults[job.id].optimized_bullets?.map(
-        (bullet: string, index: number) => (
-          <li key={index}>{bullet}</li>
-        )
-      )}
-    </ul>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {matchResults[
+                        job.id
+                      ].keywords_to_add?.map(
+                        (
+                          keyword,
+                          index
+                        ) => (
+                          <span
+                            key={`${keyword}-${index}`}
+                            className="break-words rounded-full bg-green-500/20 px-3 py-1 text-xs text-green-300"
+                          >
+                            {keyword}
+                          </span>
+                        )
+                      )}
+                    </div>
 
-    {atsResults[job.id].note && (
-      <p className="mt-4 text-xs text-slate-400">
-        {atsResults[job.id].note}
-      </p>
-    )}
-  </div>
-)}
+                    <p className="mt-4 font-medium">
+                      Recommendation
+                    </p>
 
-    {interviewResults[job.id] && (
+                    <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-300">
+                      {
+                        matchResults[job.id]
+                          .recommendation
+                      }
+                    </p>
+                  </section>
+                )}
 
-  <div className="mt-5 bg-slate-800 p-5 rounded-lg">
+                {atsResults[job.id] && (
+                  <section className="mt-5 min-w-0 rounded-lg bg-slate-800 p-4 sm:p-5">
+                    <h3 className="font-semibold">
+                      ATS Resume Optimization
+                    </h3>
 
-    <h3 className="text-xl font-semibold">
-      Interview Preparation
-    </h3>
+                    <p className="mt-3 text-2xl font-bold text-cyan-400 sm:text-3xl">
+                      {
+                        atsResults[job.id]
+                          .ats_score
+                      }
+                      %
+                    </p>
 
-    <div className="mt-4">
-      <p className="text-slate-400">
-        Readiness Score
-      </p>
+                    <p className="mt-4 font-medium">
+                      Missing Keywords
+                    </p>
 
-      <p className="text-4xl font-bold text-purple-400">
-        {interviewResults[job.id].readiness_score}%
-      </p>
-    </div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {atsResults[
+                        job.id
+                      ].missing_keywords?.map(
+                        (
+                          keyword,
+                          index
+                        ) => (
+                          <span
+                            key={`${keyword}-${index}`}
+                            className="break-words rounded-full bg-red-500/20 px-3 py-1 text-xs text-red-300"
+                          >
+                            {keyword}
+                          </span>
+                        )
+                      )}
+                    </div>
 
-    <div className="mt-6">
+                    <p className="mt-4 font-medium">
+                      Keywords to Add
+                    </p>
 
-      <h4 className="font-semibold">
-        Technical Questions
-      </h4>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {atsResults[
+                        job.id
+                      ].keywords_to_add?.map(
+                        (
+                          keyword,
+                          index
+                        ) => (
+                          <span
+                            key={`${keyword}-${index}`}
+                            className="break-words rounded-full bg-green-500/20 px-3 py-1 text-xs text-green-300"
+                          >
+                            {keyword}
+                          </span>
+                        )
+                      )}
+                    </div>
 
-      <ul className="list-disc ml-6 mt-2">
-        {interviewResults[job.id].technical_questions?.map(
-          (q, index) => (
-            <li key={index}>{q}</li>
-          )
-        )}
-      </ul>
+                    <p className="mt-4 font-medium">
+                      Optimized Summary
+                    </p>
 
-    </div>
+                    <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-300">
+                      {
+                        atsResults[job.id]
+                          .optimized_summary
+                      }
+                    </p>
 
-    <div className="mt-6">
+                    <p className="mt-4 font-medium">
+                      Optimized Resume Bullets
+                    </p>
 
-      <h4 className="font-semibold">
-        Behavioral Questions
-      </h4>
+                    <ul className="mt-2 list-disc space-y-2 break-words pl-5 text-sm leading-6 text-slate-300">
+                      {atsResults[
+                        job.id
+                      ].optimized_bullets?.map(
+                        (bullet, index) => (
+                          <li
+                            key={`${bullet}-${index}`}
+                          >
+                            {bullet}
+                          </li>
+                        )
+                      )}
+                    </ul>
 
-      <ul className="list-disc ml-6 mt-2">
-        {interviewResults[job.id].behavioral_questions?.map(
-          (q, index) => (
-            <li key={index}>{q}</li>
-          )
-        )}
-      </ul>
+                    {atsResults[job.id]
+                      .note && (
+                      <p className="mt-4 whitespace-pre-wrap break-words text-xs leading-5 text-slate-400">
+                        {
+                          atsResults[job.id]
+                            .note
+                        }
+                      </p>
+                    )}
+                  </section>
+                )}
 
-    </div>
+                {interviewResults[
+                  job.id
+                ] && (
+                  <section className="mt-5 min-w-0 rounded-lg bg-slate-800 p-4 sm:p-5">
+                    <h3 className="text-xl font-semibold">
+                      Interview Preparation
+                    </h3>
 
-    <div className="mt-6">
+                    <div className="mt-4">
+                      <p className="text-slate-400">
+                        Readiness Score
+                      </p>
 
-      <h4 className="font-semibold">
-        System Design Questions
-      </h4>
+                      <p className="text-3xl font-bold text-purple-400 sm:text-4xl">
+                        {
+                          interviewResults[
+                            job.id
+                          ].readiness_score
+                        }
+                        %
+                      </p>
+                    </div>
 
-      <ul className="list-disc ml-6 mt-2">
-        {interviewResults[job.id].system_design_questions?.map(
-          (q, index) => (
-            <li key={index}>{q}</li>
-          )
-        )}
-      </ul>
+                    <div className="mt-6">
+                      <h4 className="font-semibold">
+                        Technical Questions
+                      </h4>
 
-    </div>
+                      <ul className="mt-2 list-disc space-y-2 break-words pl-5 text-sm leading-6 text-slate-300">
+                        {interviewResults[
+                          job.id
+                        ].technical_questions?.map(
+                          (
+                            question,
+                            index
+                          ) => (
+                            <li
+                              key={`${question}-${index}`}
+                            >
+                              {question}
+                            </li>
+                          )
+                        )}
+                      </ul>
+                    </div>
 
-  </div>
+                    <div className="mt-6">
+                      <h4 className="font-semibold">
+                        Behavioral Questions
+                      </h4>
 
-)}
+                      <ul className="mt-2 list-disc space-y-2 break-words pl-5 text-sm leading-6 text-slate-300">
+                        {interviewResults[
+                          job.id
+                        ].behavioral_questions?.map(
+                          (
+                            question,
+                            index
+                          ) => (
+                            <li
+                              key={`${question}-${index}`}
+                            >
+                              {question}
+                            </li>
+                          )
+                        )}
+                      </ul>
+                    </div>
 
-{coverLetters[job.id] && (
-  <div className="mt-5 bg-slate-800 p-5 rounded-lg">
-    <h3 className="text-xl font-semibold">Generated Cover Letter</h3>
+                    <div className="mt-6">
+                      <h4 className="font-semibold">
+                        System Design Questions
+                      </h4>
 
-    <pre className="mt-4 whitespace-pre-wrap text-sm text-slate-300 bg-slate-900 p-4 rounded-lg max-h-96 overflow-auto">
-      {coverLetters[job.id].cover_letter}
-    </pre>
+                      <ul className="mt-2 list-disc space-y-2 break-words pl-5 text-sm leading-6 text-slate-300">
+                        {interviewResults[
+                          job.id
+                        ].system_design_questions?.map(
+                          (
+                            question,
+                            index
+                          ) => (
+                            <li
+                              key={`${question}-${index}`}
+                            >
+                              {question}
+                            </li>
+                          )
+                        )}
+                      </ul>
+                    </div>
 
-    <button
-      onClick={() => navigator.clipboard.writeText(coverLetters[job.id].cover_letter)}
-      className="mt-4 bg-pink-600 px-4 py-2 rounded-lg hover:bg-pink-500"
-    >
-      Copy Cover Letter
-    </button>
-  </div>
-)}
+                    {interviewResults[
+                      job.id
+                    ].sample_answers?.length >
+                      0 && (
+                      <div className="mt-6">
+                        <h4 className="font-semibold">
+                          Sample Answers
+                        </h4>
 
-{autofillResults[job.id] && (
-  <div className="mt-5 bg-slate-800 p-5 rounded-lg">
-    <h3 className="text-xl font-semibold">Application Autofill Answers</h3>
+                        <div className="mt-3 space-y-3">
+                          {interviewResults[
+                            job.id
+                          ].sample_answers.map(
+                            (
+                              item,
+                              index
+                            ) => (
+                              <div
+                                key={`${item.question}-${index}`}
+                                className="min-w-0 rounded-lg bg-slate-900 p-4"
+                              >
+                                <p className="break-words font-medium text-purple-300">
+                                  {
+                                    item.question
+                                  }
+                                </p>
 
-    {Object.entries(autofillResults[job.id]).map(([key, value]) => (
-      <div key={key} className="mt-4 bg-slate-900 p-4 rounded-lg">
-        <p className="text-orange-300 font-medium capitalize">
-          {key.replaceAll("_", " ")}
-        </p>
+                                <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-300">
+                                  {item.answer}
+                                </p>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </section>
+                )}
 
-        <p className="text-slate-300 text-sm mt-2 whitespace-pre-wrap">
-          {String(value)}
-        </p>
+                {coverLetters[job.id] && (
+                  <section className="mt-5 min-w-0 rounded-lg bg-slate-800 p-4 sm:p-5">
+                    <h3 className="text-xl font-semibold">
+                      Generated Cover Letter
+                    </h3>
 
-        <button
-          onClick={() => navigator.clipboard.writeText(String(value))}
-          className="mt-3 bg-slate-700 px-3 py-1 rounded text-sm hover:bg-slate-600"
-        >
-          Copy
-        </button>
-      </div>
-    ))}
-  </div>
-)}
+                    <pre className="mt-4 max-h-96 max-w-full overflow-auto whitespace-pre-wrap break-words rounded-lg bg-slate-900 p-4 font-sans text-sm leading-6 text-slate-300">
+                      {
+                        coverLetters[job.id]
+                          .cover_letter
+                      }
+                    </pre>
 
-{tailoredResumes[job.id] && (
-  <div className="mt-5 bg-slate-800 p-5 rounded-lg">
-    <h3 className="text-xl font-semibold">Resume Tailoring Suggestions</h3>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        copyText(
+                          coverLetters[
+                            job.id
+                          ].cover_letter,
+                          "Cover letter"
+                        )
+                      }
+                      className="mt-4 w-full rounded-lg bg-pink-600 px-4 py-2 transition hover:bg-pink-500 sm:w-auto"
+                    >
+                      Copy Cover Letter
+                    </button>
+                  </section>
+                )}
 
-    <p className="mt-3 text-3xl font-bold text-emerald-400">
-      {tailoredResumes[job.id].tailored_resume_score}%
-    </p>
+                {autofillResults[
+                  job.id
+                ] && (
+                  <section className="mt-5 min-w-0 rounded-lg bg-slate-800 p-4 sm:p-5">
+                    <h3 className="text-xl font-semibold">
+                      Application Autofill
+                      Answers
+                    </h3>
 
-    <p className="mt-4 font-medium">Optimized Summary</p>
-    <p className="text-slate-300 text-sm mt-2 whitespace-pre-wrap">
-      {tailoredResumes[job.id].optimized_summary}
-    </p>
+                    {Object.entries(
+                      autofillResults[
+                        job.id
+                      ]
+                    ).map(
+                      ([key, value]) => (
+                        <div
+                          key={key}
+                          className="mt-4 min-w-0 rounded-lg bg-slate-900 p-4"
+                        >
+                          <p className="break-words font-medium capitalize text-orange-300">
+                            {key.replaceAll(
+                              "_",
+                              " "
+                            )}
+                          </p>
 
-    <p className="mt-4 font-medium">Keywords Added</p>
-    <div className="flex flex-wrap gap-2 mt-2">
-      {tailoredResumes[job.id].keywords_added?.map((item, index) => (
-        <span
-          key={index}
-          className="bg-emerald-500/20 text-emerald-300 px-3 py-1 rounded-full text-xs"
-        >
-          {item}
-        </span>
-      ))}
-    </div>
+                          <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-300">
+                            {String(value)}
+                          </p>
 
-    <p className="mt-4 font-medium">Optimized Skills</p>
-    <div className="flex flex-wrap gap-2 mt-2">
-      {tailoredResumes[job.id].optimized_skills?.map((item, index) => (
-        <span
-          key={index}
-          className="bg-blue-500/20 text-blue-300 px-3 py-1 rounded-full text-xs"
-        >
-          {item}
-        </span>
-      ))}
-    </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              copyText(
+                                String(
+                                  value
+                                ),
+                                key.replaceAll(
+                                  "_",
+                                  " "
+                                )
+                              )
+                            }
+                            className="mt-3 w-full rounded bg-slate-700 px-3 py-2 text-sm transition hover:bg-slate-600 sm:w-auto"
+                          >
+                            Copy
+                          </button>
+                        </div>
+                      )
+                    )}
+                  </section>
+                )}
 
-    <p className="mt-4 font-medium">Optimized Experience Bullets</p>
-    <ul className="list-disc list-inside text-slate-300 text-sm mt-2 space-y-1">
-      {tailoredResumes[job.id].optimized_experience_bullets?.map((item, index) => (
-        <li key={index}>{item}</li>
-      ))}
-    </ul>
+                {tailoredResumes[
+                  job.id
+                ] && (
+                  <section className="mt-5 min-w-0 rounded-lg bg-slate-800 p-4 sm:p-5">
+                    <h3 className="text-xl font-semibold">
+                      Resume Tailoring
+                      Suggestions
+                    </h3>
 
-    <p className="mt-4 font-medium">Projects to Highlight</p>
-    <ul className="list-disc list-inside text-slate-300 text-sm mt-2 space-y-1">
-      {tailoredResumes[job.id].recommended_projects_to_highlight?.map((item, index) => (
-        <li key={index}>{item}</li>
-      ))}
-    </ul>
+                    <p className="mt-3 text-2xl font-bold text-emerald-400 sm:text-3xl">
+                      {
+                        tailoredResumes[
+                          job.id
+                        ]
+                          .tailored_resume_score
+                      }
+                      %
+                    </p>
 
-    <p className="mt-4 font-medium">Missing Gaps</p>
-    <ul className="list-disc list-inside text-slate-300 text-sm mt-2 space-y-1">
-      {tailoredResumes[job.id].missing_gaps?.map((item, index) => (
-        <li key={index}>{item}</li>
-      ))}
-    </ul>
+                    <p className="mt-4 font-medium">
+                      Optimized Summary
+                    </p>
 
-    <p className="mt-4 text-xs text-slate-400">
-      {tailoredResumes[job.id].final_notes}
-    </p>
-  </div>
-)}
-            </div>
-          ))}
+                    <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-300">
+                      {
+                        tailoredResumes[
+                          job.id
+                        ].optimized_summary
+                      }
+                    </p>
+
+                    <p className="mt-4 font-medium">
+                      Keywords Added
+                    </p>
+
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {tailoredResumes[
+                        job.id
+                      ].keywords_added?.map(
+                        (item, index) => (
+                          <span
+                            key={`${item}-${index}`}
+                            className="break-words rounded-full bg-emerald-500/20 px-3 py-1 text-xs text-emerald-300"
+                          >
+                            {item}
+                          </span>
+                        )
+                      )}
+                    </div>
+
+                    <p className="mt-4 font-medium">
+                      Optimized Skills
+                    </p>
+
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {tailoredResumes[
+                        job.id
+                      ].optimized_skills?.map(
+                        (item, index) => (
+                          <span
+                            key={`${item}-${index}`}
+                            className="break-words rounded-full bg-blue-500/20 px-3 py-1 text-xs text-blue-300"
+                          >
+                            {item}
+                          </span>
+                        )
+                      )}
+                    </div>
+
+                    <p className="mt-4 font-medium">
+                      Optimized Experience
+                      Bullets
+                    </p>
+
+                    <ul className="mt-2 list-disc space-y-2 break-words pl-5 text-sm leading-6 text-slate-300">
+                      {tailoredResumes[
+                        job.id
+                      ].optimized_experience_bullets?.map(
+                        (item, index) => (
+                          <li
+                            key={`${item}-${index}`}
+                          >
+                            {item}
+                          </li>
+                        )
+                      )}
+                    </ul>
+
+                    <p className="mt-4 font-medium">
+                      Projects to Highlight
+                    </p>
+
+                    <ul className="mt-2 list-disc space-y-2 break-words pl-5 text-sm leading-6 text-slate-300">
+                      {tailoredResumes[
+                        job.id
+                      ].recommended_projects_to_highlight?.map(
+                        (item, index) => (
+                          <li
+                            key={`${item}-${index}`}
+                          >
+                            {item}
+                          </li>
+                        )
+                      )}
+                    </ul>
+
+                    <p className="mt-4 font-medium">
+                      Missing Gaps
+                    </p>
+
+                    <ul className="mt-2 list-disc space-y-2 break-words pl-5 text-sm leading-6 text-slate-300">
+                      {tailoredResumes[
+                        job.id
+                      ].missing_gaps?.map(
+                        (item, index) => (
+                          <li
+                            key={`${item}-${index}`}
+                          >
+                            {item}
+                          </li>
+                        )
+                      )}
+                    </ul>
+
+                    {tailoredResumes[
+                      job.id
+                    ].final_notes && (
+                      <p className="mt-4 whitespace-pre-wrap break-words text-xs leading-5 text-slate-400">
+                        {
+                          tailoredResumes[
+                            job.id
+                          ].final_notes
+                        }
+                      </p>
+                    )}
+                  </section>
+                )}
+              </article>
+            );
+          })}
         </div>
       )}
-    </main>
+    </>
   );
 }
