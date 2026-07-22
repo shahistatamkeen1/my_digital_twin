@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function HealthPage() {
+export default function HealthHomePage() {
   redirect("/health/dashboard");
 }

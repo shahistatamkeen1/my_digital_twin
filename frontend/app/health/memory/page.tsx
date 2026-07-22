@@ -13,26 +13,36 @@ type HealthMemory = {
   notes: string;
 };
 
-export default function HealthMemoryPage() {
-  const [memory, setMemory] = useState<HealthMemory>({
-    health_goal: "",
-    diet_preference: "",
-    fitness_level: "",
-    sleep_goal_hours: 8,
-    water_goal_cups: 8,
-    workout_goal_minutes: 30,
-    allergies: "",
-    notes: "",
-  });
+const initialMemory: HealthMemory = {
+  health_goal: "",
+  diet_preference: "",
+  fitness_level: "",
+  sleep_goal_hours: 8,
+  water_goal_cups: 8,
+  workout_goal_minutes: 30,
+  allergies: "",
+  notes: "",
+};
 
+export default function HealthMemoryPage() {
+  const [memory, setMemory] = useState<HealthMemory>(initialMemory);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [success, setSuccess] = useState("");
+  const [error, setError] = useState("");
 
   const fetchMemory = async () => {
+    setError("");
+
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/health/memory`
+        `${process.env.NEXT_PUBLIC_API_URL}/api/health/memory`,
+        { cache: "no-store" }
       );
+
+      if (!res.ok) {
+        throw new Error("Could not load Health Memory.");
+      }
 
       const data = await res.json();
 
@@ -46,18 +56,25 @@ export default function HealthMemoryPage() {
         allergies: data.allergies || "",
         notes: data.notes || "",
       });
-    } catch (error) {
-      console.error("Could not load health memory:", error);
+    } catch (loadError) {
+      console.error("Could not load health memory:", loadError);
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : "Could not load Health Memory."
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchMemory();
+    void fetchMemory();
   }, []);
 
   const updateField = (field: keyof HealthMemory, value: string) => {
-    setMemory((prev) => ({
-      ...prev,
+    setMemory((current) => ({
+      ...current,
       [field]:
         field === "sleep_goal_hours" ||
         field === "water_goal_cups" ||
@@ -69,7 +86,8 @@ export default function HealthMemoryPage() {
 
   const saveMemory = async () => {
     setSaving(true);
-    setSuccess(false);
+    setSuccess("");
+    setError("");
 
     try {
       const res = await fetch(
@@ -84,144 +102,204 @@ export default function HealthMemoryPage() {
       );
 
       if (!res.ok) {
-        throw new Error("Failed to save health memory");
+        throw new Error("Could not save Health Memory.");
       }
 
-      setSuccess(true);
-      fetchMemory();
-
-      setTimeout(() => {
-        setSuccess(false);
-      }, 2500);
-    } catch (error) {
-      console.error("Could not save health memory:", error);
-      alert("Could not save Health Memory.");
+      setSuccess("Health Memory saved successfully.");
+      await fetchMemory();
+    } catch (saveError) {
+      console.error("Could not save health memory:", saveError);
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : "Could not save Health Memory."
+      );
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 p-8 text-white">
-      <h1 className="text-3xl font-bold">Health Memory</h1>
+    <div className="space-y-8">
+      <header>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-400">
+          Personal wellness context
+        </p>
+        <h1 className="mt-2 text-3xl font-bold text-white sm:text-4xl">
+          Health Memory
+        </h1>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400 sm:text-base">
+          Tell your Health Twin about your goals, diet preferences, fitness
+          level, restrictions, and daily health targets.
+        </p>
+      </header>
 
-      <p className="mt-2 text-slate-400">
-        Tell your Health Twin about your wellness goals, diet preferences,
-        fitness level, and daily health targets.
-      </p>
+      {error ? <Notice message={error} error /> : null}
+      {success ? <Notice message={success} /> : null}
 
-      {success && (
-        <div className="mt-5 rounded-lg border border-green-600 bg-green-900/20 p-3 text-green-400">
-          ✓ Health Memory saved successfully.
-        </div>
+      {loading ? (
+        <div className="h-[520px] animate-pulse rounded-2xl border border-slate-800 bg-slate-900" />
+      ) : (
+        <section className="rounded-2xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <Field label="Health Goal">
+              <input
+                value={memory.health_goal}
+                onChange={(event) =>
+                  updateField("health_goal", event.target.value)
+                }
+                className={inputClassName}
+                placeholder="Improve energy, build muscle, improve sleep..."
+              />
+            </Field>
+
+            <Field label="Diet Preference">
+              <select
+                value={memory.diet_preference}
+                onChange={(event) =>
+                  updateField("diet_preference", event.target.value)
+                }
+                className={inputClassName}
+              >
+                <option value="">Select Diet Preference</option>
+                <option value="Vegetarian">Vegetarian</option>
+                <option value="Non-Vegetarian">Non-Vegetarian</option>
+                <option value="Vegan">Vegan</option>
+                <option value="High Protein">High Protein</option>
+                <option value="Balanced Diet">Balanced Diet</option>
+              </select>
+            </Field>
+
+            <Field label="Fitness Level">
+              <select
+                value={memory.fitness_level}
+                onChange={(event) =>
+                  updateField("fitness_level", event.target.value)
+                }
+                className={inputClassName}
+              >
+                <option value="">Select Fitness Level</option>
+                <option value="Beginner">Beginner</option>
+                <option value="Intermediate">Intermediate</option>
+                <option value="Advanced">Advanced</option>
+              </select>
+            </Field>
+
+            <Field label="Sleep Goal Hours">
+              <input
+                type="number"
+                min="0"
+                step="0.5"
+                value={memory.sleep_goal_hours}
+                onChange={(event) =>
+                  updateField("sleep_goal_hours", event.target.value)
+                }
+                className={inputClassName}
+              />
+            </Field>
+
+            <Field label="Water Goal Cups">
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={memory.water_goal_cups}
+                onChange={(event) =>
+                  updateField("water_goal_cups", event.target.value)
+                }
+                className={inputClassName}
+              />
+            </Field>
+
+            <Field label="Workout Goal Minutes">
+              <input
+                type="number"
+                min="0"
+                step="5"
+                value={memory.workout_goal_minutes}
+                onChange={(event) =>
+                  updateField("workout_goal_minutes", event.target.value)
+                }
+                className={inputClassName}
+              />
+            </Field>
+
+            <div className="md:col-span-2">
+              <Field label="Allergies or Restrictions">
+                <input
+                  value={memory.allergies}
+                  onChange={(event) =>
+                    updateField("allergies", event.target.value)
+                  }
+                  className={inputClassName}
+                  placeholder="Peanuts, dairy, gluten, none..."
+                />
+              </Field>
+            </div>
+
+            <div className="md:col-span-2">
+              <Field label="Additional Notes">
+                <textarea
+                  value={memory.notes}
+                  onChange={(event) =>
+                    updateField("notes", event.target.value)
+                  }
+                  rows={5}
+                  className={inputClassName}
+                  placeholder="Health preferences, routines, restrictions, or relevant context..."
+                />
+              </Field>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={saveMemory}
+            disabled={saving}
+            className="mt-6 w-full rounded-xl bg-rose-600 px-5 py-3 font-semibold text-white transition hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+          >
+            {saving ? "Saving..." : "Save Health Memory"}
+          </button>
+        </section>
       )}
+    </div>
+  );
+}
 
-      <div className="mt-8 bg-slate-900 p-6 rounded-xl">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div>
-            <label className="text-sm text-slate-400">Health Goal</label>
-            <input
-              value={memory.health_goal}
-              onChange={(e) => updateField("health_goal", e.target.value)}
-              className="mt-2 w-full rounded-lg bg-slate-800 p-3 outline-none"
-              placeholder="Lose weight, improve energy, build muscle..."
-            />
-          </div>
+const inputClassName =
+  "mt-2 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20";
 
-          <div>
-            <label className="text-sm text-slate-400">Diet Preference</label>
-            <select
-              value={memory.diet_preference}
-              onChange={(e) => updateField("diet_preference", e.target.value)}
-              className="mt-2 w-full rounded-lg bg-slate-800 p-3 outline-none"
-            >
-              <option value="">Select Diet Preference</option>
-              <option value="Vegetarian">Vegetarian</option>
-              <option value="Non-Vegetarian">Non-Vegetarian</option>
-              <option value="Vegan">Vegan</option>
-              <option value="High Protein">High Protein</option>
-              <option value="Balanced Diet">Balanced Diet</option>
-            </select>
-          </div>
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="text-sm font-medium text-slate-300">{label}</span>
+      {children}
+    </label>
+  );
+}
 
-          <div>
-            <label className="text-sm text-slate-400">Fitness Level</label>
-            <select
-              value={memory.fitness_level}
-              onChange={(e) => updateField("fitness_level", e.target.value)}
-              className="mt-2 w-full rounded-lg bg-slate-800 p-3 outline-none"
-            >
-              <option value="">Select Fitness Level</option>
-              <option value="Beginner">Beginner</option>
-              <option value="Intermediate">Intermediate</option>
-              <option value="Advanced">Advanced</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="text-sm text-slate-400">Sleep Goal Hours</label>
-            <input
-              type="number"
-              value={memory.sleep_goal_hours}
-              onChange={(e) => updateField("sleep_goal_hours", e.target.value)}
-              className="mt-2 w-full rounded-lg bg-slate-800 p-3 outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm text-slate-400">Water Goal Cups</label>
-            <input
-              type="number"
-              value={memory.water_goal_cups}
-              onChange={(e) => updateField("water_goal_cups", e.target.value)}
-              className="mt-2 w-full rounded-lg bg-slate-800 p-3 outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm text-slate-400">
-              Workout Goal Minutes
-            </label>
-            <input
-              type="number"
-              value={memory.workout_goal_minutes}
-              onChange={(e) =>
-                updateField("workout_goal_minutes", e.target.value)
-              }
-              className="mt-2 w-full rounded-lg bg-slate-800 p-3 outline-none"
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="text-sm text-slate-400">Allergies</label>
-            <input
-              value={memory.allergies}
-              onChange={(e) => updateField("allergies", e.target.value)}
-              className="mt-2 w-full rounded-lg bg-slate-800 p-3 outline-none"
-              placeholder="Peanuts, dairy, gluten, none..."
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="text-sm text-slate-400">Notes</label>
-            <textarea
-              value={memory.notes}
-              onChange={(e) => updateField("notes", e.target.value)}
-              rows={5}
-              className="mt-2 w-full rounded-lg bg-slate-800 p-3 outline-none"
-              placeholder="Any health preferences, restrictions, or personal routines..."
-            />
-          </div>
-        </div>
-
-        <button
-          onClick={saveMemory}
-          disabled={saving}
-          className="mt-6 rounded-lg bg-indigo-600 px-5 py-3 font-medium hover:bg-indigo-500 disabled:opacity-50"
-        >
-          {saving ? "Saving..." : "Save Health Memory"}
-        </button>
-      </div>
-    </main>
+function Notice({
+  message,
+  error = false,
+}: {
+  message: string;
+  error?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-xl border p-4 text-sm ${
+        error
+          ? "border-red-500/30 bg-red-500/10 text-red-200"
+          : "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
+      }`}
+    >
+      {message}
+    </div>
   );
 }
