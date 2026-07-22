@@ -167,10 +167,14 @@ Return JSON in exactly this format:
         "target_role": memory.target_role,
         "items": created_items
     }
-    
-    @router.delete("/")
-    def clear_roadmap(db: Session = Depends(get_db)):
-        db.query(CareerRoadmap).delete()
-        db.commit()
 
-    return {"message": "Roadmap cleared successfully"}
+
+@router.delete("/")
+def clear_roadmap(db: Session = Depends(get_db)):
+    deleted_count = db.query(CareerRoadmap).delete()
+    db.commit()
+
+    return {
+        "message": "Roadmap cleared successfully",
+        "deleted_count": deleted_count,
+    }
