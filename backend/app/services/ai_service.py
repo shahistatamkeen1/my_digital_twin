@@ -1,16 +1,36 @@
-import os
 import json
-from dotenv import load_dotenv
+from typing import Optional
+
 from openai import OpenAI
 
-load_dotenv()
+from app.config import settings
 
-api_key = os.getenv("OPENAI_API_KEY")
 
-if not api_key:
-    raise ValueError("OPENAI_API_KEY is missing in backend/.env")
+_client: Optional[OpenAI] = None
 
-client = OpenAI(api_key=api_key)
+
+def get_ai_client() -> OpenAI:
+    """Create the OpenAI client only when an AI endpoint is used.
+
+    This keeps non-AI endpoints and health checks available even when the
+    OpenAI key is not configured in a local or deployment environment.
+    """
+    global _client
+
+    if _client is not None:
+        return _client
+
+    if not settings.openai_api_key:
+        raise RuntimeError(
+            "OPENAI_API_KEY is not configured. Add it to backend/.env "
+            "or the deployment environment before using AI features."
+        )
+
+    _client = OpenAI(
+        api_key=settings.openai_api_key,
+        timeout=settings.openai_timeout_seconds,
+    )
+    return _client
 
 
 # -----------------------------
@@ -18,8 +38,8 @@ client = OpenAI(api_key=api_key)
 # -----------------------------
 def ask_ai(system_prompt: str, user_prompt: str, temperature: float = 0.3):
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
+    response = get_ai_client().chat.completions.create(
+        model=settings.openai_model,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
@@ -39,8 +59,8 @@ def ask_ai_json(
     temperature: float = 0.2
 ):
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
+    response = get_ai_client().chat.completions.create(
+        model=settings.openai_model,
         messages=[
             {
                 "role": "system",
@@ -103,8 +123,8 @@ Required format:
 
     try:
 
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
+        response = get_ai_client().chat.completions.create(
+            model=settings.openai_model,
             response_format={"type": "json_object"},
             messages=[
                 {

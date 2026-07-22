@@ -1,193 +1,201 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
-from app.database import engine, Base
-from app.routes import resume, chat, job_match, ats_resume, recommendations, applications, memory, roadmap, jobs, interview, cover_letter, career_intelligence, autofill
-from app.models import application, memory as memory_model, roadmap as roadmap_model
-from app.routes import career_intelligence
-from app.routes import interview
-from app.routes import resume_tailor
-from app.routes import twin_context
-from app.routes import twin_recommendation
-from app.models import finance as finance_model
-from app.routes import finance
-from app.routes import finance_chat
-from app.routes import twin_orchestrator
-from app.models import health as health_model
-from app.routes import health
-from app.routes import health_chat
-from app.models import personal_memory as personal_memory_model
-from app.routes import personal_memory
-from app.models import learning as learning_model
-from app.routes import learning
-from app.routes import learning_chat
-from app.routes import learning_recommendations
-from app.models import learning_progress as learning_progress_model
-from app.routes import learning_progress
-from app.routes import resource_recommendations
-from app.routes import twin_brief
-from app.routes import twin_notifications
-from app.routes import master_context
-from app.routes import progress
-from app.models.agent_memory import AgentMemory
-from app.routes import agent_memory
-from app.models.agent_profile import AgentProfile
-from app.routes import agent_profiles
-from app.models.agent_reflection import AgentReflection
-from app.routes import agent_reflections
-from app.routes import twin_journal
-from app.routes import agent_plans
-from app.routes import predictive_insights
+from app.config import settings
+from app.database import Base, engine
 
-app = FastAPI()
+# Import model modules so SQLAlchemy registers every table before optional
+# development-time table creation. Alembic will replace create_all in Phase 3.
+from app.models import (  # noqa: F401
+    agent_memory,
+    agent_plan,
+    agent_profile,
+    agent_reflection,
+    application,
+    finance,
+    health,
+    learning,
+    learning_progress,
+    memory,
+    personal_memory,
+    roadmap,
+    twin_snapshot,
+)
+from app.routes import (
+    agent_memory as agent_memory_routes,
+    agent_plans,
+    agent_profiles,
+    agent_reflections,
+    applications,
+    ats_resume,
+    autofill,
+    career_intelligence,
+    chat,
+    cover_letter,
+    finance as finance_routes,
+    finance_chat,
+    health as health_routes,
+    health_chat,
+    interview,
+    job_match,
+    jobs,
+    learning as learning_routes,
+    learning_chat,
+    learning_progress as learning_progress_routes,
+    learning_recommendations,
+    master_context,
+    memory as memory_routes,
+    personal_memory as personal_memory_routes,
+    predictive_insights,
+    progress,
+    recommendations,
+    resource_recommendations,
+    resume,
+    resume_tailor,
+    roadmap as roadmap_routes,
+    twin_brief,
+    twin_context,
+    twin_journal,
+    twin_notifications,
+    twin_orchestrator,
+    twin_recommendation,
+)
 
-Base.metadata.create_all(bind=engine)
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    if settings.auto_create_tables:
+        Base.metadata.create_all(bind=engine)
+    yield
+
+
+app = FastAPI(
+    title=settings.app_name,
+    version=settings.app_version,
+    lifespan=lifespan,
+)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=list(settings.cors_origins),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.include_router(resume.router, prefix="/api/resume", tags=["Resume"])
-app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
-app.include_router(job_match.router, prefix="/api/job-match", tags=["Job Match"])
-app.include_router(ats_resume.router, prefix="/api/ats-resume", tags=["ATS Resume"])
-app.include_router(recommendations.router, prefix="/api/recommendations", tags=["Recommendations"])
-app.include_router(applications.router, prefix="/api/applications", tags=["Applications"])
-app.include_router(memory.router, prefix="/api/memory", tags=["Career Memory"])
-app.include_router(roadmap.router, prefix="/api/roadmap", tags=["Career Roadmap"])
-app.include_router(jobs.router, prefix="/api/jobs", tags=["Jobs"])
-app.include_router(interview.router, prefix="/api/interview", tags=["Interview"])
-app.include_router(cover_letter.router, prefix="/api/cover-letter", tags=["Cover Letter"])
-app.include_router(
-    career_intelligence.router,
-    prefix="/api/career-intelligence",
-    tags=["Career Intelligence"]
-)
-app.include_router(
-    resume_tailor.router,
-    prefix="/api/resume-tailor",
-    tags=["Resume Tailor"]
-)
-app.include_router(
-    twin_recommendation.router,
-    prefix="/api/twin-recommendation",
-    tags=["Twin Recommendation"]
-)
-app.include_router(
-    finance.router,
-    prefix="/api/finance",
-    tags=["Finance"]
-)
-app.include_router(
-    finance_chat.router,
-    prefix="/api/finance-chat",
-    tags=["Finance Chat"]
-)
-app.include_router(
-    twin_orchestrator.router,
-    prefix="/api/twin-orchestrator",
-    tags=["Twin Orchestrator"]
-)
-app.include_router(
-    health.router,
-    prefix="/api/health",
-    tags=["Health"]
-)
-app.include_router(
-    health_chat.router,
-    prefix="/api/health-chat",
-    tags=["Health Chat"]
-)
-app.include_router(
-    personal_memory.router,
-    prefix="/api/personal-memory",
-    tags=["Personal Memory"]
-)
-app.include_router(
-    twin_brief.router,
-    prefix="/api/twin-brief",
-    tags=["Twin Brief"]
-)
-app.include_router(
-    twin_notifications.router,
-    prefix="/api/twin-notifications",
-    tags=["Twin Notifications"]
-)
-app.include_router(
-    master_context.router,
-    prefix="/api/master-context",
-    tags=["Master Context"]
-)
-app.include_router(
-    learning.router,
-    prefix="/api/learning",
-    tags=["Learning"]
-)
-app.include_router(
-    learning_chat.router,
-    prefix="/api/learning-chat",
-    tags=["Learning Chat"]
-)
-app.include_router(
-    learning_recommendations.router,
-    prefix="/api/learning-recommendations",
-    tags=["Learning Recommendations"]
-)
-app.include_router(
-    learning_progress.router,
-    prefix="/api/learning-progress",
-    tags=["Learning Progress"]
+
+ROUTERS = (
+    (resume.router, "/api/resume", ["Resume"]),
+    (chat.router, "/api/chat", ["Chat"]),
+    (job_match.router, "/api/job-match", ["Job Match"]),
+    (ats_resume.router, "/api/ats-resume", ["ATS Resume"]),
+    (recommendations.router, "/api/recommendations", ["Recommendations"]),
+    (applications.router, "/api/applications", ["Applications"]),
+    (memory_routes.router, "/api/memory", ["Career Memory"]),
+    (roadmap_routes.router, "/api/roadmap", ["Career Roadmap"]),
+    (jobs.router, "/api/jobs", ["Jobs"]),
+    (interview.router, "/api/interview", ["Interview"]),
+    (cover_letter.router, "/api/cover-letter", ["Cover Letter"]),
+    (
+        career_intelligence.router,
+        "/api/career-intelligence",
+        ["Career Intelligence"],
+    ),
+    (resume_tailor.router, "/api/resume-tailor", ["Resume Tailor"]),
+    (
+        twin_recommendation.router,
+        "/api/twin-recommendation",
+        ["Twin Recommendation"],
+    ),
+    (finance_routes.router, "/api/finance", ["Finance"]),
+    (finance_chat.router, "/api/finance-chat", ["Finance Chat"]),
+    (
+        twin_orchestrator.router,
+        "/api/twin-orchestrator",
+        ["Twin Orchestrator"],
+    ),
+    (health_routes.router, "/api/health", ["Health"]),
+    (health_chat.router, "/api/health-chat", ["Health Chat"]),
+    (
+        personal_memory_routes.router,
+        "/api/personal-memory",
+        ["Personal Memory"],
+    ),
+    (twin_brief.router, "/api/twin-brief", ["Twin Brief"]),
+    (
+        twin_notifications.router,
+        "/api/twin-notifications",
+        ["Twin Notifications"],
+    ),
+    (master_context.router, "/api/master-context", ["Master Context"]),
+    (learning_routes.router, "/api/learning", ["Learning"]),
+    (learning_chat.router, "/api/learning-chat", ["Learning Chat"]),
+    (
+        learning_recommendations.router,
+        "/api/learning-recommendations",
+        ["Learning Recommendations"],
+    ),
+    (
+        learning_progress_routes.router,
+        "/api/learning-progress",
+        ["Learning Progress"],
+    ),
+    (
+        resource_recommendations.router,
+        "/api/resource-recommendations",
+        ["Resource Recommendations"],
+    ),
+    (progress.router, "/api/progress", ["Progress"]),
+    (agent_memory_routes.router, "/api/agent-memory", ["Agent Memory"]),
+    (agent_profiles.router, "/api/agent-profiles", ["Agent Profiles"]),
+    (
+        agent_reflections.router,
+        "/api/agent-reflections",
+        ["Agent Reflections"],
+    ),
+    (twin_journal.router, "/api/twin-journal", ["Twin Journal"]),
+    (agent_plans.router, "/api/agent-plans", ["Agent Plans"]),
+    (
+        predictive_insights.router,
+        "/api/predictive-insights",
+        ["Predictive Insights"],
+    ),
+    (twin_context.router, "/api/twin-context", ["Twin Context"]),
+    (autofill.router, "/api/autofill", ["Application Autofill"]),
 )
 
-app.include_router(
-    resource_recommendations.router,
-    prefix="/api/resource-recommendations",
-    tags=["Resource Recommendations"]
-)
-app.include_router(
-    progress.router,
-    prefix="/api/progress",
-    tags=["Progress"],
-)
-app.include_router(
-    agent_memory.router,
-    prefix="/api/agent-memory",
-    tags=["Agent Memory"],
-)
-app.include_router(
-    agent_profiles.router,
-    prefix="/api/agent-profiles",
-    tags=["Agent Profiles"],
-)
-app.include_router(
-    agent_reflections.router,
-    prefix="/api/agent-reflections",
-    tags=["Agent Reflections"],
-)
-app.include_router(
-    twin_journal.router,
-    prefix="/api/twin-journal",
-    tags=["Twin Journal"],
-)
-app.include_router(
-    agent_plans.router,
-    prefix="/api/agent-plans",
-    tags=["Agent Plans"],
-)
-app.include_router(
-    predictive_insights.router,
-    prefix="/api/predictive-insights",
-    tags=["Predictive Insights"],
-)
-app.include_router(twin_context.router, prefix="/api/twin-context", tags=["Twin Context"])
-app.include_router(autofill.router, prefix="/api/autofill", tags=["Application Autofill"])
+for router, prefix, tags in ROUTERS:
+    app.include_router(router, prefix=prefix, tags=tags)
+
+
 @app.get("/")
 def home():
-    return {"message": "My Digital Twin backend is running"}
+    return {
+        "message": "My Digital Twin backend is running",
+        "environment": settings.environment,
+        "version": settings.app_version,
+    }
+
+
+@app.get("/health")
+def health_check():
+    return {
+        "status": "healthy",
+        "service": settings.app_name,
+        "environment": settings.environment,
+    }
+
+
+@app.get("/ready")
+def readiness_check():
+    with engine.connect() as connection:
+        connection.execute(text("SELECT 1"))
+
+    return {
+        "status": "ready",
+        "database": "connected",
+        "ai_configured": bool(settings.openai_api_key),
+    }

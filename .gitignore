@@ -11,3 +11,7 @@ __pycache__/
 *.pyc
 my_digital_twin.db
 backend/my_digital_twin.db
+
+# Keep environment templates in Git
+!backend/.env.example
+!frontend/.env.example
