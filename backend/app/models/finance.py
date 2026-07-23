@@ -1,8 +1,9 @@
 from sqlalchemy import Column, Integer, String, Float
 from app.database import Base
+from app.models.ownership import UserOwnedMixin
 
 
-class FinanceTransaction(Base):
+class FinanceTransaction(UserOwnedMixin, Base):
     __tablename__ = "finance_transactions"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -12,7 +13,7 @@ class FinanceTransaction(Base):
     category = Column(String, nullable=False)
     date = Column(String, nullable=True)
     
-class SavingsGoal(Base):
+class SavingsGoal(UserOwnedMixin, Base):
     __tablename__ = "savings_goals"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -21,7 +22,7 @@ class SavingsGoal(Base):
     current_amount = Column(Float, default=0)
     deadline = Column(String, nullable=True)
     
-class FinanceMemory(Base):
+class FinanceMemory(UserOwnedMixin, Base):
     __tablename__ = "finance_memory"
 
     id = Column(Integer, primary_key=True, index=True)

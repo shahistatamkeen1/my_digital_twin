@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 import HealthInsightResponse from "../components/HealthInsightResponse";
 
@@ -37,7 +39,7 @@ export default function HealthDashboardPage() {
     setSummaryError("");
 
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/health/summary`,
         { cache: "no-store" }
       );
@@ -75,7 +77,7 @@ export default function HealthDashboardPage() {
     setInsightError("");
 
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/health/insight`,
         { cache: "no-store" }
       );

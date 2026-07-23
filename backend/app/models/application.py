@@ -1,8 +1,9 @@
 from sqlalchemy import Column, Integer, String, DateTime
 from datetime import datetime
 from app.database import Base
+from app.models.ownership import UserOwnedMixin
 
-class Application(Base):
+class Application(UserOwnedMixin, Base):
     __tablename__ = "applications"
 
     id = Column(Integer, primary_key=True, index=True)

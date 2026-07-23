@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useState } from "react";
 
 type LocalSearch = {
@@ -38,7 +40,7 @@ export default function DietPlannerPage() {
     setPlan(null);
 
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/health/diet-plan`,
         {
           method: "POST",

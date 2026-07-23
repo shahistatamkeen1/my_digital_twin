@@ -79,7 +79,12 @@ def generate_personalized_roadmap(db: Session = Depends(get_db)):
             "error": "No Career Memory found. Please create Career Memory first."
         }
 
-    db.query(CareerRoadmap).delete()
+    user_id = db.info["user_id"]
+    (
+        db.query(CareerRoadmap)
+        .filter(CareerRoadmap.user_id == user_id)
+        .delete(synchronize_session=False)
+    )
     db.commit()
 
     system_prompt = """
@@ -171,7 +176,12 @@ Return JSON in exactly this format:
 
 @router.delete("/")
 def clear_roadmap(db: Session = Depends(get_db)):
-    deleted_count = db.query(CareerRoadmap).delete()
+    user_id = db.info["user_id"]
+    deleted_count = (
+        db.query(CareerRoadmap)
+        .filter(CareerRoadmap.user_id == user_id)
+        .delete(synchronize_session=False)
+    )
     db.commit()
 
     return {

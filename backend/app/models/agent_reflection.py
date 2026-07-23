@@ -2,9 +2,10 @@ from datetime import datetime
 from sqlalchemy import Column, Integer, String, Text, DateTime
 
 from app.database import Base
+from app.models.ownership import UserOwnedMixin
 
 
-class AgentReflection(Base):
+class AgentReflection(UserOwnedMixin, Base):
     __tablename__ = "agent_reflections"
 
     id = Column(Integer, primary_key=True, index=True)

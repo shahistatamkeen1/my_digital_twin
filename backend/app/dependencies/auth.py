@@ -60,6 +60,7 @@ def get_current_user(
     if user is None or not user.is_active:
         raise _credentials_exception()
 
+    db.info["user_id"] = user.id
     return user
 
 
@@ -86,8 +87,13 @@ def get_optional_current_user(
     except (AuthConfigurationError, AuthTokenError, TypeError, ValueError):
         return None
 
-    return (
+    user = (
         db.query(User)
         .filter(User.id == user_id, User.is_active.is_(True))
         .first()
     )
+
+    if user is not None:
+        db.info["user_id"] = user.id
+
+    return user

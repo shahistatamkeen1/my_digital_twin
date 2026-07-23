@@ -1,15 +1,23 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime
 from datetime import datetime
 
+from sqlalchemy import Column, DateTime, Integer, String, Text, UniqueConstraint
+
 from app.database import Base
+from app.models.ownership import UserOwnedMixin
 
 
-class AgentProfile(Base):
+class AgentProfile(UserOwnedMixin, Base):
     __tablename__ = "agent_profiles"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "agent_name",
+            name="uq_agent_profiles_user_agent",
+        ),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
-
-    agent_name = Column(String, unique=True, index=True)
+    agent_name = Column(String, index=True, nullable=False)
 
     learned_preferences = Column(Text, default="{}")
     behavior_patterns = Column(Text, default="{}")

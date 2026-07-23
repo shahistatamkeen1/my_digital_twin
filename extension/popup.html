@@ -16,6 +16,11 @@
         margin-bottom: 8px;
       }
 
+      h2 {
+        font-size: 14px;
+        margin: 18px 0 6px;
+      }
+
       p {
         color: #94a3b8;
         font-size: 13px;
@@ -27,7 +32,7 @@
         margin-top: 8px;
         padding: 8px;
         border-radius: 8px;
-        border: none;
+        border: 1px solid #334155;
         background: #0f172a;
         color: white;
         box-sizing: border-box;
@@ -48,6 +53,14 @@
         font-weight: bold;
       }
 
+      #loginBtn {
+        background: #0891b2;
+      }
+
+      #logoutBtn {
+        background: #475569;
+      }
+
       #saveProfileBtn {
         background: #334155;
       }
@@ -58,6 +71,12 @@
 
       #fillBtn {
         background: #ea580c;
+      }
+
+      #authStatus {
+        margin-top: 8px;
+        font-size: 12px;
+        color: #67e8f9;
       }
 
       pre {
@@ -74,8 +93,16 @@
 
   <body>
     <h1>My Digital Twin</h1>
-    <p>Save your profile once, then scan and fill job application answers.</p>
+    <p>Sign in, save your profile, then scan and fill job application answers.</p>
 
+    <h2>Extension Sign In</h2>
+    <input id="emailInput" type="email" placeholder="Account email" />
+    <input id="passwordInput" type="password" placeholder="Password" />
+    <button id="loginBtn">Sign In to Digital Twin</button>
+    <button id="logoutBtn">Clear Extension Session</button>
+    <div id="authStatus">Not signed in.</div>
+
+    <h2>Autofill Profile</h2>
     <input id="roleInput" placeholder="Target Role, e.g. AI Engineer" />
 
     <textarea
@@ -89,7 +116,6 @@
     ></textarea>
 
     <button id="saveProfileBtn">Save Extension Profile</button>
-
     <button id="scanBtn">Scan Page Fields</button>
     <button id="fillBtn">Fill Suggested Answers</button>
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useState } from "react";
 
 type SampleAnswer = {
@@ -31,7 +33,7 @@ export default function InterviewPrepPage() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/interview/`, {
+      const res = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/interview/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

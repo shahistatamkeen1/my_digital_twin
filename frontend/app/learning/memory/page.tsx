@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
@@ -41,7 +43,7 @@ export default function LearningMemoryPage() {
     setError("");
 
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/learning/`,
         { cache: "no-store" }
       );
@@ -86,7 +88,7 @@ export default function LearningMemoryPage() {
     setSuccess("");
 
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/learning/`,
         {
           method: "POST",
@@ -134,7 +136,7 @@ export default function LearningMemoryPage() {
     setError("");
 
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/learning/${id}`,
         {
           method: "DELETE",

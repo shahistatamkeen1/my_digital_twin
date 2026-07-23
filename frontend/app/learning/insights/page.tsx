@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useState } from "react";
 
 type InsightData = {
@@ -21,7 +23,7 @@ export default function LearningInsightsPage() {
     setError("");
 
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/learning-chat/insights`,
         { cache: "no-store" }
       );

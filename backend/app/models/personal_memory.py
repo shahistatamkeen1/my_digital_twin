@@ -1,8 +1,9 @@
 from sqlalchemy import Column, Integer, String
 from app.database import Base
+from app.models.ownership import UserOwnedMixin
 
 
-class PersonalMemory(Base):
+class PersonalMemory(UserOwnedMixin, Base):
     __tablename__ = "personal_memory"
 
     id = Column(Integer, primary_key=True, index=True)

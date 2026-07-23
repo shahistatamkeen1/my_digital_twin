@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 import {
   LineChart,
@@ -97,7 +99,7 @@ export default function ProgressCenterPage() {
       const apiUrl =
         process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-      const res = await fetch(`${apiUrl}/api/progress/`);
+      const res = await apiFetch(`${apiUrl}/api/progress/`);
 
       if (!res.ok) {
         throw new Error(`Progress API failed: ${res.status}`);

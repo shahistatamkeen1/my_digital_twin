@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
@@ -39,20 +41,20 @@ export default function DashboardPage() {
     useState<CareerIntelligence | null>(null);
 
   const fetchApplications = async () => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/applications/`);
+    const res = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/applications/`);
     const data = await res.json();
     setApplications(data);
   };
 
   const fetchMemory = async () => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/memory/`);
+    const res = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/memory/`);
     const data = await res.json();
     setMemory(data);
   };
 
   const fetchCareerIntelligence = async () => {
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/career-intelligence/`
       );
       const data = await res.json();

@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useCallback, useEffect, useState } from "react";
 
 type FinanceMemoryResponse = {
@@ -57,7 +59,7 @@ export default function FinanceMemoryPage() {
     setError("");
 
     try {
-      const response = await fetch(`${API_BASE}/api/finance/memory`, {
+      const response = await apiFetch(`${API_BASE}/api/finance/memory`, {
         cache: "no-store",
       });
       const data = await readJson<FinanceMemoryResponse>(response);
@@ -110,7 +112,7 @@ export default function FinanceMemoryPage() {
     setMessage("");
 
     try {
-      const response = await fetch(`${API_BASE}/api/finance/memory`, {
+      const response = await apiFetch(`${API_BASE}/api/finance/memory`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

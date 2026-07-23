@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useState } from "react";
 
 type IntelligenceResult = {
@@ -20,7 +22,7 @@ export default function CareerIntelligencePage() {
     setLoading(true);
 
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/career-intelligence/`
       );
 

@@ -1,8 +1,9 @@
 from sqlalchemy import Column, Integer, String, Text
 from app.database import Base
+from app.models.ownership import UserOwnedMixin
 
 
-class LearningMemory(Base):
+class LearningMemory(UserOwnedMixin, Base):
     __tablename__ = "learning_memory"
 
     id = Column(Integer, primary_key=True, index=True)

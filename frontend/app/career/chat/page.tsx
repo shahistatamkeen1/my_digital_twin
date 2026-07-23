@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
@@ -96,7 +98,7 @@ export default function CareerChatPage() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/chat/`, {
+      const res = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/chat/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -132,7 +134,7 @@ export default function CareerChatPage() {
 
   const fetchRecommendation = async () => {
   try {
-    const res = await fetch(
+    const res = await apiFetch(
       `${process.env.NEXT_PUBLIC_API_URL}/api/twin-recommendation/`
     );
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 
 export default function CoverLetterPage() {
@@ -15,7 +17,7 @@ export default function CoverLetterPage() {
     const savedResume = localStorage.getItem("resumeText");
     if (savedResume) setResumeText(savedResume);
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/memory/`)
+    apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/memory/`)
       .then((res) => res.json())
       .then((data) => {
         if (data?.career_goal) setCareerGoal(data.career_goal);
@@ -37,7 +39,7 @@ export default function CoverLetterPage() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/cover-letter/`, {
+      const res = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/cover-letter/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 
 type FinanceSummary = {
@@ -24,7 +26,7 @@ export default function FinanceDashboardPage() {
 
   const loadSummary = async () => {
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/finance/summary`
       );
 
@@ -39,7 +41,7 @@ export default function FinanceDashboardPage() {
     setLoadingInsight(true);
 
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/finance/insight`
       );
 

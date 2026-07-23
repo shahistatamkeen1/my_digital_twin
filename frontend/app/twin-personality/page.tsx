@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 
 type AgentProfile = {
@@ -37,7 +39,7 @@ export default function TwinPersonalityPage() {
 
   const loadProfiles = async () => {
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/agent-profiles/`
       );
 

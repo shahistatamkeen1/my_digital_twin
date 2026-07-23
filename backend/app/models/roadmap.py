@@ -1,8 +1,9 @@
 from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime
 from datetime import datetime
 from app.database import Base
+from app.models.ownership import UserOwnedMixin
 
-class CareerRoadmap(Base):
+class CareerRoadmap(UserOwnedMixin, Base):
     __tablename__ = "career_roadmap"
 
     id = Column(Integer, primary_key=True, index=True)

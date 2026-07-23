@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 
 type Reflection = {
@@ -24,7 +26,7 @@ export default function AgentReflectionsPage() {
 
   const loadReflections = async () => {
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/agent-reflections/`
       );
 

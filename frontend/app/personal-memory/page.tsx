@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 
 type PersonalMemory = {
@@ -32,7 +34,7 @@ export default function PersonalMemoryPage() {
 
   const fetchMemory = async () => {
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/personal-memory/`
       );
 
@@ -70,7 +72,7 @@ export default function PersonalMemoryPage() {
     setSuccess(false);
 
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/personal-memory/`,
         {
           method: "POST",

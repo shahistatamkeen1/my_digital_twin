@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useState } from "react";
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
@@ -28,7 +30,7 @@ export default function FinanceInsightsPage() {
     setError("");
 
     try {
-      const response = await fetch(`${API_BASE}/api/finance/insight`, {
+      const response = await apiFetch(`${API_BASE}/api/finance/insight`, {
         cache: "no-store",
       });
       const data = await readJson<{ insight?: string }>(response);

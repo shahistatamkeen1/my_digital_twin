@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 
 type RoadmapItem = {
@@ -23,7 +25,7 @@ export default function RoadmapPage() {
   });
 
   const fetchRoadmap = async () => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/roadmap/`);
+    const res = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/roadmap/`);
     const data = await res.json();
     setItems(data);
   };
@@ -50,7 +52,7 @@ export default function RoadmapPage() {
     setLoading(true);
 
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/roadmap/`, {
+      await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/roadmap/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -77,7 +79,7 @@ export default function RoadmapPage() {
   };
 
   const toggleComplete = async (item: RoadmapItem) => {
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/roadmap/${item.id}`, {
+    await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/roadmap/${item.id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -91,7 +93,7 @@ export default function RoadmapPage() {
   };
 
   const deleteItem = async (id: number) => {
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/roadmap/${id}`, {
+    await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/roadmap/${id}`, {
       method: "DELETE",
     });
 
@@ -100,7 +102,7 @@ export default function RoadmapPage() {
 
   const generateSampleRoadmap = async () => {
 
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/roadmap/`, {
+    await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/roadmap/`, {
   method: "DELETE",
 });
     const sample = [
@@ -139,7 +141,7 @@ export default function RoadmapPage() {
     ];
 
     for (const item of sample) {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/roadmap/`, {
+      await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/roadmap/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -156,7 +158,7 @@ export default function RoadmapPage() {
 
   const generatePersonalizedRoadmap = async () => {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/roadmap/generate`, {
+    const res = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/roadmap/generate`, {
       method: "POST",
     });
 
@@ -179,7 +181,7 @@ const clearRoadmap = async () => {
 
   if (!confirmClear) return;
 
-  await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/roadmap/`, {
+  await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/roadmap/`, {
     method: "DELETE",
   });
 

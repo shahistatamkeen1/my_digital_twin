@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AppShell from "@/components/AppShell";
@@ -48,7 +50,7 @@ export default function CommandCenterPage() {
         setPreviousScores(JSON.parse(savedScores));
       }
 
-      const res = await fetch(
+      const res = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/twin-notifications/`
       );
 

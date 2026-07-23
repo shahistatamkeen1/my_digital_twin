@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useEffect, useMemo, useState } from "react";
 
 type LearningGoal = {
@@ -20,7 +22,7 @@ export default function ProgressTrackerPage() {
     setError("");
 
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/learning/`,
         { cache: "no-store" }
       );

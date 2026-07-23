@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useState } from "react";
 
 type PlanItem = string | Record<string, unknown>;
@@ -77,7 +79,7 @@ export default function InvestmentPlannerPage() {
     setPlan(null);
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${API_BASE}/api/finance/investment-plan`,
         {
           method: "POST",
