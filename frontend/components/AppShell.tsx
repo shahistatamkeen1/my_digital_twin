@@ -2,6 +2,8 @@
 
 import { usePathname, useRouter } from "next/navigation";
 
+import UserMenu from "@/components/auth/UserMenu";
+
 type AppShellProps = {
   children: React.ReactNode;
 };
@@ -62,6 +64,10 @@ export default function AppShell({ children }: AppShellProps) {
           <h1 className="mt-2 text-2xl font-bold">Command Center</h1>
         </div>
 
+        <div className="mt-5">
+          <UserMenu />
+        </div>
+
         <nav className="mt-8 space-y-2">
           {navItems.map((item) => {
             const active = pathname === item.path;
@@ -87,6 +93,9 @@ export default function AppShell({ children }: AppShellProps) {
       {/* Main Content */}
       <main className="min-h-screen pb-36 lg:ml-64 lg:pb-0">
         <div className="w-full px-4 py-4 sm:px-6 lg:px-8">
+          <div className="mb-4 flex justify-end lg:hidden">
+            <UserMenu />
+          </div>
           {children}
         </div>
       </main>

@@ -23,6 +23,7 @@ from app.models import (  # noqa: F401
     personal_memory,
     roadmap,
     twin_snapshot,
+    user,
 )
 from app.routes import (
     agent_memory as agent_memory_routes,
@@ -31,6 +32,7 @@ from app.routes import (
     agent_reflections,
     applications,
     ats_resume,
+    auth,
     autofill,
     career_intelligence,
     chat,
@@ -88,6 +90,7 @@ app.add_middleware(
 
 
 ROUTERS = (
+    (auth.router, "/api/auth", ["Authentication"]),
     (resume.router, "/api/resume", ["Resume"]),
     (chat.router, "/api/chat", ["Chat"]),
     (job_match.router, "/api/job-match", ["Job Match"]),
@@ -198,4 +201,5 @@ def readiness_check():
         "status": "ready",
         "database": "connected",
         "ai_configured": bool(settings.openai_api_key),
+        "auth_configured": settings.auth_configured,
     }

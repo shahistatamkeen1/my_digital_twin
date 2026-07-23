@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import UserMenu from "@/components/auth/UserMenu";
+
 const operatingFeatures = [
   {
     title: "Personal HQ",
@@ -85,9 +87,13 @@ export default function TwinHubPage() {
       <div className="pointer-events-none fixed right-[-180px] top-20 h-96 w-96 rounded-full bg-purple-600/20 blur-3xl" />
 
       <section className="relative mx-auto max-w-6xl">
-        <Link href="/" className="mb-6 inline-flex text-sm text-slate-400 hover:text-white">
-          ← Back to Home
-        </Link>
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <Link href="/" className="inline-flex text-sm text-slate-400 hover:text-white">
+            ← Back to Home
+          </Link>
+
+          <UserMenu />
+        </div>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-8 shadow-2xl shadow-black/30 lg:col-span-2">
