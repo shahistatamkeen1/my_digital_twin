@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 
 type Job = {
@@ -222,7 +224,7 @@ export default function JobDiscoveryPage() {
     }
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${apiUrl}/api/memory/`,
         {
           cache: "no-store",
@@ -301,7 +303,7 @@ export default function JobDiscoveryPage() {
         )}` +
         `&country=us`;
 
-      const response = await fetch(requestUrl, {
+      const response = await apiFetch(requestUrl, {
         cache: "no-store",
       });
 
@@ -363,7 +365,7 @@ export default function JobDiscoveryPage() {
     setAnalyzingJobId(job.id);
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${apiUrl}/api/job-match/`,
         {
           method: "POST",
@@ -470,7 +472,7 @@ ${
 `;
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${apiUrl}/api/applications/`,
         {
           method: "POST",
@@ -543,7 +545,7 @@ ${
     }
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${apiUrl}/api/applications/${applicationId}`,
         {
           method: "PUT",
@@ -598,7 +600,7 @@ ${
     setTailoringJobId(job.id);
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${apiUrl}/api/resume-tailor/`,
         {
           method: "POST",
@@ -667,7 +669,7 @@ ${
     setGeneratingAtsJobId(job.id);
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${apiUrl}/api/ats-resume/`,
         {
           method: "POST",
@@ -727,7 +729,7 @@ ${
       );
 
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           `${apiUrl}/api/interview/`,
           {
             method: "POST",
@@ -799,7 +801,7 @@ ${
       );
 
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           `${apiUrl}/api/cover-letter/`,
           {
             method: "POST",
@@ -875,7 +877,7 @@ ${
       );
 
       try {
-        const response = await fetch(
+        const response = await apiFetch(
           `${apiUrl}/api/autofill/`,
           {
             method: "POST",

@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 type CategorySummary = {
@@ -43,7 +45,7 @@ export default function CategoryAnalyticsPage() {
     setError("");
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${API_BASE}/api/finance/category-summary`,
         { cache: "no-store" }
       );

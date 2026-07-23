@@ -4,9 +4,10 @@ from sqlalchemy import Column, Integer, DateTime
 from datetime import datetime
 
 from app.database import Base
+from app.models.ownership import UserOwnedMixin
 
 
-class TwinProgressSnapshot(Base):
+class TwinProgressSnapshot(UserOwnedMixin, Base):
     __tablename__ = "twin_progress_snapshots"
 
     id = Column(Integer, primary_key=True, index=True)

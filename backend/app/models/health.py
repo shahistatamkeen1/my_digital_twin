@@ -1,8 +1,9 @@
 from sqlalchemy import Column, Integer, String, Float
 from app.database import Base
+from app.models.ownership import UserOwnedMixin
 
 
-class HealthMemory(Base):
+class HealthMemory(UserOwnedMixin, Base):
     __tablename__ = "health_memory"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -15,7 +16,7 @@ class HealthMemory(Base):
     allergies = Column(String, nullable=True)
     notes = Column(String, nullable=True)
     
-class HealthHabit(Base):
+class HealthHabit(UserOwnedMixin, Base):
     __tablename__ = "health_habits"
 
     id = Column(Integer, primary_key=True, index=True)

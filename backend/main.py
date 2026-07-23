@@ -1,11 +1,13 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from app.config import settings
 from app.database import Base, engine
+from app.dependencies.auth import get_current_user
+from app.services.ownership_schema_service import inspect_ownership_schema
 
 # Import model modules so SQLAlchemy registers every table before optional
 # development-time table creation. Alembic will replace create_all in Phase 3.
@@ -23,6 +25,7 @@ from app.models import (  # noqa: F401
     personal_memory,
     roadmap,
     twin_snapshot,
+    user,
 )
 from app.routes import (
     agent_memory as agent_memory_routes,
@@ -31,6 +34,7 @@ from app.routes import (
     agent_reflections,
     applications,
     ats_resume,
+    auth,
     autofill,
     career_intelligence,
     chat,
@@ -88,6 +92,7 @@ app.add_middleware(
 
 
 ROUTERS = (
+    (auth.router, "/api/auth", ["Authentication"]),
     (resume.router, "/api/resume", ["Resume"]),
     (chat.router, "/api/chat", ["Chat"]),
     (job_match.router, "/api/job-match", ["Job Match"]),
@@ -168,7 +173,13 @@ ROUTERS = (
 )
 
 for router, prefix, tags in ROUTERS:
-    app.include_router(router, prefix=prefix, tags=tags)
+    dependencies = [] if router is auth.router else [Depends(get_current_user)]
+    app.include_router(
+        router,
+        prefix=prefix,
+        tags=tags,
+        dependencies=dependencies,
+    )
 
 
 @app.get("/")
@@ -194,8 +205,25 @@ def readiness_check():
     with engine.connect() as connection:
         connection.execute(text("SELECT 1"))
 
+    ownership = inspect_ownership_schema(engine)
+
+    if not ownership.ready:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "status": "migration_required",
+                "database": "connected",
+                "ownership_schema_ready": False,
+                "missing_tables": ownership.missing_tables,
+                "missing_user_id_columns": ownership.missing_user_id_columns,
+                "unowned_rows": ownership.unowned_rows,
+            },
+        )
+
     return {
         "status": "ready",
         "database": "connected",
         "ai_configured": bool(settings.openai_api_key),
+        "auth_configured": settings.auth_configured,
+        "ownership_schema_ready": True,
     }

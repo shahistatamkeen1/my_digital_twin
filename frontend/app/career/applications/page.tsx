@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 
 type Application = {
@@ -27,7 +29,7 @@ export default function ApplicationsPage() {
 
   const fetchApplications = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/applications/`);
+      const res = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/applications/`);
       const data = await res.json();
       setApplications(data);
     } catch (error) {
@@ -57,7 +59,7 @@ export default function ApplicationsPage() {
     setLoading(true);
 
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/applications/`, {
+      await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/applications/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -84,7 +86,7 @@ export default function ApplicationsPage() {
 
   const updateStatus = async (id: number, status: string) => {
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/applications/${id}`, {
+      await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/applications/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -100,7 +102,7 @@ export default function ApplicationsPage() {
 
   const deleteApplication = async (id: number) => {
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/applications/${id}`, {
+      await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/applications/${id}`, {
         method: "DELETE",
       });
 

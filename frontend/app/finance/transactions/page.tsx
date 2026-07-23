@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 type Transaction = {
@@ -54,7 +56,7 @@ export default function TransactionsPage() {
     setError("");
 
     try {
-      const response = await fetch(`${API_BASE}/api/finance/`, {
+      const response = await apiFetch(`${API_BASE}/api/finance/`, {
         cache: "no-store",
       });
       const data = await readJson<Transaction[]>(response);
@@ -99,7 +101,7 @@ export default function TransactionsPage() {
     setMessage("");
 
     try {
-      const response = await fetch(`${API_BASE}/api/finance/`, {
+      const response = await apiFetch(`${API_BASE}/api/finance/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -134,7 +136,7 @@ export default function TransactionsPage() {
     setMessage("");
 
     try {
-      const response = await fetch(`${API_BASE}/api/finance/${id}`, {
+      const response = await apiFetch(`${API_BASE}/api/finance/${id}`, {
         method: "DELETE",
       });
       await readJson<unknown>(response);

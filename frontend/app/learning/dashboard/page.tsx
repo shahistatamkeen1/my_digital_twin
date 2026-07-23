@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -51,10 +53,10 @@ export default function LearningDashboardPage() {
 
     try {
       const [itemsResponse, progressResponse] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/learning/`, {
+        apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/learning/`, {
           cache: "no-store",
         }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/learning-progress/`, {
+        apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/learning-progress/`, {
           cache: "no-store",
         }),
       ]);

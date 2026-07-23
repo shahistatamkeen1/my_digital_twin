@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 
 type ResumeAnalysis = {
@@ -38,7 +40,7 @@ export default function ResumePage() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/resume/upload`, {
+      const res = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/resume/upload`, {
         method: "POST",
         body: formData,
       });

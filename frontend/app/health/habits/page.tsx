@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useEffect, useMemo, useState } from "react";
 
 type HealthHabit = {
@@ -30,7 +32,7 @@ export default function HealthHabitsPage() {
     setError("");
 
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/health/habits`,
         { cache: "no-store" }
       );
@@ -79,7 +81,7 @@ export default function HealthHabitsPage() {
     setSuccess("");
 
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/health/habits`,
         {
           method: "POST",
@@ -133,7 +135,7 @@ export default function HealthHabitsPage() {
     setError("");
 
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/health/habits/${id}`,
         { method: "DELETE" }
       );

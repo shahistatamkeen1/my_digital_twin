@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import AppShell from "@/components/AppShell";
 import { useEffect, useMemo, useState } from "react";
 
@@ -22,7 +24,7 @@ export default function TwinJournalPage() {
 
   const loadJournal = async () => {
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/twin-journal/`
       );
       const data = await res.json();

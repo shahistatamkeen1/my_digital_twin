@@ -2,9 +2,10 @@ from sqlalchemy import Column, Integer, String, Text, DateTime
 from datetime import datetime
 
 from app.database import Base
+from app.models.ownership import UserOwnedMixin
 
 
-class AgentMemory(Base):
+class AgentMemory(UserOwnedMixin, Base):
     __tablename__ = "agent_memory"
 
     id = Column(Integer, primary_key=True, index=True)

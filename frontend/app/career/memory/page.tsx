@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 
 type Memory = {
@@ -23,7 +25,7 @@ export default function MemoryPage() {
   const [saved, setSaved] = useState(false);
 
   const fetchMemory = async () => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/memory/`);
+    const res = await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/memory/`);
     const data = await res.json();
 
     if (data) {
@@ -51,7 +53,7 @@ export default function MemoryPage() {
   };
 
   const saveMemory = async () => {
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/memory/`, {
+    await apiFetch(`${process.env.NEXT_PUBLIC_API_URL}/api/memory/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

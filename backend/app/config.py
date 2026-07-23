@@ -31,10 +31,18 @@ def _get_csv(name: str, default: str) -> Tuple[str, ...]:
     return tuple(item.strip() for item in value.split(",") if item.strip())
 
 
+def _get_optional(name: str) -> str | None:
+    value = os.getenv(name)
+    if value is None:
+        return None
+    stripped = value.strip()
+    return stripped or None
+
+
 @dataclass(frozen=True)
 class Settings:
     app_name: str = os.getenv("APP_NAME", "My Digital Twin API")
-    app_version: str = os.getenv("APP_VERSION", "0.1.0")
+    app_version: str = os.getenv("APP_VERSION", "0.2.1")
     environment: str = os.getenv("ENVIRONMENT", "development")
 
     database_url: str = os.getenv(
@@ -48,9 +56,39 @@ class Settings:
         "http://localhost:3000,http://127.0.0.1:3000",
     )
 
-    openai_api_key: str | None = os.getenv("OPENAI_API_KEY")
+    openai_api_key: str | None = _get_optional("OPENAI_API_KEY")
     openai_model: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     openai_timeout_seconds: int = _get_int("OPENAI_TIMEOUT_SECONDS", 60)
+
+    jwt_secret_key: str | None = _get_optional("JWT_SECRET_KEY")
+    jwt_algorithm: str = os.getenv("JWT_ALGORITHM", "HS256")
+    access_token_expire_minutes: int = _get_int(
+        "ACCESS_TOKEN_EXPIRE_MINUTES",
+        30,
+    )
+    refresh_token_expire_days: int = _get_int(
+        "REFRESH_TOKEN_EXPIRE_DAYS",
+        7,
+    )
+
+    access_cookie_name: str = os.getenv(
+        "ACCESS_COOKIE_NAME",
+        "mdt_access_token",
+    )
+    refresh_cookie_name: str = os.getenv(
+        "REFRESH_COOKIE_NAME",
+        "mdt_refresh_token",
+    )
+    auth_cookie_secure: bool = _get_bool("AUTH_COOKIE_SECURE", False)
+    auth_cookie_samesite: str = os.getenv(
+        "AUTH_COOKIE_SAMESITE",
+        "lax",
+    ).lower()
+    auth_cookie_domain: str | None = _get_optional("AUTH_COOKIE_DOMAIN")
+
+    @property
+    def auth_configured(self) -> bool:
+        return bool(self.jwt_secret_key and len(self.jwt_secret_key) >= 32)
 
 
 settings = Settings()

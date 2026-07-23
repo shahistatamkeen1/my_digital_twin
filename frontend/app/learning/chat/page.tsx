@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useState } from "react";
 
 type StructuredReply = {
@@ -36,7 +38,7 @@ export default function LearningChatPage() {
     setLoading(true);
 
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/learning-chat/structured`,
         {
           method: "POST",

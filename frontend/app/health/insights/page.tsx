@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useState } from "react";
 import HealthInsightResponse from "../components/HealthInsightResponse";
 
@@ -13,7 +15,7 @@ export default function HealthInsightsPage() {
     setError("");
 
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/health/insight`,
         { cache: "no-store" }
       );

@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useState } from "react";
 
 type RoadmapStep = {
@@ -20,7 +22,7 @@ export default function LearningRoadmapPage() {
     setError("");
 
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/learning-chat/roadmap`,
         { cache: "no-store" }
       );

@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useCallback, useEffect, useState } from "react";
 
 type Application = {
@@ -41,7 +43,7 @@ export default function ApplicationKanbanPage() {
     try {
       setLoadingApplications(true);
 
-      const response = await fetch(`${apiUrl}/api/applications/`, {
+      const response = await apiFetch(`${apiUrl}/api/applications/`, {
         cache: "no-store",
       });
 
@@ -91,7 +93,7 @@ export default function ApplicationKanbanPage() {
     );
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${apiUrl}/api/applications/${id}`,
         {
           method: "PUT",

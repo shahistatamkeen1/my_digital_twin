@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import AppShell from "@/components/AppShell";
 import { useEffect, useState } from "react";
 
@@ -29,13 +31,13 @@ export default function AgentPlansPage() {
 
   const loadPlans = async () => {
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/agent-plans/`
       );
       const data = await res.json();
       setPlans(data);
 
-      const weeklyRes = await fetch(
+      const weeklyRes = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/agent-plans/executive-weekly`
       );
       const weeklyData = await weeklyRes.json();
@@ -51,7 +53,7 @@ export default function AgentPlansPage() {
     setLoading(true);
 
     try {
-      await fetch(
+      await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/agent-plans/generate`,
         {
           method: "POST",
@@ -68,7 +70,7 @@ export default function AgentPlansPage() {
 
   const toggleTask = async (planId: number, taskIndex: number) => {
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/agent-plans/${planId}/toggle-task/${taskIndex}`,
         {
           method: "POST",

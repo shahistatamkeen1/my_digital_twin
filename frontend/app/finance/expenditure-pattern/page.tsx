@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Bar,
@@ -83,7 +85,7 @@ export default function ExpenditurePatternPage() {
     setError("");
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${API_BASE}/api/finance/expenditure-pattern`,
         { cache: "no-store" }
       );

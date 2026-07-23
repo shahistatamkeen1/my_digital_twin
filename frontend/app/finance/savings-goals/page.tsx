@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 type SavingsGoal = {
@@ -53,7 +55,7 @@ export default function SavingsGoalsPage() {
     setError("");
 
     try {
-      const response = await fetch(`${API_BASE}/api/finance/savings-goals`, {
+      const response = await apiFetch(`${API_BASE}/api/finance/savings-goals`, {
         cache: "no-store",
       });
       const data = await readJson<SavingsGoal[]>(response);
@@ -106,7 +108,7 @@ export default function SavingsGoalsPage() {
     setMessage("");
 
     try {
-      const response = await fetch(`${API_BASE}/api/finance/savings-goals`, {
+      const response = await apiFetch(`${API_BASE}/api/finance/savings-goals`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -141,7 +143,7 @@ export default function SavingsGoalsPage() {
     setMessage("");
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${API_BASE}/api/finance/savings-goals/${id}`,
         { method: "DELETE" }
       );

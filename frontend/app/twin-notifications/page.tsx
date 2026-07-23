@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -39,7 +41,7 @@ export default function TwinNotificationsPage() {
     setLoading(true);
 
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/twin-notifications/`
       );
 

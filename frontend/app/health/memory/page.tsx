@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api";
+
 import { useEffect, useState } from "react";
 
 type HealthMemory = {
@@ -35,7 +37,7 @@ export default function HealthMemoryPage() {
     setError("");
 
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/health/memory`,
         { cache: "no-store" }
       );
@@ -90,7 +92,7 @@ export default function HealthMemoryPage() {
     setError("");
 
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/health/memory`,
         {
           method: "POST",
