@@ -19,3 +19,4 @@ backend/my_digital_twin.db
 # Keep environment templates in Git
 !backend/.env.example
 !frontend/.env.example
+*.phase3a-backup-*.db
