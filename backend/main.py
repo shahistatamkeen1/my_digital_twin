@@ -178,6 +178,7 @@ def home():
         "message": "My Digital Twin backend is running",
         "environment": settings.environment,
         "version": settings.app_version,
+        "database_dialect": engine.dialect.name,
     }
 
 
@@ -232,5 +233,6 @@ def readiness_check():
         "migration_schema_ready": True,
         "ownership_schema_ready": True,
         "database_dialect": engine.dialect.name,
+        "database_driver": engine.url.drivername,
         "migration_heads": migrations.current_heads,
     }

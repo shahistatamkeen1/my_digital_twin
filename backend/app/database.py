@@ -15,12 +15,25 @@ NAMING_CONVENTION = {
     "pk": "pk_%(table_name)s",
 }
 
-connect_args = {"check_same_thread": False} if settings.is_sqlite else {}
+engine_kwargs: dict = {
+    "pool_pre_ping": True,
+}
+
+if settings.is_sqlite:
+    engine_kwargs["connect_args"] = {"check_same_thread": False}
+else:
+    engine_kwargs.update(
+        {
+            "pool_size": settings.database_pool_size,
+            "max_overflow": settings.database_max_overflow,
+            "pool_timeout": settings.database_pool_timeout_seconds,
+            "pool_recycle": settings.database_pool_recycle_seconds,
+        }
+    )
 
 engine = create_engine(
     settings.database_url,
-    connect_args=connect_args,
-    pool_pre_ping=True,
+    **engine_kwargs,
 )
 
 

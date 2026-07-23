@@ -20,3 +20,7 @@ backend/my_digital_twin.db
 !backend/.env.example
 !frontend/.env.example
 *.phase3a-backup-*.db
+*.phase3b-backup-*.db
+.phase3b-postgres.env
+backend/.phase3b-postgres.env
+backend/.env.phase3b-*

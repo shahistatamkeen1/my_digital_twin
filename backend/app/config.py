@@ -42,12 +42,22 @@ def _get_optional(name: str) -> str | None:
 @dataclass(frozen=True)
 class Settings:
     app_name: str = os.getenv("APP_NAME", "My Digital Twin API")
-    app_version: str = os.getenv("APP_VERSION", "0.3.0")
+    app_version: str = os.getenv("APP_VERSION", "0.3.1")
     environment: str = os.getenv("ENVIRONMENT", "development")
 
     database_url: str = os.getenv(
         "DATABASE_URL",
         "sqlite:///./my_digital_twin.db",
+    )
+    database_pool_size: int = _get_int("DATABASE_POOL_SIZE", 5)
+    database_max_overflow: int = _get_int("DATABASE_MAX_OVERFLOW", 10)
+    database_pool_timeout_seconds: int = _get_int(
+        "DATABASE_POOL_TIMEOUT_SECONDS",
+        30,
+    )
+    database_pool_recycle_seconds: int = _get_int(
+        "DATABASE_POOL_RECYCLE_SECONDS",
+        1800,
     )
 
     # Retained only so an old local .env does not become invalid. Phase 3 uses
@@ -96,6 +106,10 @@ class Settings:
     @property
     def is_sqlite(self) -> bool:
         return self.database_url.startswith("sqlite")
+
+    @property
+    def is_postgresql(self) -> bool:
+        return self.database_url.startswith("postgresql")
 
 
 settings = Settings()
