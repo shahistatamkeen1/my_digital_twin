@@ -1,16 +1,14 @@
-from contextlib import asynccontextmanager
-
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from app.config import settings
-from app.database import Base, engine
+from app.database import engine
 from app.dependencies.auth import get_current_user
+from app.services.migration_status_service import inspect_migration_status
 from app.services.ownership_schema_service import inspect_ownership_schema
 
-# Import model modules so SQLAlchemy registers every table before optional
-# development-time table creation. Alembic will replace create_all in Phase 3.
+# Import every model module so SQLAlchemy metadata is complete for Alembic.
 from app.models import (  # noqa: F401
     agent_memory,
     agent_plan,
@@ -69,17 +67,9 @@ from app.routes import (
 )
 
 
-@asynccontextmanager
-async def lifespan(_: FastAPI):
-    if settings.auto_create_tables:
-        Base.metadata.create_all(bind=engine)
-    yield
-
-
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
-    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -205,14 +195,28 @@ def readiness_check():
     with engine.connect() as connection:
         connection.execute(text("SELECT 1"))
 
-    ownership = inspect_ownership_schema(engine)
-
-    if not ownership.ready:
+    migrations = inspect_migration_status(engine)
+    if not migrations.ready:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail={
                 "status": "migration_required",
                 "database": "connected",
+                "migration_schema_ready": False,
+                "current_heads": migrations.current_heads,
+                "expected_heads": migrations.expected_heads,
+                "alembic_config_found": migrations.alembic_config_found,
+            },
+        )
+
+    ownership = inspect_ownership_schema(engine)
+    if not ownership.ready:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "status": "ownership_migration_required",
+                "database": "connected",
+                "migration_schema_ready": True,
                 "ownership_schema_ready": False,
                 "missing_tables": ownership.missing_tables,
                 "missing_user_id_columns": ownership.missing_user_id_columns,
@@ -225,5 +229,8 @@ def readiness_check():
         "database": "connected",
         "ai_configured": bool(settings.openai_api_key),
         "auth_configured": settings.auth_configured,
+        "migration_schema_ready": True,
         "ownership_schema_ready": True,
+        "database_dialect": engine.dialect.name,
+        "migration_heads": migrations.current_heads,
     }

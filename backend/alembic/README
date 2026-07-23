@@ -1,0 +1,15 @@
+This directory contains Alembic database migrations for My Digital Twin.
+
+Run commands from the backend directory:
+
+    alembic current --check-heads
+    alembic upgrade head
+    alembic downgrade -1
+
+For an existing Phase 2B SQLite database, do not run `alembic upgrade head`
+directly the first time. Use:
+
+    python -m app.migrations.phase3a_bootstrap_alembic
+
+That command creates a backup, adopts the legacy schema at the baseline revision,
+and applies the ownership-constraint normalization revision.

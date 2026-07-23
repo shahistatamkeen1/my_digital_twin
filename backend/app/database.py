@@ -1,15 +1,21 @@
-from sqlalchemy import create_engine, event
+from __future__ import annotations
+
+from sqlalchemy import MetaData, create_engine, event
 from sqlalchemy.orm import Session, declarative_base, sessionmaker, with_loader_criteria
 
 from app.config import settings
 from app.models.ownership import UserOwnedMixin
 
 
-connect_args = (
-    {"check_same_thread": False}
-    if settings.database_url.startswith("sqlite")
-    else {}
-)
+NAMING_CONVENTION = {
+    "ix": "ix_%(column_0_label)s",
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    "pk": "pk_%(table_name)s",
+}
+
+connect_args = {"check_same_thread": False} if settings.is_sqlite else {}
 
 engine = create_engine(
     settings.database_url,
@@ -17,13 +23,27 @@ engine = create_engine(
     pool_pre_ping=True,
 )
 
+
+if settings.is_sqlite:
+
+    @event.listens_for(engine, "connect")
+    def _enable_sqlite_foreign_keys(dbapi_connection, _connection_record):
+        cursor = dbapi_connection.cursor()
+        try:
+            cursor.execute("PRAGMA foreign_keys=ON")
+        finally:
+            cursor.close()
+
+
 SessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
     bind=engine,
 )
 
-Base = declarative_base()
+Base = declarative_base(
+    metadata=MetaData(naming_convention=NAMING_CONVENTION)
+)
 
 
 @event.listens_for(Session, "do_orm_execute")
