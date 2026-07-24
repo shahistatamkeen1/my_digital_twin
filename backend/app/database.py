@@ -1,21 +1,52 @@
-from sqlalchemy import create_engine, event
+from __future__ import annotations
+
+from sqlalchemy import MetaData, create_engine, event
 from sqlalchemy.orm import Session, declarative_base, sessionmaker, with_loader_criteria
 
 from app.config import settings
 from app.models.ownership import UserOwnedMixin
 
 
-connect_args = (
-    {"check_same_thread": False}
-    if settings.database_url.startswith("sqlite")
-    else {}
-)
+NAMING_CONVENTION = {
+    "ix": "ix_%(column_0_label)s",
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    "pk": "pk_%(table_name)s",
+}
+
+engine_kwargs: dict = {
+    "pool_pre_ping": True,
+}
+
+if settings.is_sqlite:
+    engine_kwargs["connect_args"] = {"check_same_thread": False}
+else:
+    engine_kwargs.update(
+        {
+            "pool_size": settings.database_pool_size,
+            "max_overflow": settings.database_max_overflow,
+            "pool_timeout": settings.database_pool_timeout_seconds,
+            "pool_recycle": settings.database_pool_recycle_seconds,
+        }
+    )
 
 engine = create_engine(
     settings.database_url,
-    connect_args=connect_args,
-    pool_pre_ping=True,
+    **engine_kwargs,
 )
+
+
+if settings.is_sqlite:
+
+    @event.listens_for(engine, "connect")
+    def _enable_sqlite_foreign_keys(dbapi_connection, _connection_record):
+        cursor = dbapi_connection.cursor()
+        try:
+            cursor.execute("PRAGMA foreign_keys=ON")
+        finally:
+            cursor.close()
+
 
 SessionLocal = sessionmaker(
     autocommit=False,
@@ -23,7 +54,9 @@ SessionLocal = sessionmaker(
     bind=engine,
 )
 
-Base = declarative_base()
+Base = declarative_base(
+    metadata=MetaData(naming_convention=NAMING_CONVENTION)
+)
 
 
 @event.listens_for(Session, "do_orm_execute")

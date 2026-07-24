@@ -1,16 +1,15 @@
-from contextlib import asynccontextmanager
-
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from app.config import settings
-from app.database import Base, engine
+from app.database import engine
 from app.dependencies.auth import get_current_user
+from app.services.migration_status_service import inspect_migration_status
 from app.services.ownership_schema_service import inspect_ownership_schema
+from app.services.schema_optimization_service import inspect_schema_optimization
 
-# Import model modules so SQLAlchemy registers every table before optional
-# development-time table creation. Alembic will replace create_all in Phase 3.
+# Import every model module so SQLAlchemy metadata is complete for Alembic.
 from app.models import (  # noqa: F401
     agent_memory,
     agent_plan,
@@ -69,17 +68,9 @@ from app.routes import (
 )
 
 
-@asynccontextmanager
-async def lifespan(_: FastAPI):
-    if settings.auto_create_tables:
-        Base.metadata.create_all(bind=engine)
-    yield
-
-
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
-    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -188,6 +179,7 @@ def home():
         "message": "My Digital Twin backend is running",
         "environment": settings.environment,
         "version": settings.app_version,
+        "database_dialect": engine.dialect.name,
     }
 
 
@@ -205,18 +197,55 @@ def readiness_check():
     with engine.connect() as connection:
         connection.execute(text("SELECT 1"))
 
-    ownership = inspect_ownership_schema(engine)
-
-    if not ownership.ready:
+    migrations = inspect_migration_status(engine)
+    if not migrations.ready:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail={
                 "status": "migration_required",
                 "database": "connected",
+                "migration_schema_ready": False,
+                "current_heads": migrations.current_heads,
+                "expected_heads": migrations.expected_heads,
+                "alembic_config_found": migrations.alembic_config_found,
+            },
+        )
+
+    ownership = inspect_ownership_schema(engine)
+    if not ownership.ready:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "status": "ownership_migration_required",
+                "database": "connected",
+                "migration_schema_ready": True,
                 "ownership_schema_ready": False,
                 "missing_tables": ownership.missing_tables,
                 "missing_user_id_columns": ownership.missing_user_id_columns,
                 "unowned_rows": ownership.unowned_rows,
+            },
+        )
+
+    optimization = inspect_schema_optimization(engine)
+    if not optimization.ready:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "status": "schema_optimization_required",
+                "database": "connected",
+                "migration_schema_ready": True,
+                "ownership_schema_ready": True,
+        "schema_optimization_ready": True,
+                "schema_optimization_ready": False,
+                "missing_indexes": optimization.missing_indexes,
+                "missing_check_constraints": (
+                    optimization.missing_check_constraints
+                ),
+                "nullable_columns": optimization.nullable_columns,
+                "timestamp_issues": optimization.timestamp_issues,
+                "missing_server_defaults": (
+                    optimization.missing_server_defaults
+                ),
             },
         )
 
@@ -225,5 +254,10 @@ def readiness_check():
         "database": "connected",
         "ai_configured": bool(settings.openai_api_key),
         "auth_configured": settings.auth_configured,
+        "migration_schema_ready": True,
         "ownership_schema_ready": True,
+        "schema_optimization_ready": True,
+        "database_dialect": engine.dialect.name,
+        "database_driver": engine.url.drivername,
+        "migration_heads": migrations.current_heads,
     }
