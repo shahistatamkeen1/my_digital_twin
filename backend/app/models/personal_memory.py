@@ -1,4 +1,6 @@
 from sqlalchemy import Column, Integer, String
+from sqlalchemy.orm import relationship
+
 from app.database import Base
 from app.models.ownership import UserOwnedMixin
 
@@ -16,3 +18,5 @@ class PersonalMemory(UserOwnedMixin, Base):
     communication_style = Column(String, nullable=True)
     life_priorities = Column(String, nullable=True)
     notes = Column(String, nullable=True)
+
+    user = relationship("User", back_populates="personal_memories")

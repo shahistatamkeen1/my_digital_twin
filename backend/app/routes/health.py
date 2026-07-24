@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -18,17 +18,17 @@ class HealthMemoryCreate(BaseModel):
     health_goal: str = ""
     diet_preference: str = ""
     fitness_level: str = ""
-    sleep_goal_hours: float = 8
-    water_goal_cups: int = 8
-    workout_goal_minutes: int = 30
+    sleep_goal_hours: float = Field(default=8, ge=0, le=24)
+    water_goal_cups: int = Field(default=8, ge=0, le=100)
+    workout_goal_minutes: int = Field(default=30, ge=0, le=1440)
     allergies: str = ""
     notes: str = ""
 
 class HealthHabitCreate(BaseModel):
     date: str = ""
-    water_cups: int = 0
-    sleep_hours: float = 0
-    workout_minutes: int = 0
+    water_cups: int = Field(default=0, ge=0, le=100)
+    sleep_hours: float = Field(default=0, ge=0, le=24)
+    workout_minutes: int = Field(default=0, ge=0, le=1440)
     mood: str = ""
     notes: str = ""
 

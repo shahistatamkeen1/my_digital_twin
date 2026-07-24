@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -14,19 +14,19 @@ router = APIRouter()
 class FinanceTransactionCreate(BaseModel):
     type: str
     title: str
-    amount: float
+    amount: float = Field(ge=0)
     category: str
     date: str = ""
 
 class SavingsGoalCreate(BaseModel):
     title: str
-    target_amount: float
-    current_amount: float = 0
+    target_amount: float = Field(gt=0)
+    current_amount: float = Field(default=0, ge=0)
     deadline: str = ""
 
 class FinanceMemoryCreate(BaseModel):
-    monthly_income: float = 0
-    target_monthly_savings: float = 0
+    monthly_income: float = Field(default=0, ge=0)
+    target_monthly_savings: float = Field(default=0, ge=0)
     financial_goal: str = ""
     risk_level: str = ""
     budget_preference: str = ""

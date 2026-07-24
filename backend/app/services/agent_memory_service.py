@@ -20,7 +20,7 @@ def save_agent_memory(
         summary=summary or "",
         recommendation=json.dumps(recommendation or []),
         risks=json.dumps(risks or []),
-        confidence=confidence or 0,
+        confidence=max(0, min(int(confidence or 0), 100)),
         source_question=source_question or "",
     )
 
