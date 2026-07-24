@@ -7,6 +7,7 @@ from app.database import engine
 from app.dependencies.auth import get_current_user
 from app.services.migration_status_service import inspect_migration_status
 from app.services.ownership_schema_service import inspect_ownership_schema
+from app.services.schema_optimization_service import inspect_schema_optimization
 
 # Import every model module so SQLAlchemy metadata is complete for Alembic.
 from app.models import (  # noqa: F401
@@ -225,6 +226,29 @@ def readiness_check():
             },
         )
 
+    optimization = inspect_schema_optimization(engine)
+    if not optimization.ready:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "status": "schema_optimization_required",
+                "database": "connected",
+                "migration_schema_ready": True,
+                "ownership_schema_ready": True,
+        "schema_optimization_ready": True,
+                "schema_optimization_ready": False,
+                "missing_indexes": optimization.missing_indexes,
+                "missing_check_constraints": (
+                    optimization.missing_check_constraints
+                ),
+                "nullable_columns": optimization.nullable_columns,
+                "timestamp_issues": optimization.timestamp_issues,
+                "missing_server_defaults": (
+                    optimization.missing_server_defaults
+                ),
+            },
+        )
+
     return {
         "status": "ready",
         "database": "connected",
@@ -232,6 +256,7 @@ def readiness_check():
         "auth_configured": settings.auth_configured,
         "migration_schema_ready": True,
         "ownership_schema_ready": True,
+        "schema_optimization_ready": True,
         "database_dialect": engine.dialect.name,
         "database_driver": engine.url.drivername,
         "migration_heads": migrations.current_heads,

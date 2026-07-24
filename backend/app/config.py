@@ -42,7 +42,7 @@ def _get_optional(name: str) -> str | None:
 @dataclass(frozen=True)
 class Settings:
     app_name: str = os.getenv("APP_NAME", "My Digital Twin API")
-    app_version: str = os.getenv("APP_VERSION", "0.3.1")
+    app_version: str = os.getenv("APP_VERSION", "0.3.2")
     environment: str = os.getenv("ENVIRONMENT", "development")
 
     database_url: str = os.getenv(
