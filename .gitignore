@@ -56,3 +56,10 @@ backend/htmlcov/
 backend/.ruff_cache/
 frontend/coverage/
 backend/.phase5a-backup-*/
+
+# Phase 5B Docker local secrets and generated verification files
+.env.docker
+.env.docker.*
+!.env.docker.example
+.phase5b-backup-*/
+.phase5b-compose-config.yml

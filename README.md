@@ -59,7 +59,8 @@ My Digital Twin is a multi-agent AI personal operating system that helps users m
 * FastAPI
 * Python
 * SQLAlchemy
-* SQLite
+* PostgreSQL
+* Alembic
 
 ### AI
 
@@ -157,3 +158,22 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 ## Status
 
 Career Twin and Finance Twin are functional. Twin Orchestrator is implemented. Health Twin and Learning Twin are planned future modules.
+
+## Docker local production simulation
+
+Phase 5B provides container images for PostgreSQL, FastAPI, and Next.js.
+
+```powershell
+Copy-Item .env.docker.example .env.docker
+# Replace the CHANGE_ME values in .env.docker.
+docker compose --env-file .env.docker up --build -d
+```
+
+Open:
+
+- Frontend: `http://localhost:3000`
+- API readiness: `http://localhost:8000/ready`
+- API documentation: `http://localhost:8000/api/v1/docs`
+
+See `docs/DOCKER.md` for setup, verification, logs, shutdown, and reset instructions.
+

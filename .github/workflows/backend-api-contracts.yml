@@ -7,6 +7,9 @@ on:
       - "frontend/**"
       - "extension/**"
       - ".github/workflows/backend-api-contracts.yml"
+      - "docker-compose.yml"
+      - ".env.docker.example"
+      - "docs/DOCKER.md"
   push:
     branches:
       - master
@@ -16,6 +19,9 @@ on:
       - "frontend/**"
       - "extension/**"
       - ".github/workflows/backend-api-contracts.yml"
+      - "docker-compose.yml"
+      - ".env.docker.example"
+      - "docs/DOCKER.md"
 
 permissions:
   contents: read
@@ -205,3 +211,85 @@ jobs:
         run: |
           node --check extension/popup.js
           node --check extension/content.js
+
+  docker-compose-smoke:
+    name: Docker Compose production simulation
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs:
+      - backend-tests
+      - postgres-migrations
+      - frontend-quality
+      - extension-syntax
+    env:
+      COMPOSE_PROJECT_NAME: mdt-phase5b-ci
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Create disposable Docker environment
+        shell: bash
+        run: |
+          cat > .env.docker.ci <<'EOF'
+          APP_VERSION=0.5.1
+          POSTGRES_DB=my_digital_twin_ci
+          POSTGRES_USER=mdt_app
+          POSTGRES_PASSWORD=phase5b_ci_url_safe_password
+          BACKEND_DATABASE_URL=postgresql+psycopg2://mdt_app:phase5b_ci_url_safe_password@database:5432/my_digital_twin_ci
+          JWT_SECRET_KEY=phase5b-ci-secret-0123456789abcdef-0123456789abcdef
+          BACKEND_PORT=8000
+          FRONTEND_PORT=3000
+          NEXT_PUBLIC_API_URL=http://localhost:8000
+          NEXT_PUBLIC_API_VERSION=v1
+          NEXT_PUBLIC_API_USE_VERSIONED_ROUTES=true
+          CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+          PUBLIC_API_BASE_URL=http://localhost:8000
+          AUTH_COOKIE_SECURE=false
+          AUTH_COOKIE_SAMESITE=lax
+          OPENAI_API_KEY=
+          ADZUNA_APP_ID=
+          ADZUNA_APP_KEY=
+          LOG_LEVEL=WARNING
+          LOG_FORMAT=text
+          ENABLE_LEGACY_API_ROUTES=true
+          API_DOCS_ENABLED=true
+          READINESS_REQUIRE_AUTH=true
+          READINESS_REQUIRE_AI=false
+          CONTAINER_RUN_MIGRATIONS=true
+          CONTAINER_DB_WAIT_TIMEOUT_SECONDS=90
+          CONTAINER_DB_WAIT_INTERVAL_SECONDS=2
+          EOF
+
+      - name: Validate Compose configuration
+        run: docker compose --env-file .env.docker.ci config --quiet
+
+      - name: Build and start the stack
+        run: docker compose --env-file .env.docker.ci up --build --detach
+
+      - name: Wait for application health
+        shell: bash
+        run: |
+          timeout 240 bash -c '
+            until curl --fail --silent http://127.0.0.1:8000/ready >/dev/null \
+              && curl --fail --silent http://127.0.0.1:3000/ >/dev/null; do
+              sleep 5
+            done
+          '
+
+      - name: Verify API, migrations, and non-root users
+        shell: bash
+        run: |
+          docker compose --env-file .env.docker.ci exec -T backend python -m app.container.runtime_verify --base-url http://127.0.0.1:8000
+          docker compose --env-file .env.docker.ci exec -T backend alembic current --check-heads
+          test "$(docker compose --env-file .env.docker.ci exec -T backend id -u | tr -d '\r')" != "0"
+          test "$(docker compose --env-file .env.docker.ci exec -T frontend id -u | tr -d '\r')" != "0"
+
+      - name: Show container logs on failure
+        if: failure()
+        run: docker compose --env-file .env.docker.ci logs --no-color
+
+      - name: Tear down disposable stack
+        if: always()
+        run: docker compose --env-file .env.docker.ci down --volumes --remove-orphans
+
