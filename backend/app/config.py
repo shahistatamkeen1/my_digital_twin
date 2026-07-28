@@ -2,11 +2,15 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Tuple
 
 from dotenv import load_dotenv
 
-load_dotenv()
+
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+ENV_FILE = BACKEND_DIR / ".env"
+load_dotenv(ENV_FILE, override=False)
 
 
 def _get_bool(name: str, default: bool) -> bool:
@@ -42,8 +46,19 @@ def _get_optional(name: str) -> str | None:
 @dataclass(frozen=True)
 class Settings:
     app_name: str = os.getenv("APP_NAME", "My Digital Twin API")
-    app_version: str = os.getenv("APP_VERSION", "0.3.2")
+    app_version: str = os.getenv("APP_VERSION", "0.4.0")
     environment: str = os.getenv("ENVIRONMENT", "development")
+
+    log_level: str = os.getenv("LOG_LEVEL", "INFO").strip().upper()
+    log_format: str = os.getenv("LOG_FORMAT", "json").strip().lower()
+    request_id_header: str = os.getenv(
+        "REQUEST_ID_HEADER",
+        "X-Request-ID",
+    ).strip() or "X-Request-ID"
+    expose_internal_error_details: bool = _get_bool(
+        "EXPOSE_INTERNAL_ERROR_DETAILS",
+        False,
+    )
 
     database_url: str = os.getenv(
         "DATABASE_URL",

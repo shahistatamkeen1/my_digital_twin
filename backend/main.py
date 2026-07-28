@@ -1,10 +1,15 @@
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+
+from app.api.contracts import ApiErrorResponse
+from app.api.exception_handlers import register_exception_handlers
+from app.api.middleware import request_context_middleware
 from sqlalchemy import text
 
 from app.config import settings
 from app.database import engine
 from app.dependencies.auth import get_current_user
+from app.logging_config import configure_logging
 from app.services.migration_status_service import inspect_migration_status
 from app.services.ownership_schema_service import inspect_ownership_schema
 from app.services.schema_optimization_service import inspect_schema_optimization
@@ -68,10 +73,25 @@ from app.routes import (
 )
 
 
+configure_logging()
+
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
+    responses={
+        400: {"model": ApiErrorResponse, "description": "Bad request"},
+        401: {"model": ApiErrorResponse, "description": "Authentication required"},
+        403: {"model": ApiErrorResponse, "description": "Forbidden"},
+        404: {"model": ApiErrorResponse, "description": "Not found"},
+        409: {"model": ApiErrorResponse, "description": "Conflict"},
+        422: {"model": ApiErrorResponse, "description": "Validation error"},
+        500: {"model": ApiErrorResponse, "description": "Internal server error"},
+        503: {"model": ApiErrorResponse, "description": "Service unavailable"},
+    },
 )
+
+app.middleware("http")(request_context_middleware)
+register_exception_handlers(app)
 
 app.add_middleware(
     CORSMiddleware,
@@ -79,6 +99,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=[settings.request_id_header],
 )
 
 
@@ -235,7 +256,6 @@ def readiness_check():
                 "database": "connected",
                 "migration_schema_ready": True,
                 "ownership_schema_ready": True,
-        "schema_optimization_ready": True,
                 "schema_optimization_ready": False,
                 "missing_indexes": optimization.missing_indexes,
                 "missing_check_constraints": (

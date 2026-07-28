@@ -28,3 +28,7 @@ backend/.env.phase3b-*
 # Phase 3C local verification artifacts
 .phase3c-preflight.json
 backend/.phase3c-preflight.json
+
+# Test and Phase 4 local artifacts
+.pytest_cache/
+backend/.pytest_cache/
