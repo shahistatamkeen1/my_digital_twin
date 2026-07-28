@@ -1,0 +1,43 @@
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+extend-exclude = [
+  ".phase3c-*",
+  ".phase4d-*",
+  ".phase4e-*",
+  ".phase5a-*",
+  ".test_artifacts",
+  "build",
+  "venv",
+]
+
+[tool.ruff.lint]
+# Start with correctness rules only. Phase 5B can expand formatting/style rules
+# after the existing application code has been normalised.
+select = ["E9", "F63", "F7", "F82"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+markers = [
+  "unit: isolated unit tests without HTTP or database access",
+  "integration: API or database integration tests",
+  "contract: API/OpenAPI compatibility tests",
+  "postgres: tests that require PostgreSQL",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["app"]
+omit = [
+  "app/migrations/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+exclude_lines = [
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+  "if __name__ == .__main__.:",
+]

@@ -43,3 +43,16 @@ backend/.phase4d-backup-*/
 # Phase 4E local rollback and export verification artifacts
 backend/.phase4e-backup-*/
 backend/build/
+
+# Phase 5 test, lint, and coverage artifacts
+.coverage
+coverage.xml
+htmlcov/
+.ruff_cache/
+backend/.test_artifacts/
+backend/.coverage
+backend/coverage.xml
+backend/htmlcov/
+backend/.ruff_cache/
+frontend/coverage/
+backend/.phase5a-backup-*/
