@@ -2,12 +2,111 @@ export const API_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
   "http://localhost:8000";
 
+export const API_VERSION =
+  process.env.NEXT_PUBLIC_API_VERSION?.trim().replace(/^\/+|\/+$/g, "") ||
+  "v1";
+
+export const USE_VERSIONED_API =
+  process.env.NEXT_PUBLIC_API_USE_VERSIONED_ROUTES !== "false";
+
+export const API_PREFIX = `/api/${API_VERSION}`;
+export const REQUEST_ID_HEADER = "X-Request-ID";
+export const API_VERSION_HEADER = "X-API-Version";
+
+export type ApiErrorDetail = {
+  field?: string;
+  location?: string[];
+  message?: string;
+  type?: string;
+  [key: string]: unknown;
+};
+
+export type StandardApiErrorPayload = {
+  success?: false;
+  error?: {
+    code?: string;
+    message?: string;
+    details?: ApiErrorDetail[] | Record<string, unknown> | null;
+  };
+  meta?: {
+    request_id?: string;
+  };
+  detail?: unknown;
+  message?: string;
+};
+
+export class ApiError extends Error {
+  readonly status: number;
+  readonly code: string;
+  readonly requestId?: string;
+  readonly details?: unknown;
+
+  constructor({
+    message,
+    status,
+    code,
+    requestId,
+    details,
+  }: {
+    message: string;
+    status: number;
+    code: string;
+    requestId?: string;
+    details?: unknown;
+  }) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
+    this.requestId = requestId;
+    this.details = details;
+  }
+}
+
 let refreshPromise: Promise<boolean> | null = null;
 
-function buildUrl(path: string): string {
-  return path.startsWith("http")
-    ? path
-    : `${API_URL}${path.startsWith("/") ? path : `/${path}`}`;
+function isAlreadyVersioned(pathname: string): boolean {
+  return /^\/api\/v\d+(?:\/|$)/.test(pathname);
+}
+
+function versionPath(pathname: string): string {
+  if (!USE_VERSIONED_API || isAlreadyVersioned(pathname)) {
+    return pathname;
+  }
+
+  if (pathname === "/api") {
+    return API_PREFIX;
+  }
+
+  if (pathname.startsWith("/api/")) {
+    return `${API_PREFIX}${pathname.slice("/api".length)}`;
+  }
+
+  return pathname;
+}
+
+export function buildApiUrl(path: string): string {
+  const base = new URL(`${API_URL}/`);
+  const url = path.startsWith("http")
+    ? new URL(path)
+    : new URL(path.startsWith("/") ? path : `/${path}`, base);
+
+  if (url.origin === base.origin) {
+    url.pathname = versionPath(url.pathname);
+  }
+
+  return url.toString();
+}
+
+function createRequestId(): string {
+  if (
+    typeof globalThis.crypto !== "undefined" &&
+    typeof globalThis.crypto.randomUUID === "function"
+  ) {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return `web-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
 function buildRequestInit(init: RequestInit): RequestInit {
@@ -21,6 +120,10 @@ function buildRequestInit(init: RequestInit): RequestInit {
     headers.set("Content-Type", "application/json");
   }
 
+  if (!headers.has(REQUEST_ID_HEADER)) {
+    headers.set(REQUEST_ID_HEADER, createRequestId());
+  }
+
   return {
     ...init,
     headers,
@@ -28,34 +131,66 @@ function buildRequestInit(init: RequestInit): RequestInit {
   };
 }
 
-async function refreshAuthentication(): Promise<boolean> {
-  if (!refreshPromise) {
-    refreshPromise = fetch(`${API_URL}/api/auth/refresh`, {
+async function sendRefreshRequest(url: string): Promise<Response | null> {
+  try {
+    return await fetch(url, {
       method: "POST",
       credentials: "include",
       cache: "no-store",
-    })
-      .then((response) => response.ok)
-      .catch(() => false)
-      .finally(() => {
-        refreshPromise = null;
-      });
+      headers: {
+        [REQUEST_ID_HEADER]: createRequestId(),
+      },
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function refreshAuthentication(): Promise<boolean> {
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      const versionedUrl = buildApiUrl("/api/auth/refresh");
+      const versionedResponse = await sendRefreshRequest(versionedUrl);
+
+      if (versionedResponse?.ok) {
+        return true;
+      }
+
+      // One-time compatibility fallback: a Phase 2 refresh cookie was scoped
+      // to /api/auth and is not sent to /api/v1/auth. Calling the legacy route
+      // lets the backend replace it with the new /api-scoped cookie.
+      const legacyUrl = `${API_URL}/api/auth/refresh`;
+      if (versionedUrl !== legacyUrl && versionedResponse?.status === 401) {
+        const legacyResponse = await sendRefreshRequest(legacyUrl);
+        return Boolean(legacyResponse?.ok);
+      }
+
+      return false;
+    })().finally(() => {
+      refreshPromise = null;
+    });
   }
 
   return refreshPromise;
+}
+
+function isAuthenticationRoute(url: string): boolean {
+  try {
+    return /\/api(?:\/v\d+)?\/auth\//.test(new URL(url).pathname);
+  } catch {
+    return url.includes("/auth/");
+  }
 }
 
 export async function apiFetch(
   path: string,
   init: RequestInit = {}
 ): Promise<Response> {
-  const url = buildUrl(path);
+  const url = buildApiUrl(path);
   const requestInit = buildRequestInit(init);
   let response = await fetch(url, requestInit);
 
-  const isAuthenticationRoute = url.includes("/api/auth/");
-
-  if (response.status === 401 && !isAuthenticationRoute) {
+  if (response.status === 401 && !isAuthenticationRoute(url)) {
     const refreshed = await refreshAuthentication();
 
     if (refreshed) {
@@ -66,34 +201,226 @@ export async function apiFetch(
   return response;
 }
 
+function messageFromLegacyDetail(
+  detail: unknown,
+  fallback: string
+): string {
+  if (typeof detail === "string" && detail.trim()) {
+    return detail;
+  }
+
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((item) => {
+        if (item && typeof item === "object") {
+          const record = item as Record<string, unknown>;
+          const field =
+            typeof record.field === "string" ? record.field : undefined;
+          const message =
+            typeof record.message === "string"
+              ? record.message
+              : typeof record.msg === "string"
+                ? record.msg
+                : undefined;
+
+          if (field && message) {
+            return `${field}: ${message}`;
+          }
+
+          return message;
+        }
+
+        return undefined;
+      })
+      .filter((value): value is string => Boolean(value));
+
+    return messages.length > 0 ? messages.join(" ") : fallback;
+  }
+
+  if (detail && typeof detail === "object") {
+    const record = detail as Record<string, unknown>;
+
+    if (typeof record.message === "string" && record.message.trim()) {
+      return record.message;
+    }
+
+    if (typeof record.status === "string" && record.status.trim()) {
+      return record.status.replaceAll("_", " ");
+    }
+  }
+
+  return fallback;
+}
+
+export async function parseApiError(
+  response: Response,
+  fallback = "The request could not be completed."
+): Promise<ApiError> {
+  let payload: StandardApiErrorPayload | null = null;
+
+  try {
+    payload = (await response.json()) as StandardApiErrorPayload;
+  } catch {
+    // Non-JSON responses use the fallback below.
+  }
+
+  const requestId =
+    payload?.meta?.request_id ||
+    response.headers.get(REQUEST_ID_HEADER) ||
+    undefined;
+
+  const message =
+    payload?.error?.message ||
+    (typeof payload?.message === "string" ? payload.message : undefined) ||
+    messageFromLegacyDetail(payload?.detail, fallback);
+
+  return new ApiError({
+    message,
+    status: response.status,
+    code: payload?.error?.code || `HTTP_${response.status}`,
+    requestId,
+    details: payload?.error?.details ?? payload?.detail,
+  });
+}
+
 export async function readApiError(
   response: Response,
   fallback = "The request could not be completed."
 ): Promise<string> {
-  try {
-    const data = await response.json();
+  const error = await parseApiError(response, fallback);
 
-    if (typeof data?.detail === "string") {
-      return data.detail;
-    }
+  return error.requestId
+    ? `${error.message} Reference: ${error.requestId}`
+    : error.message;
+}
 
-    if (data?.detail && typeof data.detail === "object") {
-      return data.detail.message || fallback;
-    }
-
-    if (Array.isArray(data?.detail)) {
-      return data.detail
-        .map((item: { msg?: string }) => item.msg)
-        .filter(Boolean)
-        .join(" ");
-    }
-
-    if (typeof data?.message === "string") {
-      return data.message;
-    }
-  } catch {
-    // Use the fallback when the backend did not return JSON.
+export async function requireApiSuccess(
+  response: Response,
+  fallback?: string
+): Promise<Response> {
+  if (!response.ok) {
+    throw await parseApiError(response, fallback);
   }
 
-  return fallback;
+  return response;
+}
+
+
+export type SortOrder = "asc" | "desc";
+
+export type CollectionQuery = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: SortOrder;
+  [key: string]: string | number | boolean | null | undefined;
+};
+
+export type PaginationMeta = {
+  page: number;
+  page_size: number;
+  total_items: number;
+  total_pages: number;
+  has_next: boolean;
+  has_previous: boolean;
+};
+
+export type ListResult<T> = {
+  items: T[];
+  pagination: PaginationMeta;
+};
+
+export function buildCollectionUrl(
+  path: string,
+  query: CollectionQuery = {}
+): string {
+  const url = new URL(buildApiUrl(path));
+
+  for (const [key, value] of Object.entries(query)) {
+    if (value === undefined || value === null || value === "") {
+      continue;
+    }
+
+    const apiKey =
+      key === "pageSize"
+        ? "page_size"
+        : key === "sortBy"
+          ? "sort_by"
+          : key === "sortOrder"
+            ? "sort_order"
+            : key;
+
+    url.searchParams.set(apiKey, String(value));
+  }
+
+  return url.toString();
+}
+
+function numberHeader(
+  response: Response,
+  name: string,
+  fallback: number
+): number {
+  const value = Number(response.headers.get(name));
+  return Number.isFinite(value) ? value : fallback;
+}
+
+export async function readListResponse<T>(
+  response: Response
+): Promise<ListResult<T>> {
+  await requireApiSuccess(response);
+  const payload = (await response.json()) as
+    | T[]
+    | {
+        items?: T[];
+        pagination?: Partial<PaginationMeta>;
+      };
+
+  if (Array.isArray(payload)) {
+    const totalItems = numberHeader(
+      response,
+      "X-Total-Count",
+      payload.length
+    );
+    const page = numberHeader(response, "X-Page", 1);
+    const pageSize = numberHeader(
+      response,
+      "X-Page-Size",
+      payload.length
+    );
+    const totalPages = numberHeader(
+      response,
+      "X-Total-Pages",
+      totalItems > 0 ? 1 : 0
+    );
+
+    return {
+      items: payload,
+      pagination: {
+        page,
+        page_size: pageSize,
+        total_items: totalItems,
+        total_pages: totalPages,
+        has_next: page < totalPages,
+        has_previous: page > 1,
+      },
+    };
+  }
+
+  const items = Array.isArray(payload.items) ? payload.items : [];
+  const pagination = payload.pagination || {};
+
+  return {
+    items,
+    pagination: {
+      page: pagination.page ?? 1,
+      page_size: pagination.page_size ?? items.length,
+      total_items: pagination.total_items ?? items.length,
+      total_pages:
+        pagination.total_pages ?? (items.length > 0 ? 1 : 0),
+      has_next: pagination.has_next ?? false,
+      has_previous: pagination.has_previous ?? false,
+    },
+  };
 }

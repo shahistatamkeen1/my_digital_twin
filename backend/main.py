@@ -1,13 +1,15 @@
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import text
 
+from app.api.contracts import ApiErrorResponse
+from app.api.exception_handlers import register_exception_handlers
+from app.api.middleware import request_context_middleware
+from app.api.openapi import configure_openapi, stable_operation_id
+from app.api.router_registration import include_versioned_router
 from app.config import settings
 from app.database import engine
 from app.dependencies.auth import get_current_user
-from app.services.migration_status_service import inspect_migration_status
-from app.services.ownership_schema_service import inspect_ownership_schema
-from app.services.schema_optimization_service import inspect_schema_optimization
+from app.logging_config import configure_logging
 
 # Import every model module so SQLAlchemy metadata is complete for Alembic.
 from app.models import (  # noqa: F401
@@ -59,6 +61,7 @@ from app.routes import (
     resume,
     resume_tailor,
     roadmap as roadmap_routes,
+    system as system_routes,
     twin_brief,
     twin_context,
     twin_journal,
@@ -68,10 +71,29 @@ from app.routes import (
 )
 
 
+configure_logging()
+
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
+    docs_url="/docs" if settings.api_docs_enabled else None,
+    redoc_url="/redoc" if settings.api_docs_enabled else None,
+    openapi_url="/openapi.json" if settings.api_docs_enabled else None,
+    generate_unique_id_function=stable_operation_id,
+    responses={
+        400: {"model": ApiErrorResponse, "description": "Bad request"},
+        401: {"model": ApiErrorResponse, "description": "Authentication required"},
+        403: {"model": ApiErrorResponse, "description": "Forbidden"},
+        404: {"model": ApiErrorResponse, "description": "Not found"},
+        409: {"model": ApiErrorResponse, "description": "Conflict"},
+        422: {"model": ApiErrorResponse, "description": "Validation error"},
+        500: {"model": ApiErrorResponse, "description": "Internal server error"},
+        503: {"model": ApiErrorResponse, "description": "Service unavailable"},
+    },
 )
+
+app.middleware("http")(request_context_middleware)
+register_exception_handlers(app)
 
 app.add_middleware(
     CORSMiddleware,
@@ -79,6 +101,21 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=[
+        settings.request_id_header,
+        settings.api_version_header,
+        "Deprecation",
+        "Sunset",
+        "Warning",
+        "Link",
+        "X-Total-Count",
+        "X-Page",
+        "X-Page-Size",
+        "X-Total-Pages",
+        "X-Pagination-Mode",
+        "X-Sort-By",
+        "X-Sort-Order",
+    ],
 )
 
 
@@ -163,101 +200,26 @@ ROUTERS = (
     (autofill.router, "/api/autofill", ["Application Autofill"]),
 )
 
-for router, prefix, tags in ROUTERS:
+for router, legacy_prefix, tags in ROUTERS:
     dependencies = [] if router is auth.router else [Depends(get_current_user)]
-    app.include_router(
+    include_versioned_router(
+        app,
         router,
-        prefix=prefix,
+        legacy_prefix=legacy_prefix,
         tags=tags,
         dependencies=dependencies,
     )
 
 
-@app.get("/")
-def home():
-    return {
-        "message": "My Digital Twin backend is running",
-        "environment": settings.environment,
-        "version": settings.app_version,
-        "database_dialect": engine.dialect.name,
-    }
+# Infrastructure-compatible root probes and canonical v1 system endpoints.
+# These routes are intentionally registered outside the authenticated domain
+# router loop. Only the detailed diagnostics endpoint requires authentication.
+app.include_router(system_routes.infrastructure_router)
+app.include_router(
+    system_routes.api_router,
+    prefix=f"{settings.normalized_api_v1_prefix}/system",
+)
 
-
-@app.get("/health")
-def health_check():
-    return {
-        "status": "healthy",
-        "service": settings.app_name,
-        "environment": settings.environment,
-    }
-
-
-@app.get("/ready")
-def readiness_check():
-    with engine.connect() as connection:
-        connection.execute(text("SELECT 1"))
-
-    migrations = inspect_migration_status(engine)
-    if not migrations.ready:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={
-                "status": "migration_required",
-                "database": "connected",
-                "migration_schema_ready": False,
-                "current_heads": migrations.current_heads,
-                "expected_heads": migrations.expected_heads,
-                "alembic_config_found": migrations.alembic_config_found,
-            },
-        )
-
-    ownership = inspect_ownership_schema(engine)
-    if not ownership.ready:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={
-                "status": "ownership_migration_required",
-                "database": "connected",
-                "migration_schema_ready": True,
-                "ownership_schema_ready": False,
-                "missing_tables": ownership.missing_tables,
-                "missing_user_id_columns": ownership.missing_user_id_columns,
-                "unowned_rows": ownership.unowned_rows,
-            },
-        )
-
-    optimization = inspect_schema_optimization(engine)
-    if not optimization.ready:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={
-                "status": "schema_optimization_required",
-                "database": "connected",
-                "migration_schema_ready": True,
-                "ownership_schema_ready": True,
-        "schema_optimization_ready": True,
-                "schema_optimization_ready": False,
-                "missing_indexes": optimization.missing_indexes,
-                "missing_check_constraints": (
-                    optimization.missing_check_constraints
-                ),
-                "nullable_columns": optimization.nullable_columns,
-                "timestamp_issues": optimization.timestamp_issues,
-                "missing_server_defaults": (
-                    optimization.missing_server_defaults
-                ),
-            },
-        )
-
-    return {
-        "status": "ready",
-        "database": "connected",
-        "ai_configured": bool(settings.openai_api_key),
-        "auth_configured": settings.auth_configured,
-        "migration_schema_ready": True,
-        "ownership_schema_ready": True,
-        "schema_optimization_ready": True,
-        "database_dialect": engine.dialect.name,
-        "database_driver": engine.url.drivername,
-        "migration_heads": migrations.current_heads,
-    }
+# Install the enriched full OpenAPI contract and canonical v1-only docs after
+# every application route has been registered.
+configure_openapi(app)

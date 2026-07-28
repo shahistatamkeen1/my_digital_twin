@@ -28,3 +28,18 @@ backend/.env.phase3b-*
 # Phase 3C local verification artifacts
 .phase3c-preflight.json
 backend/.phase3c-preflight.json
+
+# Test and Phase 4 local artifacts
+.pytest_cache/
+backend/.pytest_cache/
+
+# Phase 4B local artifacts
+.phase4b-openapi.json
+backend/.phase4b-openapi.json
+
+# Phase 4D local rollback backups
+backend/.phase4d-backup-*/
+
+# Phase 4E local rollback and export verification artifacts
+backend/.phase4e-backup-*/
+backend/build/

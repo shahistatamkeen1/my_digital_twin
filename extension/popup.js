@@ -1,4 +1,5 @@
 const API_URL = "http://localhost:8000";
+const API_PREFIX = "/api/v1";
 
 const output = document.getElementById("output");
 const scanBtn = document.getElementById("scanBtn");
@@ -50,7 +51,7 @@ loginBtn.addEventListener("click", async () => {
   output.textContent = "Signing in...";
 
   try {
-    const response = await fetch(`${API_URL}/api/auth/login`, {
+    const response = await fetch(`${API_URL}${API_PREFIX}/auth/login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -127,7 +128,7 @@ scanBtn.addEventListener("click", async () => {
 
         try {
           const backendResponse = await fetch(
-            `${API_URL}/api/autofill/custom`,
+            `${API_URL}${API_PREFIX}/autofill/custom`,
             {
               method: "POST",
               headers: {

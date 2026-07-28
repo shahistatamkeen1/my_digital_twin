@@ -1,6 +1,14 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query, Request, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
+
+from app.api.pagination import (
+    SortOrder,
+    apply_sort,
+    apply_text_search,
+    paginate_query,
+)
+from app.config import settings
 
 from app.database import get_db
 from app.models.health import HealthMemory, HealthHabit
@@ -92,8 +100,82 @@ def save_health_memory(memory: HealthMemoryCreate, db: Session = Depends(get_db)
     return new_memory
 
 @router.get("/habits")
-def get_health_habits(db: Session = Depends(get_db)):
-    return db.query(HealthHabit).order_by(HealthHabit.id.desc()).all()
+def get_health_habits(
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+    search: str | None = Query(
+        default=None,
+        min_length=1,
+        max_length=200,
+        description="Search mood or notes.",
+    ),
+    mood: str | None = Query(default=None, max_length=100),
+    date_from: str | None = Query(default=None, max_length=20),
+    date_to: str | None = Query(default=None, max_length=20),
+    water_min: int | None = Query(default=None, ge=0, le=100),
+    sleep_min: float | None = Query(default=None, ge=0, le=24),
+    workout_min: int | None = Query(default=None, ge=0, le=1440),
+    sort_by: str = Query(
+        default="id",
+        pattern="^(id|date|water_cups|sleep_hours|workout_minutes|mood)$",
+    ),
+    sort_order: SortOrder = Query(default=SortOrder.desc),
+    page: int | None = Query(default=None, ge=1),
+    page_size: int | None = Query(
+        default=None,
+        ge=1,
+        le=settings.api_max_page_size,
+    ),
+):
+    query = db.query(HealthHabit)
+    query = apply_text_search(
+        query,
+        search,
+        (
+            HealthHabit.mood,
+            HealthHabit.notes,
+        ),
+    )
+
+    if mood:
+        query = query.filter(HealthHabit.mood == mood)
+    if date_from:
+        query = query.filter(HealthHabit.date >= date_from)
+    if date_to:
+        query = query.filter(HealthHabit.date <= date_to)
+    if water_min is not None:
+        query = query.filter(HealthHabit.water_cups >= water_min)
+    if sleep_min is not None:
+        query = query.filter(HealthHabit.sleep_hours >= sleep_min)
+    if workout_min is not None:
+        query = query.filter(HealthHabit.workout_minutes >= workout_min)
+
+    query = apply_sort(
+        query,
+        HealthHabit,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        allowed_fields=(
+            "id",
+            "date",
+            "water_cups",
+            "sleep_hours",
+            "workout_minutes",
+            "mood",
+        ),
+        default_field="id",
+    )
+
+    return paginate_query(
+        query,
+        request=request,
+        response=response,
+        page=page,
+        page_size=page_size,
+        sort_by=sort_by,
+        sort_order=sort_order,
+    )
 
 
 @router.post("/habits")
