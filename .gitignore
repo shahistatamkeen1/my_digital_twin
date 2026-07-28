@@ -39,3 +39,7 @@ backend/.phase4b-openapi.json
 
 # Phase 4D local rollback backups
 backend/.phase4d-backup-*/
+
+# Phase 4E local rollback and export verification artifacts
+backend/.phase4e-backup-*/
+backend/build/
