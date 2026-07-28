@@ -2,7 +2,16 @@ export const API_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
   "http://localhost:8000";
 
+export const API_VERSION =
+  process.env.NEXT_PUBLIC_API_VERSION?.trim().replace(/^\/+|\/+$/g, "") ||
+  "v1";
+
+export const USE_VERSIONED_API =
+  process.env.NEXT_PUBLIC_API_USE_VERSIONED_ROUTES !== "false";
+
+export const API_PREFIX = `/api/${API_VERSION}`;
 export const REQUEST_ID_HEADER = "X-Request-ID";
+export const API_VERSION_HEADER = "X-API-Version";
 
 export type ApiErrorDetail = {
   field?: string;
@@ -56,10 +65,37 @@ export class ApiError extends Error {
 
 let refreshPromise: Promise<boolean> | null = null;
 
-function buildUrl(path: string): string {
-  return path.startsWith("http")
-    ? path
-    : `${API_URL}${path.startsWith("/") ? path : `/${path}`}`;
+function isAlreadyVersioned(pathname: string): boolean {
+  return /^\/api\/v\d+(?:\/|$)/.test(pathname);
+}
+
+function versionPath(pathname: string): string {
+  if (!USE_VERSIONED_API || isAlreadyVersioned(pathname)) {
+    return pathname;
+  }
+
+  if (pathname === "/api") {
+    return API_PREFIX;
+  }
+
+  if (pathname.startsWith("/api/")) {
+    return `${API_PREFIX}${pathname.slice("/api".length)}`;
+  }
+
+  return pathname;
+}
+
+export function buildApiUrl(path: string): string {
+  const base = new URL(`${API_URL}/`);
+  const url = path.startsWith("http")
+    ? new URL(path)
+    : new URL(path.startsWith("/") ? path : `/${path}`, base);
+
+  if (url.origin === base.origin) {
+    url.pathname = versionPath(url.pathname);
+  }
+
+  return url.toString();
 }
 
 function createRequestId(): string {
@@ -95,37 +131,66 @@ function buildRequestInit(init: RequestInit): RequestInit {
   };
 }
 
-async function refreshAuthentication(): Promise<boolean> {
-  if (!refreshPromise) {
-    refreshPromise = fetch(`${API_URL}/api/auth/refresh`, {
+async function sendRefreshRequest(url: string): Promise<Response | null> {
+  try {
+    return await fetch(url, {
       method: "POST",
       credentials: "include",
       cache: "no-store",
       headers: {
         [REQUEST_ID_HEADER]: createRequestId(),
       },
-    })
-      .then((response) => response.ok)
-      .catch(() => false)
-      .finally(() => {
-        refreshPromise = null;
-      });
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function refreshAuthentication(): Promise<boolean> {
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      const versionedUrl = buildApiUrl("/api/auth/refresh");
+      const versionedResponse = await sendRefreshRequest(versionedUrl);
+
+      if (versionedResponse?.ok) {
+        return true;
+      }
+
+      // One-time compatibility fallback: a Phase 2 refresh cookie was scoped
+      // to /api/auth and is not sent to /api/v1/auth. Calling the legacy route
+      // lets the backend replace it with the new /api-scoped cookie.
+      const legacyUrl = `${API_URL}/api/auth/refresh`;
+      if (versionedUrl !== legacyUrl && versionedResponse?.status === 401) {
+        const legacyResponse = await sendRefreshRequest(legacyUrl);
+        return Boolean(legacyResponse?.ok);
+      }
+
+      return false;
+    })().finally(() => {
+      refreshPromise = null;
+    });
   }
 
   return refreshPromise;
+}
+
+function isAuthenticationRoute(url: string): boolean {
+  try {
+    return /\/api(?:\/v\d+)?\/auth\//.test(new URL(url).pathname);
+  } catch {
+    return url.includes("/auth/");
+  }
 }
 
 export async function apiFetch(
   path: string,
   init: RequestInit = {}
 ): Promise<Response> {
-  const url = buildUrl(path);
+  const url = buildApiUrl(path);
   const requestInit = buildRequestInit(init);
   let response = await fetch(url, requestInit);
 
-  const isAuthenticationRoute = url.includes("/api/auth/");
-
-  if (response.status === 401 && !isAuthenticationRoute) {
+  if (response.status === 401 && !isAuthenticationRoute(url)) {
     const refreshed = await refreshAuthentication();
 
     if (refreshed) {

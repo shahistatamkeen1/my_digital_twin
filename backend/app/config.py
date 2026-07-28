@@ -46,7 +46,7 @@ def _get_optional(name: str) -> str | None:
 @dataclass(frozen=True)
 class Settings:
     app_name: str = os.getenv("APP_NAME", "My Digital Twin API")
-    app_version: str = os.getenv("APP_VERSION", "0.4.0")
+    app_version: str = os.getenv("APP_VERSION", "0.4.1")
     environment: str = os.getenv("ENVIRONMENT", "development")
 
     log_level: str = os.getenv("LOG_LEVEL", "INFO").strip().upper()
@@ -59,6 +59,29 @@ class Settings:
         "EXPOSE_INTERNAL_ERROR_DETAILS",
         False,
     )
+
+    # Phase 4B API versioning. v1 is the canonical contract while legacy
+    # /api routes remain temporarily available with deprecation headers.
+    api_current_version: str = os.getenv(
+        "API_CURRENT_VERSION",
+        "v1",
+    ).strip() or "v1"
+    api_v1_prefix: str = os.getenv(
+        "API_V1_PREFIX",
+        "/api/v1",
+    ).strip() or "/api/v1"
+    api_version_header: str = os.getenv(
+        "API_VERSION_HEADER",
+        "X-API-Version",
+    ).strip() or "X-API-Version"
+    enable_legacy_api_routes: bool = _get_bool(
+        "ENABLE_LEGACY_API_ROUTES",
+        True,
+    )
+    legacy_api_sunset: str = os.getenv(
+        "LEGACY_API_SUNSET",
+        "Fri, 31 Dec 2027 23:59:59 GMT",
+    ).strip() or "Fri, 31 Dec 2027 23:59:59 GMT"
 
     database_url: str = os.getenv(
         "DATABASE_URL",
@@ -107,12 +130,21 @@ class Settings:
         "REFRESH_COOKIE_NAME",
         "mdt_refresh_token",
     )
+    refresh_cookie_path: str = os.getenv(
+        "REFRESH_COOKIE_PATH",
+        "/api",
+    ).strip() or "/api"
     auth_cookie_secure: bool = _get_bool("AUTH_COOKIE_SECURE", False)
     auth_cookie_samesite: str = os.getenv(
         "AUTH_COOKIE_SAMESITE",
         "lax",
     ).lower()
     auth_cookie_domain: str | None = _get_optional("AUTH_COOKIE_DOMAIN")
+
+    @property
+    def normalized_api_v1_prefix(self) -> str:
+        prefix = f"/{self.api_v1_prefix.strip('/')}"
+        return prefix if prefix != "/" else "/api/v1"
 
     @property
     def auth_configured(self) -> bool:

@@ -13,6 +13,7 @@ from app.api.request_context import (
     set_request_id,
 )
 from app.api.responses import build_error_response
+from app.api.versioning import apply_api_version_headers
 from app.config import settings
 
 
@@ -69,6 +70,7 @@ async def request_context_middleware(
                 details=details,
             )
 
+        apply_api_version_headers(response, request.url.path)
         response.headers[settings.request_id_header] = request_id
         return response
     finally:

@@ -33,6 +33,8 @@ from app.services.auth_service import (
 
 router = APIRouter()
 
+_LEGACY_REFRESH_COOKIE_PATH = "/api/auth"
+
 
 def _normalize_email(email: str) -> str:
     return email.strip().lower()
@@ -72,11 +74,21 @@ def _set_auth_cookies(
         path="/",
         **common,
     )
+    # Remove the Phase 2 legacy-path cookie before issuing the version-neutral
+    # /api cookie that works for both /api/auth and /api/v1/auth.
+    response.delete_cookie(
+        key=settings.refresh_cookie_name,
+        path=_LEGACY_REFRESH_COOKIE_PATH,
+        domain=settings.auth_cookie_domain,
+        secure=settings.auth_cookie_secure,
+        httponly=True,
+        samesite=settings.auth_cookie_samesite,
+    )
     response.set_cookie(
         key=settings.refresh_cookie_name,
         value=refresh_token,
         max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
-        path="/api/auth",
+        path=settings.refresh_cookie_path,
         **common,
     )
 
@@ -90,14 +102,15 @@ def _clear_auth_cookies(response: Response) -> None:
         httponly=True,
         samesite=settings.auth_cookie_samesite,
     )
-    response.delete_cookie(
-        key=settings.refresh_cookie_name,
-        path="/api/auth",
-        domain=settings.auth_cookie_domain,
-        secure=settings.auth_cookie_secure,
-        httponly=True,
-        samesite=settings.auth_cookie_samesite,
-    )
+    for path in (settings.refresh_cookie_path, _LEGACY_REFRESH_COOKIE_PATH):
+        response.delete_cookie(
+            key=settings.refresh_cookie_name,
+            path=path,
+            domain=settings.auth_cookie_domain,
+            secure=settings.auth_cookie_secure,
+            httponly=True,
+            samesite=settings.auth_cookie_samesite,
+        )
 
 
 def _build_auth_response(response: Response, user: User) -> AuthResponse:

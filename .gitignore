@@ -32,3 +32,7 @@ backend/.phase3c-preflight.json
 # Test and Phase 4 local artifacts
 .pytest_cache/
 backend/.pytest_cache/
+
+# Phase 4B local artifacts
+.phase4b-openapi.json
+backend/.phase4b-openapi.json

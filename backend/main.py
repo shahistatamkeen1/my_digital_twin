@@ -4,6 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.contracts import ApiErrorResponse
 from app.api.exception_handlers import register_exception_handlers
 from app.api.middleware import request_context_middleware
+from app.api.router_registration import include_versioned_router
+from app.api.versioning import api_version_payload
 from sqlalchemy import text
 
 from app.config import settings
@@ -184,11 +186,12 @@ ROUTERS = (
     (autofill.router, "/api/autofill", ["Application Autofill"]),
 )
 
-for router, prefix, tags in ROUTERS:
+for router, legacy_prefix, tags in ROUTERS:
     dependencies = [] if router is auth.router else [Depends(get_current_user)]
-    app.include_router(
+    include_versioned_router(
+        app,
         router,
-        prefix=prefix,
+        legacy_prefix=legacy_prefix,
         tags=tags,
         dependencies=dependencies,
     )
@@ -201,6 +204,8 @@ def home():
         "environment": settings.environment,
         "version": settings.app_version,
         "database_dialect": engine.dialect.name,
+        "api_version": settings.api_current_version,
+        "api_prefix": settings.normalized_api_v1_prefix,
     }
 
 
@@ -281,3 +286,28 @@ def readiness_check():
         "database_driver": engine.url.drivername,
         "migration_heads": migrations.current_heads,
     }
+
+# Public canonical system endpoints. The original root /health and /ready
+# endpoints remain available for infrastructure compatibility.
+app.add_api_route(
+    f"{settings.normalized_api_v1_prefix}/system/health",
+    health_check,
+    methods=["GET"],
+    tags=["v1 / System"],
+    name="v1_system_health",
+)
+app.add_api_route(
+    f"{settings.normalized_api_v1_prefix}/system/ready",
+    readiness_check,
+    methods=["GET"],
+    tags=["v1 / System"],
+    name="v1_system_ready",
+)
+app.add_api_route(
+    f"{settings.normalized_api_v1_prefix}/system/version",
+    api_version_payload,
+    methods=["GET"],
+    tags=["v1 / System"],
+    name="v1_system_version",
+)
+
