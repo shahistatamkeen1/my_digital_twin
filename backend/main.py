@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.contracts import ApiErrorResponse
 from app.api.exception_handlers import register_exception_handlers
 from app.api.middleware import request_context_middleware
+from app.api.openapi import configure_openapi, stable_operation_id
 from app.api.router_registration import include_versioned_router
 from app.config import settings
 from app.database import engine
@@ -75,6 +76,10 @@ configure_logging()
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
+    docs_url="/docs" if settings.api_docs_enabled else None,
+    redoc_url="/redoc" if settings.api_docs_enabled else None,
+    openapi_url="/openapi.json" if settings.api_docs_enabled else None,
+    generate_unique_id_function=stable_operation_id,
     responses={
         400: {"model": ApiErrorResponse, "description": "Bad request"},
         401: {"model": ApiErrorResponse, "description": "Authentication required"},
@@ -214,3 +219,7 @@ app.include_router(
     system_routes.api_router,
     prefix=f"{settings.normalized_api_v1_prefix}/system",
 )
+
+# Install the enriched full OpenAPI contract and canonical v1-only docs after
+# every application route has been registered.
+configure_openapi(app)

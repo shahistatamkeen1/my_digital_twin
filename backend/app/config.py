@@ -43,10 +43,16 @@ def _get_optional(name: str) -> str | None:
     return stripped or None
 
 
+def _get_path(name: str, default: str) -> str:
+    value = os.getenv(name, default).strip() or default
+    normalized = f"/{value.strip('/')}"
+    return normalized if normalized != "/" else default
+
+
 @dataclass(frozen=True)
 class Settings:
     app_name: str = os.getenv("APP_NAME", "My Digital Twin API")
-    app_version: str = os.getenv("APP_VERSION", "0.4.3")
+    app_version: str = os.getenv("APP_VERSION", "0.4.4")
     environment: str = os.getenv("ENVIRONMENT", "development")
 
     log_level: str = os.getenv("LOG_LEVEL", "INFO").strip().upper()
@@ -128,6 +134,29 @@ class Settings:
         "READINESS_REQUIRE_AI",
         False,
     )
+
+    # Phase 4E API documentation and exported contract metadata. The full
+    # /docs view includes legacy routes; /api/v1/docs is canonical-only.
+    api_docs_enabled: bool = _get_bool("API_DOCS_ENABLED", True)
+    api_openapi_path: str = _get_path(
+        "API_OPENAPI_PATH",
+        "/api/v1/openapi.json",
+    )
+    api_docs_path: str = _get_path(
+        "API_DOCS_PATH",
+        "/api/v1/docs",
+    )
+    api_redoc_path: str = _get_path(
+        "API_REDOC_PATH",
+        "/api/v1/redoc",
+    )
+    public_api_base_url: str | None = _get_optional("PUBLIC_API_BASE_URL")
+    openapi_contact_name: str | None = _get_optional("OPENAPI_CONTACT_NAME")
+    openapi_contact_email: str | None = _get_optional("OPENAPI_CONTACT_EMAIL")
+    openapi_license_name: str = os.getenv(
+        "OPENAPI_LICENSE_NAME",
+        "Proprietary",
+    ).strip() or "Proprietary"
 
     database_url: str = os.getenv(
         "DATABASE_URL",
