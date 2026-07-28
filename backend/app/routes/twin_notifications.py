@@ -1,5 +1,8 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query, Request, Response
 from sqlalchemy.orm import Session
+
+from app.api.pagination import SortOrder, paginate_sequence
+from app.config import settings
 
 from app.database import get_db
 from app.services.executive_intelligence_service import generate_executive_intelligence
@@ -117,7 +120,26 @@ def get_action_fields(category: str):
 
 
 @router.get("/")
-def get_twin_notifications(db: Session = Depends(get_db)):
+def get_twin_notifications(
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+    search: str | None = Query(default=None, min_length=1, max_length=200),
+    category: str | None = Query(default=None, max_length=100),
+    priority: str | None = Query(default=None, max_length=50),
+    min_priority_score: int | None = Query(default=None, ge=0, le=100),
+    sort_by: str = Query(
+        default="priority_score",
+        pattern="^(priority_score|category|priority|title)$",
+    ),
+    sort_order: SortOrder = Query(default=SortOrder.desc),
+    page: int | None = Query(default=None, ge=1),
+    page_size: int | None = Query(
+        default=None,
+        ge=1,
+        le=settings.api_max_page_size,
+    ),
+):
     executive = generate_executive_intelligence(db)
 
     advisor = executive.get("advisor_response", {})
@@ -185,18 +207,80 @@ def get_twin_notifications(db: Session = Depends(get_db)):
             },
         )
 
+    normalized_search = (search or "").strip().lower()
+    if normalized_search:
+        notifications = [
+            item
+            for item in notifications
+            if normalized_search
+            in " ".join(
+                str(item.get(field, ""))
+                for field in (
+                    "category",
+                    "priority",
+                    "title",
+                    "message",
+                    "recommended_action",
+                )
+            ).lower()
+        ]
+
+    if category:
+        notifications = [
+            item
+            for item in notifications
+            if str(item.get("category", "")).lower()
+            == category.strip().lower()
+        ]
+
+    if priority:
+        notifications = [
+            item
+            for item in notifications
+            if str(item.get("priority", "")).lower()
+            == normalize_priority(priority).lower()
+        ]
+
+    if min_priority_score is not None:
+        notifications = [
+            item
+            for item in notifications
+            if int(item.get("priority_score", 0)) >= min_priority_score
+        ]
+
     notifications.sort(
-        key=lambda item: item["priority_score"],
-        reverse=True,
+        key=lambda item: (
+            item.get(sort_by, 0)
+            if sort_by == "priority_score"
+            else str(item.get(sort_by, "")).lower()
+        ),
+        reverse=sort_order == SortOrder.desc,
     )
 
-    return {
+    page_result = paginate_sequence(
+        notifications,
+        request=request,
+        response=response,
+        page=page,
+        page_size=page_size,
+        sort_by=sort_by,
+        sort_order=sort_order,
+    )
+
+    response_body = {
         "summary": advisor.get(
             "executive_summary",
             "Your Digital Twin notifications are ready.",
         ),
-        "notifications": notifications,
         "focus_scores": focus_scores,
         "agent_analysis": executive.get("agent_analysis", {}),
         "conflict_resolution": executive.get("conflict_resolution", {}),
     }
+
+    if isinstance(page_result, list):
+        response_body["notifications"] = page_result
+        return response_body
+
+    response_body["notifications"] = page_result["items"]
+    response_body["pagination"] = page_result["pagination"]
+    return response_body

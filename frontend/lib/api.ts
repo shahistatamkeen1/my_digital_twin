@@ -304,3 +304,123 @@ export async function requireApiSuccess(
 
   return response;
 }
+
+
+export type SortOrder = "asc" | "desc";
+
+export type CollectionQuery = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: SortOrder;
+  [key: string]: string | number | boolean | null | undefined;
+};
+
+export type PaginationMeta = {
+  page: number;
+  page_size: number;
+  total_items: number;
+  total_pages: number;
+  has_next: boolean;
+  has_previous: boolean;
+};
+
+export type ListResult<T> = {
+  items: T[];
+  pagination: PaginationMeta;
+};
+
+export function buildCollectionUrl(
+  path: string,
+  query: CollectionQuery = {}
+): string {
+  const url = new URL(buildApiUrl(path));
+
+  for (const [key, value] of Object.entries(query)) {
+    if (value === undefined || value === null || value === "") {
+      continue;
+    }
+
+    const apiKey =
+      key === "pageSize"
+        ? "page_size"
+        : key === "sortBy"
+          ? "sort_by"
+          : key === "sortOrder"
+            ? "sort_order"
+            : key;
+
+    url.searchParams.set(apiKey, String(value));
+  }
+
+  return url.toString();
+}
+
+function numberHeader(
+  response: Response,
+  name: string,
+  fallback: number
+): number {
+  const value = Number(response.headers.get(name));
+  return Number.isFinite(value) ? value : fallback;
+}
+
+export async function readListResponse<T>(
+  response: Response
+): Promise<ListResult<T>> {
+  await requireApiSuccess(response);
+  const payload = (await response.json()) as
+    | T[]
+    | {
+        items?: T[];
+        pagination?: Partial<PaginationMeta>;
+      };
+
+  if (Array.isArray(payload)) {
+    const totalItems = numberHeader(
+      response,
+      "X-Total-Count",
+      payload.length
+    );
+    const page = numberHeader(response, "X-Page", 1);
+    const pageSize = numberHeader(
+      response,
+      "X-Page-Size",
+      payload.length
+    );
+    const totalPages = numberHeader(
+      response,
+      "X-Total-Pages",
+      totalItems > 0 ? 1 : 0
+    );
+
+    return {
+      items: payload,
+      pagination: {
+        page,
+        page_size: pageSize,
+        total_items: totalItems,
+        total_pages: totalPages,
+        has_next: page < totalPages,
+        has_previous: page > 1,
+      },
+    };
+  }
+
+  const items = Array.isArray(payload.items) ? payload.items : [];
+  const pagination = payload.pagination || {};
+
+  return {
+    items,
+    pagination: {
+      page: pagination.page ?? 1,
+      page_size: pagination.page_size ?? items.length,
+      total_items: pagination.total_items ?? items.length,
+      total_pages:
+        pagination.total_pages ?? (items.length > 0 ? 1 : 0),
+      has_next: pagination.has_next ?? false,
+      has_previous: pagination.has_previous ?? false,
+    },
+  };
+}

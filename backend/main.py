@@ -101,7 +101,21 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=[settings.request_id_header],
+    expose_headers=[
+        settings.request_id_header,
+        settings.api_version_header,
+        "Deprecation",
+        "Sunset",
+        "Warning",
+        "Link",
+        "X-Total-Count",
+        "X-Page",
+        "X-Page-Size",
+        "X-Total-Pages",
+        "X-Pagination-Mode",
+        "X-Sort-By",
+        "X-Sort-Order",
+    ],
 )
 
 

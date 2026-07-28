@@ -1,6 +1,14 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query, Request, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
+
+from app.api.pagination import (
+    SortOrder,
+    apply_sort,
+    apply_text_search,
+    paginate_query,
+)
+from app.config import settings
 
 from app.database import get_db
 from app.models.finance import FinanceTransaction, SavingsGoal, FinanceMemory
@@ -39,8 +47,86 @@ class InvestmentPlanRequest(BaseModel):
     time_horizon: str = ""
     
 @router.get("/")
-def get_transactions(db: Session = Depends(get_db)):
-    return db.query(FinanceTransaction).order_by(FinanceTransaction.id.desc()).all()
+def get_transactions(
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+    search: str | None = Query(
+        default=None,
+        min_length=1,
+        max_length=200,
+        description="Search transaction title or category.",
+    ),
+    transaction_type: str | None = Query(
+        default=None,
+        alias="type",
+        max_length=50,
+    ),
+    category: str | None = Query(default=None, max_length=100),
+    date_from: str | None = Query(default=None, max_length=20),
+    date_to: str | None = Query(default=None, max_length=20),
+    amount_min: float | None = Query(default=None, ge=0),
+    amount_max: float | None = Query(default=None, ge=0),
+    sort_by: str = Query(
+        default="id",
+        pattern="^(id|type|title|amount|category|date)$",
+    ),
+    sort_order: SortOrder = Query(default=SortOrder.desc),
+    page: int | None = Query(default=None, ge=1),
+    page_size: int | None = Query(
+        default=None,
+        ge=1,
+        le=settings.api_max_page_size,
+    ),
+):
+    query = db.query(FinanceTransaction)
+    query = apply_text_search(
+        query,
+        search,
+        (
+            FinanceTransaction.title,
+            FinanceTransaction.category,
+        ),
+    )
+
+    if transaction_type:
+        query = query.filter(FinanceTransaction.type == transaction_type)
+    if category:
+        query = query.filter(FinanceTransaction.category == category)
+    if date_from:
+        query = query.filter(FinanceTransaction.date >= date_from)
+    if date_to:
+        query = query.filter(FinanceTransaction.date <= date_to)
+    if amount_min is not None:
+        query = query.filter(FinanceTransaction.amount >= amount_min)
+    if amount_max is not None:
+        query = query.filter(FinanceTransaction.amount <= amount_max)
+
+    query = apply_sort(
+        query,
+        FinanceTransaction,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        allowed_fields=(
+            "id",
+            "type",
+            "title",
+            "amount",
+            "category",
+            "date",
+        ),
+        default_field="id",
+    )
+
+    return paginate_query(
+        query,
+        request=request,
+        response=response,
+        page=page,
+        page_size=page_size,
+        sort_by=sort_by,
+        sort_order=sort_order,
+    )
 
 
 @router.post("/")

@@ -46,7 +46,7 @@ def _get_optional(name: str) -> str | None:
 @dataclass(frozen=True)
 class Settings:
     app_name: str = os.getenv("APP_NAME", "My Digital Twin API")
-    app_version: str = os.getenv("APP_VERSION", "0.4.1")
+    app_version: str = os.getenv("APP_VERSION", "0.4.2")
     environment: str = os.getenv("ENVIRONMENT", "development")
 
     log_level: str = os.getenv("LOG_LEVEL", "INFO").strip().upper()
@@ -82,6 +82,17 @@ class Settings:
         "LEGACY_API_SUNSET",
         "Fri, 31 Dec 2027 23:59:59 GMT",
     ).strip() or "Fri, 31 Dec 2027 23:59:59 GMT"
+
+    # Phase 4C collection-query defaults. Existing clients still receive
+    # legacy array bodies unless page or page_size is requested explicitly.
+    api_default_page_size: int = max(
+        1,
+        _get_int("API_DEFAULT_PAGE_SIZE", 20),
+    )
+    api_max_page_size: int = max(
+        api_default_page_size,
+        _get_int("API_MAX_PAGE_SIZE", 100),
+    )
 
     database_url: str = os.getenv(
         "DATABASE_URL",
