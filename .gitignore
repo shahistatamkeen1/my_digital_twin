@@ -36,3 +36,6 @@ backend/.pytest_cache/
 # Phase 4B local artifacts
 .phase4b-openapi.json
 backend/.phase4b-openapi.json
+
+# Phase 4D local rollback backups
+backend/.phase4d-backup-*/

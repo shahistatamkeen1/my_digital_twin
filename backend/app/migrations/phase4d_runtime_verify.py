@@ -1,0 +1,164 @@
+
+from __future__ import annotations
+
+import argparse
+import time
+from typing import Any
+
+import httpx
+
+from app.database import SessionLocal
+from app.models.user import User
+
+
+FORBIDDEN_DIAGNOSTIC_TEXT = (
+    "database_url",
+    "jwt_secret_key",
+    "openai_api_key",
+    "adzuna_app_key",
+    "password",
+    "postgresql+psycopg2://",
+)
+
+
+def _require(response: httpx.Response, expected: int) -> Any:
+    if response.status_code != expected:
+        raise RuntimeError(
+            f"{response.request.method} {response.request.url} returned "
+            f"{response.status_code}: {response.text}"
+        )
+    return response.json()
+
+
+def _cleanup_user(email: str) -> None:
+    db = SessionLocal()
+    db.info["skip_user_scope"] = True
+    try:
+        # Use a SQLAlchemy Core delete so this standalone verifier does not
+        # need every relationship target imported into the ORM registry.
+        db.execute(
+            User.__table__.delete().where(User.__table__.c.email == email)
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+def verify(base_url: str) -> None:
+    base_url = base_url.rstrip("/")
+    unique = str(time.time_ns())
+    email = f"phase4d-{unique}@example.com"
+
+    try:
+        with httpx.Client(
+            base_url=base_url,
+            timeout=45.0,
+            follow_redirects=True,
+        ) as client:
+            live = client.get("/live")
+            live_body = _require(live, 200)
+            if live_body.get("status") != "alive":
+                raise RuntimeError(f"Unexpected liveness response: {live.text}")
+            if "no-store" not in live.headers.get("Cache-Control", ""):
+                raise RuntimeError("Liveness response is cacheable.")
+
+            health = client.get("/health")
+            health_body = _require(health, 200)
+            if health_body.get("status") != "healthy":
+                raise RuntimeError(f"Unexpected health response: {health.text}")
+
+            ready = client.get("/ready")
+            ready_body = _require(ready, 200)
+            if ready_body.get("status") != "ready":
+                raise RuntimeError(f"Unexpected readiness response: {ready.text}")
+            for field in (
+                "database",
+                "migration_schema_ready",
+                "ownership_schema_ready",
+                "schema_optimization_ready",
+                "checks",
+                "check_duration_ms",
+                "uptime_seconds",
+            ):
+                if field not in ready_body:
+                    raise RuntimeError(f"Readiness field is missing: {field}")
+
+            versioned_ready = client.get("/api/v1/system/ready")
+            versioned_ready_body = _require(versioned_ready, 200)
+            if versioned_ready_body.get("status") != "ready":
+                raise RuntimeError("Versioned readiness is not ready.")
+            if versioned_ready.headers.get("X-API-Version") != "v1":
+                raise RuntimeError("Versioned readiness lacks X-API-Version: v1.")
+
+            status_response = client.get("/api/v1/system/status")
+            status_body = _require(status_response, 200)
+            if status_body.get("status") != "operational":
+                raise RuntimeError(
+                    f"System status is not operational: {status_response.text}"
+                )
+            if status_body.get("ready") is not True:
+                raise RuntimeError("System status ready flag is false.")
+            if "database_driver" in status_body:
+                raise RuntimeError("Public status exposed database driver details.")
+
+            unauthenticated = client.get("/api/v1/system/diagnostics")
+            unauthenticated_body = _require(unauthenticated, 401)
+            if (
+                unauthenticated_body.get("error", {}).get("code")
+                != "AUTHENTICATION_REQUIRED"
+            ):
+                raise RuntimeError("Diagnostics did not enforce authentication.")
+
+            registration = client.post(
+                "/api/v1/auth/register",
+                json={
+                    "full_name": "Phase Four D",
+                    "email": email,
+                    "password": "PhaseFourD1",
+                },
+            )
+            registration_body = _require(registration, 201)
+            token = registration_body.get("access_token")
+            if not token:
+                raise RuntimeError("Registration did not return an access token.")
+
+            diagnostics = client.get(
+                "/api/v1/system/diagnostics",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            diagnostics_body = _require(diagnostics, 200)
+            if diagnostics_body.get("status") != "ready":
+                raise RuntimeError(
+                    f"Diagnostics did not report ready: {diagnostics.text}"
+                )
+            details = diagnostics_body.get("diagnostics", {})
+            for key in ("process", "runtime", "database_pool", "monitoring_policy"):
+                if key not in details:
+                    raise RuntimeError(f"Diagnostics section is missing: {key}")
+
+            serialized = diagnostics.text.lower()
+            for forbidden in FORBIDDEN_DIAGNOSTIC_TEXT:
+                if forbidden in serialized:
+                    raise RuntimeError(
+                        f"Diagnostics exposed forbidden text: {forbidden}"
+                    )
+
+    finally:
+        _cleanup_user(email)
+
+    print("Phase 4D live production-monitoring verification passed.")
+    print("Liveness, readiness, status, authenticated diagnostics, and safety passed.")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--base-url", default="http://localhost:8000")
+    args = parser.parse_args()
+    verify(args.base_url)
+
+
+if __name__ == "__main__":
+    main()

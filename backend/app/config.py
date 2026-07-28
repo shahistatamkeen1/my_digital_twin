@@ -46,7 +46,7 @@ def _get_optional(name: str) -> str | None:
 @dataclass(frozen=True)
 class Settings:
     app_name: str = os.getenv("APP_NAME", "My Digital Twin API")
-    app_version: str = os.getenv("APP_VERSION", "0.4.2")
+    app_version: str = os.getenv("APP_VERSION", "0.4.3")
     environment: str = os.getenv("ENVIRONMENT", "development")
 
     log_level: str = os.getenv("LOG_LEVEL", "INFO").strip().upper()
@@ -92,6 +92,41 @@ class Settings:
     api_max_page_size: int = max(
         api_default_page_size,
         _get_int("API_MAX_PAGE_SIZE", 100),
+    )
+
+    # Phase 4D production monitoring. Database, migration, ownership, schema,
+    # and authentication checks determine readiness. AI remains optional by
+    # default because non-AI platform features can still operate safely.
+    monitoring_cache_ttl_seconds: int = max(
+        0,
+        _get_int("MONITORING_CACHE_TTL_SECONDS", 5),
+    )
+    monitoring_disk_warning_percent: int = min(
+        100,
+        max(1, _get_int("MONITORING_DISK_WARNING_PERCENT", 90)),
+    )
+    monitoring_disk_critical_percent: int = min(
+        100,
+        max(
+            monitoring_disk_warning_percent,
+            _get_int("MONITORING_DISK_CRITICAL_PERCENT", 98),
+        ),
+    )
+    monitoring_memory_warning_percent: int = min(
+        100,
+        max(1, _get_int("MONITORING_MEMORY_WARNING_PERCENT", 90)),
+    )
+    monitoring_include_process_metrics: bool = _get_bool(
+        "MONITORING_INCLUDE_PROCESS_METRICS",
+        True,
+    )
+    readiness_require_auth: bool = _get_bool(
+        "READINESS_REQUIRE_AUTH",
+        True,
+    )
+    readiness_require_ai: bool = _get_bool(
+        "READINESS_REQUIRE_AI",
+        False,
     )
 
     database_url: str = os.getenv(

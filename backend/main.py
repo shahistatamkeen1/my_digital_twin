@@ -1,20 +1,14 @@
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.contracts import ApiErrorResponse
 from app.api.exception_handlers import register_exception_handlers
 from app.api.middleware import request_context_middleware
 from app.api.router_registration import include_versioned_router
-from app.api.versioning import api_version_payload
-from sqlalchemy import text
-
 from app.config import settings
 from app.database import engine
 from app.dependencies.auth import get_current_user
 from app.logging_config import configure_logging
-from app.services.migration_status_service import inspect_migration_status
-from app.services.ownership_schema_service import inspect_ownership_schema
-from app.services.schema_optimization_service import inspect_schema_optimization
 
 # Import every model module so SQLAlchemy metadata is complete for Alembic.
 from app.models import (  # noqa: F401
@@ -66,6 +60,7 @@ from app.routes import (
     resume,
     resume_tailor,
     roadmap as roadmap_routes,
+    system as system_routes,
     twin_brief,
     twin_context,
     twin_journal,
@@ -211,117 +206,11 @@ for router, legacy_prefix, tags in ROUTERS:
     )
 
 
-@app.get("/")
-def home():
-    return {
-        "message": "My Digital Twin backend is running",
-        "environment": settings.environment,
-        "version": settings.app_version,
-        "database_dialect": engine.dialect.name,
-        "api_version": settings.api_current_version,
-        "api_prefix": settings.normalized_api_v1_prefix,
-    }
-
-
-@app.get("/health")
-def health_check():
-    return {
-        "status": "healthy",
-        "service": settings.app_name,
-        "environment": settings.environment,
-    }
-
-
-@app.get("/ready")
-def readiness_check():
-    with engine.connect() as connection:
-        connection.execute(text("SELECT 1"))
-
-    migrations = inspect_migration_status(engine)
-    if not migrations.ready:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={
-                "status": "migration_required",
-                "database": "connected",
-                "migration_schema_ready": False,
-                "current_heads": migrations.current_heads,
-                "expected_heads": migrations.expected_heads,
-                "alembic_config_found": migrations.alembic_config_found,
-            },
-        )
-
-    ownership = inspect_ownership_schema(engine)
-    if not ownership.ready:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={
-                "status": "ownership_migration_required",
-                "database": "connected",
-                "migration_schema_ready": True,
-                "ownership_schema_ready": False,
-                "missing_tables": ownership.missing_tables,
-                "missing_user_id_columns": ownership.missing_user_id_columns,
-                "unowned_rows": ownership.unowned_rows,
-            },
-        )
-
-    optimization = inspect_schema_optimization(engine)
-    if not optimization.ready:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={
-                "status": "schema_optimization_required",
-                "database": "connected",
-                "migration_schema_ready": True,
-                "ownership_schema_ready": True,
-                "schema_optimization_ready": False,
-                "missing_indexes": optimization.missing_indexes,
-                "missing_check_constraints": (
-                    optimization.missing_check_constraints
-                ),
-                "nullable_columns": optimization.nullable_columns,
-                "timestamp_issues": optimization.timestamp_issues,
-                "missing_server_defaults": (
-                    optimization.missing_server_defaults
-                ),
-            },
-        )
-
-    return {
-        "status": "ready",
-        "database": "connected",
-        "ai_configured": bool(settings.openai_api_key),
-        "auth_configured": settings.auth_configured,
-        "migration_schema_ready": True,
-        "ownership_schema_ready": True,
-        "schema_optimization_ready": True,
-        "database_dialect": engine.dialect.name,
-        "database_driver": engine.url.drivername,
-        "migration_heads": migrations.current_heads,
-    }
-
-# Public canonical system endpoints. The original root /health and /ready
-# endpoints remain available for infrastructure compatibility.
-app.add_api_route(
-    f"{settings.normalized_api_v1_prefix}/system/health",
-    health_check,
-    methods=["GET"],
-    tags=["v1 / System"],
-    name="v1_system_health",
+# Infrastructure-compatible root probes and canonical v1 system endpoints.
+# These routes are intentionally registered outside the authenticated domain
+# router loop. Only the detailed diagnostics endpoint requires authentication.
+app.include_router(system_routes.infrastructure_router)
+app.include_router(
+    system_routes.api_router,
+    prefix=f"{settings.normalized_api_v1_prefix}/system",
 )
-app.add_api_route(
-    f"{settings.normalized_api_v1_prefix}/system/ready",
-    readiness_check,
-    methods=["GET"],
-    tags=["v1 / System"],
-    name="v1_system_ready",
-)
-app.add_api_route(
-    f"{settings.normalized_api_v1_prefix}/system/version",
-    api_version_payload,
-    methods=["GET"],
-    tags=["v1 / System"],
-    name="v1_system_version",
-)
-
