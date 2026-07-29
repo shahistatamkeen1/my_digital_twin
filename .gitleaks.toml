@@ -1,0 +1,22 @@
+title = "My Digital Twin secret-scanning policy"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Documented placeholders and deterministic CI-only credentials"
+regexTarget = "match"
+regexes = [
+  '''CHANGE_ME_[A-Z0-9_]+''',
+  '''phase5-ci-secret-0123456789abcdef-0123456789abcdef''',
+  '''phase5b-ci-secret-0123456789abcdef-0123456789abcdef''',
+  '''phase5b_ci_url_safe_password'''
+]
+
+[[allowlists]]
+description = "Environment templates contain placeholders, never real credentials"
+paths = [
+  '''(^|/)\.env\.docker\.example$''',
+  '''(^|/)backend/\.env\.example$''',
+  '''(^|/)frontend/\.env\.example$'''
+]

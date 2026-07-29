@@ -1,59 +1,295 @@
-name: Backend API Contracts
+name: Quality Gates
 
 on:
   pull_request:
     paths:
       - "backend/**"
+      - "frontend/**"
+      - "extension/**"
       - ".github/workflows/backend-api-contracts.yml"
+      - "docker-compose.yml"
+      - ".env.docker.example"
+      - "docs/DOCKER.md"
   push:
     branches:
       - master
-      - phase-4-api-architecture
+      - phase-5-cicd-testing
     paths:
       - "backend/**"
+      - "frontend/**"
+      - "extension/**"
       - ".github/workflows/backend-api-contracts.yml"
+      - "docker-compose.yml"
+      - ".env.docker.example"
+      - "docs/DOCKER.md"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  api-contracts:
+  backend-tests:
+    name: Backend tests and contracts
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: backend
     env:
       ENVIRONMENT: test
-      DATABASE_URL: sqlite:///./phase4e_ci.db
+      DATABASE_URL: sqlite:///./.test_artifacts/phase5_ci.db
       AUTO_CREATE_TABLES: "false"
-      JWT_SECRET_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      JWT_SECRET_KEY: phase5-ci-secret-0123456789abcdef-0123456789abcdef
+      OPENAI_API_KEY: ""
+      AUTH_COOKIE_SECURE: "false"
       ENABLE_LEGACY_API_ROUTES: "true"
       API_DOCS_ENABLED: "true"
       EXPOSE_INTERNAL_ERROR_DETAILS: "false"
+      LOG_FORMAT: text
+      LOG_LEVEL: WARNING
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip && pip install -r requirements-dev.txt
+
+      - name: Compile backend
+        run: python -m compileall -q .
+
+      - name: Check correctness lint rules
+        run: python -m ruff check main.py app tests
+
+      - name: Run unit, integration, and contract tests
+        run: >-
+          python -m pytest
+          --cov=app
+          --cov-branch
+          --cov-report=term-missing
+          --cov-report=xml
+          --cov-fail-under=20
+
+      - name: Export OpenAPI contract artifacts
+        run: python -m app.migrations.phase4e_export_contracts --output-dir build/api-contracts
+
+      - name: Upload backend artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: backend-quality-artifacts
+          path: |
+            backend/coverage.xml
+            backend/build/api-contracts
+          if-no-files-found: error
+
+  postgres-migrations:
+    name: PostgreSQL migration verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: my_digital_twin_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d my_digital_twin_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      ENVIRONMENT: test
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@127.0.0.1:5432/my_digital_twin_ci
+      AUTO_CREATE_TABLES: "false"
+      JWT_SECRET_KEY: phase5-ci-secret-0123456789abcdef-0123456789abcdef
+      OPENAI_API_KEY: ""
+      AUTH_COOKIE_SECURE: "false"
+      ENABLE_LEGACY_API_ROUTES: "true"
+      API_DOCS_ENABLED: "true"
+      LOG_FORMAT: text
+      LOG_LEVEL: WARNING
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: pip
           cache-dependency-path: backend/requirements.txt
 
-      - name: Install dependencies
+      - name: Install runtime dependencies
         run: python -m pip install --upgrade pip && pip install -r requirements.txt
 
-      - name: Compile backend
-        run: python -m compileall -q .
+      - name: Upgrade PostgreSQL to Alembic head
+        run: alembic upgrade head
 
-      - name: Run API contract tests
-        run: pytest -q
+      - name: Verify migration head and model drift
+        run: |
+          alembic current --check-heads
+          alembic check
 
-      - name: Export contract artifacts
-        run: python -m app.migrations.phase4e_export_contracts --output-dir build/api-contracts
+      - name: Verify production schema behaviour
+        run: python -m app.migrations.phase3c_verify_schema --snapshot-file .phase5-ci-missing-snapshot.json
 
-      - name: Upload API contract artifacts
-        uses: actions/upload-artifact@v4
+      - name: Verify downgrade and re-upgrade path
+        run: |
+          alembic downgrade 20260722_0002
+          alembic upgrade head
+          alembic current --check-heads
+          alembic check
+          python -m app.migrations.phase3c_verify_schema --snapshot-file .phase5-ci-missing-snapshot.json
+
+  frontend-quality:
+    name: Frontend typecheck, lint, and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      NEXT_PUBLIC_API_URL: http://127.0.0.1:8000
+      NEXT_PUBLIC_API_VERSION: v1
+      NEXT_PUBLIC_API_USE_VERSIONED_ROUTES: "true"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
         with:
-          name: my-digital-twin-api-contracts
-          path: backend/build/api-contracts
-          if-no-files-found: error
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run frontend quality gates
+        run: npm run quality
+
+  extension-syntax:
+    name: Browser extension syntax
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Validate manifest JSON
+        run: node -e "JSON.parse(require('fs').readFileSync('extension/manifest.json', 'utf8'))"
+
+      - name: Check extension JavaScript syntax
+        run: |
+          node --check extension/popup.js
+          node --check extension/content.js
+
+  docker-compose-smoke:
+    name: Docker Compose production simulation
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs:
+      - backend-tests
+      - postgres-migrations
+      - frontend-quality
+      - extension-syntax
+    env:
+      COMPOSE_PROJECT_NAME: mdt-phase5b-ci
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Create disposable Docker environment
+        shell: bash
+        run: |
+          cat > .env.docker.ci <<'EOF'
+          APP_VERSION=0.5.3
+          POSTGRES_DB=my_digital_twin_ci
+          POSTGRES_USER=mdt_app
+          POSTGRES_PASSWORD=phase5b_ci_url_safe_password
+          BACKEND_DATABASE_URL=postgresql+psycopg2://mdt_app:phase5b_ci_url_safe_password@database:5432/my_digital_twin_ci
+          JWT_SECRET_KEY=phase5b-ci-secret-0123456789abcdef-0123456789abcdef
+          BACKEND_PORT=8000
+          FRONTEND_PORT=3000
+          NEXT_PUBLIC_API_URL=http://localhost:8000
+          NEXT_PUBLIC_API_VERSION=v1
+          NEXT_PUBLIC_API_USE_VERSIONED_ROUTES=true
+          CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+          PUBLIC_API_BASE_URL=http://localhost:8000
+          AUTH_COOKIE_SECURE=false
+          AUTH_COOKIE_SAMESITE=lax
+          OPENAI_API_KEY=
+          ADZUNA_APP_ID=
+          ADZUNA_APP_KEY=
+          LOG_LEVEL=WARNING
+          LOG_FORMAT=text
+          ENABLE_LEGACY_API_ROUTES=true
+          API_DOCS_ENABLED=true
+          READINESS_REQUIRE_AUTH=true
+          READINESS_REQUIRE_AI=false
+          CONTAINER_RUN_MIGRATIONS=true
+          CONTAINER_DB_WAIT_TIMEOUT_SECONDS=90
+          CONTAINER_DB_WAIT_INTERVAL_SECONDS=2
+          EOF
+
+      - name: Validate Compose configuration
+        run: docker compose --env-file .env.docker.ci config --quiet
+
+      - name: Build and start the stack
+        run: docker compose --env-file .env.docker.ci up --build --detach
+
+      - name: Wait for application health
+        shell: bash
+        run: |
+          timeout 240 bash -c '
+            until curl --fail --silent http://127.0.0.1:8000/ready >/dev/null \
+              && curl --fail --silent http://127.0.0.1:3000/ >/dev/null; do
+              sleep 5
+            done
+          '
+
+      - name: Verify API, migrations, and non-root users
+        shell: bash
+        run: |
+          docker compose --env-file .env.docker.ci exec -T backend python -m app.container.runtime_verify --base-url http://127.0.0.1:8000
+          docker compose --env-file .env.docker.ci exec -T backend alembic current --check-heads
+          test "$(docker compose --env-file .env.docker.ci exec -T backend id -u | tr -d '\r')" != "0"
+          test "$(docker compose --env-file .env.docker.ci exec -T frontend id -u | tr -d '\r')" != "0"
+
+      - name: Show container logs on failure
+        if: failure()
+        run: docker compose --env-file .env.docker.ci logs --no-color
+
+      - name: Tear down disposable stack
+        if: always()
+        run: docker compose --env-file .env.docker.ci down --volumes --remove-orphans
+

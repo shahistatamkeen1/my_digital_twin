@@ -2,7 +2,7 @@
 
 import { apiFetch } from "@/lib/api";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 type AgentProfile = {
   id: number;
@@ -33,11 +33,7 @@ export default function TwinPersonalityPage() {
   const [profiles, setProfiles] = useState<AgentProfile[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadProfiles();
-  }, []);
-
-  const loadProfiles = async () => {
+  const loadProfiles = useCallback(async () => {
     try {
       const res = await apiFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/agent-profiles/`
@@ -50,7 +46,11 @@ export default function TwinPersonalityPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    void loadProfiles();
+  }, [loadProfiles]);
 
   return (
     <main className="min-h-screen bg-slate-950 p-8 text-white">

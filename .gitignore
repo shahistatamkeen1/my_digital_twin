@@ -43,3 +43,41 @@ backend/.phase4d-backup-*/
 # Phase 4E local rollback and export verification artifacts
 backend/.phase4e-backup-*/
 backend/build/
+
+# Phase 5 test, lint, and coverage artifacts
+.coverage
+coverage.xml
+htmlcov/
+.ruff_cache/
+backend/.test_artifacts/
+backend/.coverage
+backend/coverage.xml
+backend/htmlcov/
+backend/.ruff_cache/
+frontend/coverage/
+backend/.phase5a-backup-*/
+
+# Phase 5B Docker local secrets and generated verification files
+.env.docker
+.env.docker.*
+!.env.docker.example
+.phase5b-backup-*/
+.phase5b-compose-config.yml
+
+
+# TypeScript incremental compiler artifacts
+*.tsbuildinfo
+
+# Phase 5C local security reports and rollback files
+build/security/
+.phase5c-backup-*/
+*.sarif
+*.cdx.json
+
+# Phase 5D release and deployment artifacts
+build/release/
+deploy/.env.release
+deploy/.env.release.*
+!deploy/.env.release.example
+deploy/.deployment-state/
+.phase5d-backup-*/

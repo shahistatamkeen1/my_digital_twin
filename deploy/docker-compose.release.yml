@@ -1,0 +1,152 @@
+name: ${COMPOSE_PROJECT_NAME:-my-digital-twin-release}
+
+services:
+  database:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB must be set}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER must be set}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+    stop_grace_period: 30s
+    networks:
+      - data
+
+  backend:
+    image: ${BACKEND_IMAGE:?BACKEND_IMAGE must be set}
+    pull_policy: always
+    init: true
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      APP_NAME: My Digital Twin API
+      APP_VERSION: ${APP_VERSION:?APP_VERSION must be set}
+      ENVIRONMENT: ${DEPLOY_ENVIRONMENT:-production}
+
+      DATABASE_URL: ${BACKEND_DATABASE_URL:?BACKEND_DATABASE_URL must be set}
+      DATABASE_POOL_SIZE: ${DATABASE_POOL_SIZE:-5}
+      DATABASE_MAX_OVERFLOW: ${DATABASE_MAX_OVERFLOW:-10}
+      DATABASE_POOL_TIMEOUT_SECONDS: ${DATABASE_POOL_TIMEOUT_SECONDS:-30}
+      DATABASE_POOL_RECYCLE_SECONDS: ${DATABASE_POOL_RECYCLE_SECONDS:-1800}
+      AUTO_CREATE_TABLES: "false"
+
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY must be set}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-7}
+      ACCESS_COOKIE_NAME: ${ACCESS_COOKIE_NAME:-mdt_access_token}
+      REFRESH_COOKIE_NAME: ${REFRESH_COOKIE_NAME:-mdt_refresh_token}
+      REFRESH_COOKIE_PATH: ${REFRESH_COOKIE_PATH:-/api}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-true}
+      AUTH_COOKIE_SAMESITE: ${AUTH_COOKIE_SAMESITE:-lax}
+      AUTH_COOKIE_DOMAIN: ${AUTH_COOKIE_DOMAIN:-}
+
+      CORS_ORIGINS: ${CORS_ORIGINS:?CORS_ORIGINS must be set}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      OPENAI_TIMEOUT_SECONDS: ${OPENAI_TIMEOUT_SECONDS:-60}
+      ADZUNA_APP_ID: ${ADZUNA_APP_ID:-}
+      ADZUNA_APP_KEY: ${ADZUNA_APP_KEY:-}
+
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_FORMAT: ${LOG_FORMAT:-json}
+      REQUEST_ID_HEADER: ${REQUEST_ID_HEADER:-X-Request-ID}
+      EXPOSE_INTERNAL_ERROR_DETAILS: "false"
+
+      API_CURRENT_VERSION: ${API_CURRENT_VERSION:-v1}
+      API_V1_PREFIX: ${API_V1_PREFIX:-/api/v1}
+      API_VERSION_HEADER: ${API_VERSION_HEADER:-X-API-Version}
+      ENABLE_LEGACY_API_ROUTES: ${ENABLE_LEGACY_API_ROUTES:-true}
+      LEGACY_API_SUNSET: ${LEGACY_API_SUNSET:-Fri, 31 Dec 2027 23:59:59 GMT}
+      API_DEFAULT_PAGE_SIZE: ${API_DEFAULT_PAGE_SIZE:-20}
+      API_MAX_PAGE_SIZE: ${API_MAX_PAGE_SIZE:-100}
+
+      MONITORING_CACHE_TTL_SECONDS: ${MONITORING_CACHE_TTL_SECONDS:-5}
+      MONITORING_DISK_WARNING_PERCENT: ${MONITORING_DISK_WARNING_PERCENT:-90}
+      MONITORING_DISK_CRITICAL_PERCENT: ${MONITORING_DISK_CRITICAL_PERCENT:-98}
+      MONITORING_MEMORY_WARNING_PERCENT: ${MONITORING_MEMORY_WARNING_PERCENT:-90}
+      MONITORING_INCLUDE_PROCESS_METRICS: ${MONITORING_INCLUDE_PROCESS_METRICS:-true}
+      READINESS_REQUIRE_AUTH: ${READINESS_REQUIRE_AUTH:-true}
+      READINESS_REQUIRE_AI: ${READINESS_REQUIRE_AI:-false}
+
+      API_DOCS_ENABLED: ${API_DOCS_ENABLED:-true}
+      API_OPENAPI_PATH: ${API_OPENAPI_PATH:-/api/v1/openapi.json}
+      API_DOCS_PATH: ${API_DOCS_PATH:-/api/v1/docs}
+      API_REDOC_PATH: ${API_REDOC_PATH:-/api/v1/redoc}
+      PUBLIC_API_BASE_URL: ${PUBLIC_API_BASE_URL:?PUBLIC_API_BASE_URL must be set}
+      OPENAPI_CONTACT_NAME: ${OPENAPI_CONTACT_NAME:-My Digital Twin Engineering}
+      OPENAPI_CONTACT_EMAIL: ${OPENAPI_CONTACT_EMAIL:-}
+      OPENAPI_LICENSE_NAME: ${OPENAPI_LICENSE_NAME:-Proprietary}
+
+      CONTAINER_RUN_MIGRATIONS: ${CONTAINER_RUN_MIGRATIONS:-true}
+      CONTAINER_DB_WAIT_TIMEOUT_SECONDS: ${CONTAINER_DB_WAIT_TIMEOUT_SECONDS:-120}
+      CONTAINER_DB_WAIT_INTERVAL_SECONDS: ${CONTAINER_DB_WAIT_INTERVAL_SECONDS:-2}
+    ports:
+      - "${BACKEND_BIND_ADDRESS:-127.0.0.1}:${BACKEND_PORT:-8000}:8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=4).read()
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 45s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks:
+      - data
+      - edge
+
+  frontend:
+    image: ${FRONTEND_IMAGE:?FRONTEND_IMAGE must be set}
+    pull_policy: always
+    init: true
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_BIND_ADDRESS:-127.0.0.1}:${FRONTEND_PORT:-3000}:3000"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://127.0.0.1:3000').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks:
+      - edge
+
+volumes:
+  postgres_data:
+    name: ${POSTGRES_VOLUME_NAME:-my-digital-twin-release-postgres-data}
+
+networks:
+  edge:
+    name: ${EDGE_NETWORK_NAME:-my-digital-twin-release-edge}
+  data:
+    name: ${DATA_NETWORK_NAME:-my-digital-twin-release-data}
+    internal: true

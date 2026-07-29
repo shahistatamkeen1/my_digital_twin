@@ -1,0 +1,287 @@
+name: Release container images
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Semantic version without the v prefix"
+        required: true
+        default: "0.5.3"
+      public_api_url:
+        description: "API URL baked into the Next.js image"
+        required: true
+        default: "http://localhost:8000"
+      publish:
+        description: "Publish images to GHCR"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  packages: write
+  attestations: write
+  id-token: write
+
+concurrency:
+  group: release-${{ github.ref_name || inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate release source
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      tag: ${{ steps.release.outputs.tag }}
+      publish: ${{ steps.release.outputs.publish }}
+      public_api_url: ${{ steps.release.outputs.public_api_url }}
+      image_base: ${{ steps.release.outputs.image_base }}
+      short_sha: ${{ steps.release.outputs.short_sha }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Resolve release metadata
+        id: release
+        shell: bash
+        env:
+          DISPATCH_VERSION: ${{ inputs.version }}
+          DISPATCH_PUBLIC_API_URL: ${{ inputs.public_api_url }}
+          DISPATCH_PUBLISH: ${{ inputs.publish }}
+          REPOSITORY_PUBLIC_API_URL: ${{ vars.PUBLIC_API_BASE_URL }}
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+            TAG="${GITHUB_REF_NAME}"
+            PUBLISH=true
+            PUBLIC_API_URL="${REPOSITORY_PUBLIC_API_URL}"
+          else
+            VERSION="${DISPATCH_VERSION}"
+            TAG="v${VERSION}"
+            PUBLISH="${DISPATCH_PUBLISH}"
+            PUBLIC_API_URL="${DISPATCH_PUBLIC_API_URL}"
+          fi
+
+          if [[ -z "${PUBLIC_API_URL}" ]]; then
+            echo "PUBLIC_API_BASE_URL repository variable is required for tag releases." >&2
+            exit 1
+          fi
+
+          IMAGE_BASE=$(printf 'ghcr.io/%s' "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
+          SHORT_SHA="${GITHUB_SHA::12}"
+
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
+          echo "publish=${PUBLISH}" >> "${GITHUB_OUTPUT}"
+          echo "public_api_url=${PUBLIC_API_URL}" >> "${GITHUB_OUTPUT}"
+          echo "image_base=${IMAGE_BASE}" >> "${GITHUB_OUTPUT}"
+          echo "short_sha=${SHORT_SHA}" >> "${GITHUB_OUTPUT}"
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+
+      - name: Validate version synchronization
+        run: >-
+          python scripts/release/validate_release.py
+          --version "${{ steps.release.outputs.version }}"
+          --tag "${{ steps.release.outputs.tag }}"
+
+      - name: Install backend test dependencies
+        working-directory: backend
+        run: python -m pip install --upgrade pip && pip install -r requirements-dev.txt
+
+      - name: Run release contract tests
+        working-directory: backend
+        run: python -m pytest tests/test_phase5d_release_pipeline.py -q
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Run frontend quality gate
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_API_URL: ${{ steps.release.outputs.public_api_url }}
+          NEXT_PUBLIC_API_VERSION: v1
+          NEXT_PUBLIC_API_USE_VERSIONED_ROUTES: "true"
+        run: npm ci && npm run quality
+
+  publish:
+    name: Build, publish, and attest images
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        if: needs.validate.outputs.publish == 'true'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Backend image metadata
+        id: backend-meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ needs.validate.outputs.image_base }}-backend
+          tags: |
+            type=raw,value=${{ needs.validate.outputs.version }}
+            type=raw,value=sha-${{ needs.validate.outputs.short_sha }}
+            type=raw,value=latest,enable=${{ !contains(needs.validate.outputs.version, '-') }}
+          labels: |
+            org.opencontainers.image.title=My Digital Twin Backend
+            org.opencontainers.image.version=${{ needs.validate.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Frontend image metadata
+        id: frontend-meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ needs.validate.outputs.image_base }}-frontend
+          tags: |
+            type=raw,value=${{ needs.validate.outputs.version }}
+            type=raw,value=sha-${{ needs.validate.outputs.short_sha }}
+            type=raw,value=latest,enable=${{ !contains(needs.validate.outputs.version, '-') }}
+          labels: |
+            org.opencontainers.image.title=My Digital Twin Frontend
+            org.opencontainers.image.version=${{ needs.validate.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Build and optionally publish backend image
+        id: backend
+        uses: docker/build-push-action@v7
+        with:
+          context: backend
+          platforms: ${{ needs.validate.outputs.publish == 'true' && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
+          push: ${{ needs.validate.outputs.publish == 'true' }}
+          load: ${{ needs.validate.outputs.publish != 'true' }}
+          tags: ${{ steps.backend-meta.outputs.tags }}
+          labels: ${{ steps.backend-meta.outputs.labels }}
+          cache-from: type=gha,scope=release-backend
+          cache-to: type=gha,mode=max,scope=release-backend
+          sbom: true
+          provenance: false
+
+      - name: Build and optionally publish frontend image
+        id: frontend
+        uses: docker/build-push-action@v7
+        with:
+          context: frontend
+          platforms: ${{ needs.validate.outputs.publish == 'true' && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
+          push: ${{ needs.validate.outputs.publish == 'true' }}
+          load: ${{ needs.validate.outputs.publish != 'true' }}
+          tags: ${{ steps.frontend-meta.outputs.tags }}
+          labels: ${{ steps.frontend-meta.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ needs.validate.outputs.public_api_url }}
+            NEXT_PUBLIC_API_VERSION=v1
+            NEXT_PUBLIC_API_USE_VERSIONED_ROUTES=true
+          cache-from: type=gha,scope=release-frontend
+          cache-to: type=gha,mode=max,scope=release-frontend
+          sbom: true
+          provenance: false
+
+      - name: Attest backend image provenance
+        if: needs.validate.outputs.publish == 'true'
+        uses: actions/attest@v4
+        with:
+          subject-name: ${{ needs.validate.outputs.image_base }}-backend
+          subject-digest: ${{ steps.backend.outputs.digest }}
+          push-to-registry: true
+
+      - name: Attest frontend image provenance
+        if: needs.validate.outputs.publish == 'true'
+        uses: actions/attest@v4
+        with:
+          subject-name: ${{ needs.validate.outputs.image_base }}-frontend
+          subject-digest: ${{ steps.frontend.outputs.digest }}
+          push-to-registry: true
+
+      - name: Render release manifest and deployment bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/release/bundle
+          python scripts/release/render_release_manifest.py \
+            --version "${{ needs.validate.outputs.version }}" \
+            --repository "${GITHUB_REPOSITORY}" \
+            --commit "${GITHUB_SHA}" \
+            --backend-image "${{ needs.validate.outputs.image_base }}-backend" \
+            --backend-digest "${{ steps.backend.outputs.digest }}" \
+            --frontend-image "${{ needs.validate.outputs.image_base }}-frontend" \
+            --frontend-digest "${{ steps.frontend.outputs.digest }}" \
+            --public-api-url "${{ needs.validate.outputs.public_api_url }}" \
+            --output build/release/release-manifest.json
+
+          cp deploy/docker-compose.release.yml build/release/bundle/
+          cp deploy/.env.release.example build/release/bundle/
+          cp docs/DEPLOYMENT.md build/release/bundle/
+          cp docs/ROLLBACK.md build/release/bundle/
+          cp build/release/release-manifest.json build/release/bundle/
+          (
+            cd build/release
+            zip -r "my-digital-twin-${{ needs.validate.outputs.version }}-deployment.zip" bundle
+          )
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: release-${{ needs.validate.outputs.version }}
+          path: build/release
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Create or update GitHub Release
+        if: github.event_name == 'push' && needs.validate.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.validate.outputs.tag }}
+          VERSION: ${{ needs.validate.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ASSETS=(
+            "build/release/release-manifest.json"
+            "build/release/my-digital-twin-${VERSION}-deployment.zip"
+          )
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release upload "${TAG}" "${ASSETS[@]}" --clobber
+          else
+            gh release create "${TAG}" "${ASSETS[@]}" \
+              --verify-tag \
+              --generate-notes \
+              --title "My Digital Twin ${TAG}"
+          fi

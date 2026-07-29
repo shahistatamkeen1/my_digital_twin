@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "python": {
+    "fail_on_unaccepted_vulnerability": true,
+    "ignored_vulnerability_ids": []
+  },
+  "npm": {
+    "fail_severities": ["critical"],
+    "allowed_packages": []
+  },
+  "trivy": {
+    "report_severities": ["HIGH", "CRITICAL"],
+    "fail_severities": ["CRITICAL"],
+    "ignore_unfixed": true
+  },
+  "secrets": {
+    "redact_output": true,
+    "scan_git_history_in_ci": true
+  }
+}
