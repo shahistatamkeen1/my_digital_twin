@@ -115,7 +115,7 @@ def test_release_manifest_renderer_writes_expected_shape(tmp_path: Path) -> None
             sys.executable,
             str(path),
             "--version",
-            "0.5.4",
+            "0.6.0",
             "--repository",
             "owner/repo",
             "--commit",
@@ -136,8 +136,8 @@ def test_release_manifest_renderer_writes_expected_shape(tmp_path: Path) -> None
         check=True,
     )
     payload = json.loads(output.read_text(encoding="utf-8"))
-    assert payload["release"]["version"] == "0.5.4"
-    assert payload["release"]["alembic_head"] == "20260723_0003"
+    assert payload["release"]["version"] == "0.6.0"
+    assert payload["release"]["alembic_head"] == "20260729_0004"
     assert payload["images"]["backend"]["reference"].startswith(
         "ghcr.io/owner/repo-backend@sha256:"
     )

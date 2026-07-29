@@ -20,6 +20,14 @@ EXPECTED_INDEXES: dict[str, tuple[str, ...]] = {
     "agent_reflections": (
         "ix_agent_reflections_user_agent_created",
     ),
+    "agent_runs": (
+        "ix_agent_runs_user_status",
+        "ix_agent_runs_user_created",
+    ),
+    "agent_steps": (
+        "ix_agent_steps_user_status",
+        "ix_agent_steps_run_agent",
+    ),
     "applications": (
         "ix_applications_user_status",
         "ix_applications_user_created",
@@ -64,6 +72,19 @@ EXPECTED_CHECKS: dict[str, tuple[str, ...]] = {
     "agent_reflections": (
         "ck_agent_reflections_confidence_score_range",
     ),
+    "agent_runs": (
+        "ck_agent_runs_status_values",
+        "ck_agent_runs_execution_mode_values",
+        "ck_agent_runs_total_tokens_nonnegative",
+        "ck_agent_runs_estimated_cost_nonnegative",
+    ),
+    "agent_steps": (
+        "ck_agent_steps_status_values",
+        "ck_agent_steps_step_order_positive",
+        "ck_agent_steps_attempt_count_nonnegative",
+        "ck_agent_steps_timeout_seconds_positive",
+        "ck_agent_steps_max_retries_nonnegative",
+    ),
     "finance_transactions": (
         "ck_finance_transactions_amount_nonnegative",
     ),
@@ -101,11 +122,21 @@ UTC_TIMESTAMP_COLUMNS: dict[str, tuple[str, ...]] = {
     "agent_plans": ("created_at", "updated_at"),
     "agent_profiles": ("created_at", "updated_at"),
     "agent_reflections": ("created_at",),
+    "agent_runs": ("created_at", "updated_at"),
+    "agent_steps": ("created_at", "updated_at"),
     "applications": ("created_at",),
     "career_memory": ("created_at",),
     "career_roadmap": ("created_at",),
     "learning_progress": ("created_at",),
     "twin_progress_snapshots": ("created_at",),
+}
+
+
+SERVER_DEFAULT_OPTIONAL_COLUMNS = {
+    "agent_runs.goal",
+    "agent_steps.agent_run_id",
+    "agent_steps.agent_name",
+    "agent_steps.step_order",
 }
 
 
@@ -155,6 +186,33 @@ REQUIRED_NOT_NULL_COLUMNS: dict[str, tuple[str, ...]] = {
         "summary",
         "confidence_score",
         "created_at",
+    ),
+    "agent_runs": (
+        "goal",
+        "status",
+        "execution_mode",
+        "selected_agents",
+        "preferred_agents",
+        "include_weekly_plan",
+        "routing_reason",
+        "request_payload",
+        "total_tokens",
+        "estimated_cost",
+        "created_at",
+        "updated_at",
+    ),
+    "agent_steps": (
+        "agent_run_id",
+        "agent_name",
+        "step_order",
+        "status",
+        "input_payload",
+        "attempt_count",
+        "timeout_seconds",
+        "max_retries",
+        "requires_approval",
+        "created_at",
+        "updated_at",
     ),
     "applications": ("status", "created_at"),
     "career_memory": ("created_at",),
@@ -238,8 +296,12 @@ def inspect_schema_optimization(engine: Engine) -> SchemaOptimizationStatus:
                 continue
             if column.get("nullable", True):
                 nullable_columns.append(f"{table}.{name}")
-            if column.get("default") is None:
-                missing_defaults.append(f"{table}.{name}")
+            qualified_name = f"{table}.{name}"
+            if (
+                column.get("default") is None
+                and qualified_name not in SERVER_DEFAULT_OPTIONAL_COLUMNS
+            ):
+                missing_defaults.append(qualified_name)
 
     if engine.dialect.name == "postgresql":
         for table, timestamp_columns in UTC_TIMESTAMP_COLUMNS.items():
