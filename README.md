@@ -41,6 +41,8 @@ My Digital Twin is a multi-agent AI personal operating system that helps users m
 - Agent memory, profiles, plans, and reflections
 - Progress Center, predictive insights, and Twin Journal
 - Context-aware recommendations across all four twins
+- Typed agent registry and deterministic cross-domain routing
+- Persistent user-owned agent runs and per-agent execution steps
 
 ## Architecture
 
@@ -54,14 +56,15 @@ FastAPI canonical /api/v1
 Career | Finance | Health | Learning
             |
             v
-Shared memory, context, reasoning, planning,
-reflection, progress, brief, and notifications
+Shared registry, persistent agent runs, routing,
+context, reasoning, planning, reflection, progress,
+brief, and notifications
             |
             v
 PostgreSQL 17 + SQLAlchemy + Alembic
 ```
 
-See [Architecture](docs/ARCHITECTURE.md) for system boundaries, authentication, ownership, API versioning, AI integration, and delivery architecture.
+See [Architecture](docs/ARCHITECTURE.md) for system boundaries, authentication, ownership, API versioning, AI integration, and delivery architecture. See [Agent orchestration](docs/AGENT_ORCHESTRATION.md) for the Phase 6 workflow contract.
 
 ## Technology stack
 
@@ -194,7 +197,7 @@ A published frontend image must use a real public HTTPS backend URL. `localhost`
 
 ## Release status
 
-Current repository version: **0.5.4**
+Current repository version: **0.6.0**
 
 The project is production-ready at the repository and local production-simulation level. A real public deployment still requires owned HTTPS domains, production infrastructure, secret stores, backups, monitoring, and environment approvals.
 

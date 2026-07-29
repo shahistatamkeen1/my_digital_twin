@@ -73,6 +73,8 @@ TAG_DESCRIPTIONS: dict[str, str] = {
     "Progress": "Unified progress metrics and downloadable scorecards.",
     "Agent Memory": "Inspectable memories created by platform agents.",
     "Agent Profiles": "Agent configuration and profile information.",
+    "Agent Registry": "Typed definitions for enabled Digital Twin agents.",
+    "Agent Runs": "Persistent user-owned multi-agent workflow planning and lifecycle controls.",
     "Agent Reflections": "Agent-generated reflections and retrospective analysis.",
     "Twin Journal": "Chronological cross-twin journal entries.",
     "Agent Plans": "Autonomous plans, tasks, and execution status.",
@@ -194,6 +196,15 @@ REQUEST_EXAMPLES: dict[tuple[str, str], dict[str, Any]] = {
             "notes": "Morning walk and strength session.",
         },
     },
+    ("/agent-runs/", "post"): {
+        "summary": "Plan a multi-agent workflow",
+        "value": {
+            "goal": "Prepare for an AI Engineer role while saving for relocation",
+            "preferred_agents": [],
+            "include_weekly_plan": True,
+            "context": {"target_horizon_months": 6},
+        },
+    },
     ("/learning/", "post"): {
         "summary": "Create a learning item",
         "value": {
@@ -216,6 +227,7 @@ PAGINATED_SUFFIXES = {
     "/learning/",
     "/agent-memory/",
     "/twin-notifications/",
+    "/agent-runs/",
 }
 
 

@@ -50,6 +50,30 @@ Infrastructure endpoints are registered separately:
 - `/ready` verifies database, migrations, ownership constraints, optimized schema, and required configuration.
 - `/api/v1/system/diagnostics` provides authenticated operational detail.
 
+## Agent orchestration foundation
+
+Phase 6A adds a typed registry for the Career, Finance, Health, and Learning
+agents plus deterministic routing that does not require an AI call. A planned
+workflow is stored as one user-owned `agent_runs` row with ordered user-owned
+`agent_steps` rows. Each step records the selected agent, required context,
+timeout, retry limit, approval policy, lifecycle state, inputs, outputs, and
+errors.
+
+Canonical endpoints:
+
+```text
+GET    /api/v1/agents/
+POST   /api/v1/agent-runs/
+GET    /api/v1/agent-runs/
+GET    /api/v1/agent-runs/{run_id}
+POST   /api/v1/agent-runs/{run_id}/retry
+DELETE /api/v1/agent-runs/{run_id}
+```
+
+Phase 6A plans and persists workflows only. Agent execution, synthesis,
+streaming progress, and human approval resume points are intentionally added in
+later Phase 6 increments.
+
 ## Data and ownership
 
 SQLAlchemy models use PostgreSQL in production and Alembic for schema evolution. Persistent user-owned records include a non-null `user_id` foreign key with cascade behavior. Authentication dependencies and query scoping prevent one user from accessing another user's domain data.
@@ -57,7 +81,7 @@ SQLAlchemy models use PostgreSQL in production and Alembic for schema evolution.
 Current Alembic head:
 
 ```text
-20260723_0003
+20260729_0004
 ```
 
 ## Authentication

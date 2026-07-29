@@ -28,6 +28,8 @@ TRANSFER_ORDER: tuple[str, ...] = (
     "agent_plans",
     "agent_profiles",
     "agent_reflections",
+    "agent_runs",
+    "agent_steps",
     "applications",
     "career_memory",
     "career_roadmap",

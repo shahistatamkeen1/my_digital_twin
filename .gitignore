@@ -86,3 +86,6 @@ deploy/.deployment-state/
 build/production-readiness/
 deploy/.rollback-dry-run/
 .phase5e-backup-*/
+
+# Phase 6A agent-orchestration rollback artifacts
+.phase6a-backup-*/

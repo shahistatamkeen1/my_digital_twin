@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -72,7 +73,7 @@ def test_public_url_policy() -> None:
 
 def test_version_is_synchronized() -> None:
     version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
-    assert version == "0.5.4"
+    assert version == "0.6.0"
     assert f'"{version}"' in (ROOT / "backend/app/config.py").read_text(encoding="utf-8")
     assert f"APP_VERSION={version}" in (ROOT / ".env.docker.example").read_text(
         encoding="utf-8"
@@ -113,6 +114,8 @@ def test_final_readiness_workflow_covers_runtime_recovery_checks() -> None:
 
 
 def test_rollback_dry_run_renders_previous_images(tmp_path: Path) -> None:
+    if shutil.which("docker") is None:
+        return
     if subprocess.run(["docker", "compose", "version"], capture_output=True).returncode != 0:
         return
 
