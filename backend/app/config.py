@@ -52,7 +52,7 @@ def _get_path(name: str, default: str) -> str:
 @dataclass(frozen=True)
 class Settings:
     app_name: str = os.getenv("APP_NAME", "My Digital Twin API")
-    app_version: str = os.getenv("APP_VERSION", "0.5.3")
+    app_version: str = os.getenv("APP_VERSION", "0.5.4")
     environment: str = os.getenv("ENVIRONMENT", "development")
 
     log_level: str = os.getenv("LOG_LEVEL", "INFO").strip().upper()

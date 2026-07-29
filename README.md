@@ -1,210 +1,203 @@
 # My Digital Twin
 
-My Digital Twin is a multi-agent AI personal operating system that helps users manage career growth, job applications, finances, and personal planning through specialized digital twins.
+My Digital Twin is a multi-agent AI personal operating system that helps users manage career growth, finances, health, and learning through four specialist digital twins and a shared intelligence layer.
 
-## Features
-
-### Twin Hub
-
-* Spatial landing page
-* Twin selection hub
-* Master Twin Orchestrator
-* Career Twin
-* Finance Twin
-* Health Twin and Learning Twin placeholders
+## Platform capabilities
 
 ### Career Twin
 
-* Career dashboard
-* Career memory
-* Resume upload and analysis
-* Real job discovery
-* ATS resume optimizer
-* Resume tailoring
-* Cover letter generator
-* Interview preparation agent
-* Application tracker
-* Application Kanban pipeline
-* Career intelligence
-* Career Twin chat
-* Chrome extension autofill assistant
+- Job discovery and matching
+- Resume upload, analysis, tailoring, and ATS optimization
+- Cover-letter generation
+- Interview preparation
+- Application tracking and Kanban pipeline
+- Career memory, roadmap, profile, intelligence, and chat
+- Browser-extension application autofill
 
 ### Finance Twin
 
-* Finance dashboard
-* Finance memory
-* Income and expense tracking
-* Category analytics
-* Savings goals
-* AI finance insights
-* Finance Twin chat
+- Income and expense tracking
+- Category and expenditure analytics
+- Savings goals and investment planning
+- Financial memory, insights, dashboard, and chat
 
-### Twin Orchestrator
+### Health Twin
 
-* Combines Career Twin and Finance Twin context
-* Routes user questions to the correct twin
-* Provides cross-agent recommendations
+- Habit, hydration, sleep, and workout tracking
+- Personalized diet planning
+- Health memory, wellness insights, dashboard, and chat
 
-## Tech Stack
+### Learning Twin
 
-### Frontend
+- Learning goals, roadmap, resources, and next-task planning
+- Progress tracking and recommendations
+- Learning memory, insights, dashboard, and chat
 
-* Next.js
-* TypeScript
-* Tailwind CSS
-* React Markdown
+### Shared intelligence
+
+- Digital Twin Advisor with cross-domain context
+- Personal HQ and Personal Memory
+- Daily brief and notifications
+- Agent memory, profiles, plans, and reflections
+- Progress Center, predictive insights, and Twin Journal
+- Context-aware recommendations across all four twins
+
+## Architecture
+
+```text
+Next.js + TypeScript frontend
+            |
+            v
+FastAPI canonical /api/v1
+            |
+            v
+Career | Finance | Health | Learning
+            |
+            v
+Shared memory, context, reasoning, planning,
+reflection, progress, brief, and notifications
+            |
+            v
+PostgreSQL 17 + SQLAlchemy + Alembic
+```
+
+See [Architecture](docs/ARCHITECTURE.md) for system boundaries, authentication, ownership, API versioning, AI integration, and delivery architecture.
+
+## Technology stack
+
+- **Frontend:** Next.js, React, TypeScript, Tailwind CSS, React Markdown, Recharts
+- **Backend:** FastAPI, Python, SQLAlchemy, Pydantic
+- **Database:** PostgreSQL 17, Alembic
+- **AI and integrations:** OpenAI API, Adzuna Jobs API
+- **Delivery:** Docker, Docker Compose, GitHub Actions, GHCR
+- **Security:** Argon2, JWT, HttpOnly cookies, Gitleaks, pip-audit, npm audit, Trivy, Dependabot, SBOMs
+
+## Local development
 
 ### Backend
 
-* FastAPI
-* Python
-* SQLAlchemy
-* PostgreSQL
-* Alembic
-
-### AI
-
-* OpenAI API
-* Context-aware AI agents
-* Multi-agent orchestration
-
-### External APIs
-
-* Adzuna Jobs API
-
-## Project Architecture
-
-```text
-My Digital Twin
-├── Landing Page
-├── Twin Hub
-├── Twin Orchestrator
-├── Career Twin
-│   ├── Dashboard
-│   ├── Memory
-│   ├── Resume Center
-│   ├── Job Discovery
-│   ├── Applications
-│   ├── Pipeline
-│   ├── Interview Prep
-│   ├── Cover Letter
-│   └── Career Chat
-└── Finance Twin
-    ├── Dashboard
-    ├── Memory
-    ├── Transactions
-    ├── Category Analytics
-    ├── Savings Goals
-    ├── AI Insights
-    └── Finance Chat
-```
-
-## Screenshots
-
-Add screenshots inside:
-
-```text
-frontend/public/screenshots
-```
-
-Recommended screenshots:
-
-* Landing Page
-* Twin Hub
-* Career Dashboard
-* Job Discovery
-* ATS Optimizer
-* Career Chat
-* Finance Dashboard
-* Finance Chat
-* Twin Orchestrator
-
-## Local Setup
-
-### Backend
-
-```bash
+```powershell
 cd backend
 python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn main:app --reload
+.\venv\Scripts\Activate.ps1
+pip install -r requirements-dev.txt
+Copy-Item .env.example .env
+alembic upgrade head
+uvicorn main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 ### Frontend
 
-```bash
+```powershell
 cd frontend
-npm install
+npm ci
+Copy-Item .env.example .env.local
 npm run dev
 ```
 
-## Environment Variables
+Open `http://localhost:3000`.
 
-Create `backend/.env`:
-
-```env
-OPENAI_API_KEY=your_openai_api_key
-ADZUNA_APP_ID=your_adzuna_app_id
-ADZUNA_APP_KEY=your_adzuna_app_key
-```
-
-Create `frontend/.env.local`:
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8000
-```
-
-## Status
-
-Career Twin and Finance Twin are functional. Twin Orchestrator is implemented. Health Twin and Learning Twin are planned future modules.
-
-## Docker local production simulation
-
-Phase 5B provides container images for PostgreSQL, FastAPI, and Next.js.
+## Docker production simulation
 
 ```powershell
 Copy-Item .env.docker.example .env.docker
-# Replace the CHANGE_ME values in .env.docker.
+# Replace every CHANGE_ME value.
 docker compose --env-file .env.docker up --build -d
+docker compose --env-file .env.docker ps
 ```
 
 Open:
 
 - Frontend: `http://localhost:3000`
-- API readiness: `http://localhost:8000/ready`
-- API documentation: `http://localhost:8000/api/v1/docs`
+- Readiness: `http://localhost:8000/ready`
+- Canonical API docs: `http://localhost:8000/api/v1/docs`
 
-See `docs/DOCKER.md` for setup, verification, logs, shutdown, and reset instructions.
-
-
-
-## Security and supply-chain validation
-
-Phase 5C adds secret scanning, Python and npm dependency audits, Trivy
-filesystem/configuration/image scans, CycloneDX SBOM generation, and
-Dependabot updates.
+Stop while preserving PostgreSQL data:
 
 ```powershell
-powershell -ExecutionPolicy Bypass `
-  -File ".\scripts\security\scan-local.ps1"
+docker compose --env-file .env.docker down
 ```
 
-Generated reports are written to `build/security/`. See
-`docs/SECURITY.md` and `security/README.md`.
+See [Docker guide](docs/DOCKER.md) and [Operations runbook](docs/OPERATIONS.md).
 
-## Versioned releases and deployment
+## Testing and validation
 
-Phase 5D adds GHCR image publishing, provenance attestations, release manifests,
-GitHub Environments, provider-neutral deployment, pre-migration PostgreSQL
-backups, smoke tests, and image rollback support.
+Backend:
 
 ```powershell
-python .\scripts\release\validate_release.py
+cd backend
+.\venv\Scripts\Activate.ps1
+python -m ruff check main.py app tests
+pytest -q
 ```
+
+Frontend:
+
+```powershell
+cd frontend
+npm run quality
+```
+
+Final readiness:
+
+```powershell
+python scripts\production\validate_repository.py
+python scripts\production\render_environment_inventory.py --check
+python scripts\production\end_to_end_verify.py --expected-version (Get-Content VERSION).Trim()
+python scripts\production\backup_restore_test.py
+```
+
+## API and operations
+
+- Canonical API: `/api/v1/...`
+- Temporary deprecated compatibility routes: `/api/...`
+- Liveness: `/live`
+- Health: `/health`
+- Readiness: `/ready`
+- Canonical OpenAPI: `/api/v1/openapi.json`
+- Canonical Swagger: `/api/v1/docs`
+- Authenticated diagnostics: `/api/v1/system/diagnostics`
+
+## CI/CD and security
+
+The repository includes workflows for:
+
+- Backend tests, coverage, API contracts, PostgreSQL migrations, frontend build, extension validation, and Docker Compose smoke testing
+- Secret, dependency, repository, configuration, container-image, and SBOM security validation
+- Versioned GHCR images, provenance attestations, release manifests, and deployment bundles
+- GitHub Environment-controlled staging and production deployment
+- End-to-end, backup/restore, rollback-plan, and final production-readiness validation
 
 See:
 
-- `docs/RELEASE.md`
-- `docs/DEPLOYMENT.md`
-- `docs/ROLLBACK.md`
+- [Testing](backend/docs/PHASE5_TESTING.md)
+- [Security](docs/SECURITY.md)
+- [Release](docs/RELEASE.md)
+- [Deployment](docs/DEPLOYMENT.md)
+- [Rollback](docs/ROLLBACK.md)
+- [Production readiness](docs/PRODUCTION_READINESS.md)
+
+## Environment configuration
+
+Copy committed templates and keep real values private:
+
+```text
+backend/.env.example        -> backend/.env
+frontend/.env.example       -> frontend/.env.local
+.env.docker.example         -> .env.docker
+deploy/.env.release.example -> deploy/.env.release
+```
+
+See the generated [environment variable inventory](docs/ENVIRONMENT_VARIABLES.md).
+
+A published frontend image must use a real public HTTPS backend URL. `localhost` and example hostnames are valid only for local testing or dry runs.
+
+## Release status
+
+Current repository version: **0.5.4**
+
+The project is production-ready at the repository and local production-simulation level. A real public deployment still requires owned HTTPS domains, production infrastructure, secret stores, backups, monitoring, and environment approvals.
+
+## Portfolio summary
+
+See [Portfolio and Recruiter Summary](docs/PORTFOLIO_SUMMARY.md) for concise technical highlights and interview discussion points.

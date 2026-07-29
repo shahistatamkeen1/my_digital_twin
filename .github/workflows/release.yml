@@ -9,7 +9,7 @@ on:
       version:
         description: "Semantic version without the v prefix"
         required: true
-        default: "0.5.3"
+        default: "0.5.4"
       public_api_url:
         description: "API URL baked into the Next.js image"
         required: true
@@ -102,13 +102,26 @@ jobs:
           --version "${{ steps.release.outputs.version }}"
           --tag "${{ steps.release.outputs.tag }}"
 
+      - name: Validate public API URL
+        shell: bash
+        env:
+          RELEASE_PUBLIC_API_URL: ${{ steps.release.outputs.public_api_url }}
+          RELEASE_PUBLISH: ${{ steps.release.outputs.publish }}
+        run: |
+          set -euo pipefail
+          args=(--url "${RELEASE_PUBLIC_API_URL}")
+          if [[ "${RELEASE_PUBLISH}" == "true" ]]; then
+            args+=(--production)
+          fi
+          python scripts/production/validate_public_url.py "${args[@]}"
+
       - name: Install backend test dependencies
         working-directory: backend
         run: python -m pip install --upgrade pip && pip install -r requirements-dev.txt
 
       - name: Run release contract tests
         working-directory: backend
-        run: python -m pytest tests/test_phase5d_release_pipeline.py -q
+        run: python -m pytest tests/test_phase5d_release_pipeline.py tests/test_phase5e_production_readiness.py -q
 
       - name: Set up Node.js
         uses: actions/setup-node@v6

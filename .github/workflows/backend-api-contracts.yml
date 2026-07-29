@@ -232,7 +232,7 @@ jobs:
         shell: bash
         run: |
           cat > .env.docker.ci <<'EOF'
-          APP_VERSION=0.5.3
+          APP_VERSION=0.5.4
           POSTGRES_DB=my_digital_twin_ci
           POSTGRES_USER=mdt_app
           POSTGRES_PASSWORD=phase5b_ci_url_safe_password

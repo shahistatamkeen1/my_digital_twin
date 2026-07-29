@@ -81,3 +81,8 @@ deploy/.env.release.*
 !deploy/.env.release.example
 deploy/.deployment-state/
 .phase5d-backup-*/
+
+# Phase 5E final readiness artifacts
+build/production-readiness/
+deploy/.rollback-dry-run/
+.phase5e-backup-*/

@@ -1,0 +1,191 @@
+name: Final production readiness
+
+on:
+  pull_request:
+    paths:
+      - "README.md"
+      - "VERSION"
+      - "backend/**"
+      - "frontend/**"
+      - "deploy/**"
+      - "docs/**"
+      - "scripts/production/**"
+      - "docker-compose.yml"
+      - ".env.docker.example"
+      - ".github/workflows/final-production-readiness.yml"
+      - ".github/workflows/release.yml"
+  push:
+    branches:
+      - master
+      - phase-5-cicd-testing
+    paths:
+      - "README.md"
+      - "VERSION"
+      - "backend/**"
+      - "frontend/**"
+      - "deploy/**"
+      - "docs/**"
+      - "scripts/production/**"
+      - "docker-compose.yml"
+      - ".env.docker.example"
+      - ".github/workflows/final-production-readiness.yml"
+      - ".github/workflows/release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: final-readiness-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository-readiness:
+    name: Repository and documentation readiness
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+
+      - name: Install backend test dependencies
+        working-directory: backend
+        run: python -m pip install --upgrade pip && pip install -r requirements-dev.txt
+
+      - name: Compile final-readiness scripts
+        run: python -m compileall -q scripts/production
+
+      - name: Validate repository policy
+        run: python scripts/production/validate_repository.py
+
+      - name: Verify environment inventory
+        run: python scripts/production/render_environment_inventory.py --check
+
+      - name: Validate dry-run and production URL policies
+        run: |
+          python scripts/production/validate_public_url.py --url http://localhost:8000
+          python scripts/production/validate_public_url.py --url https://api.production.test --production
+
+      - name: Run Phase 5E contract tests
+        working-directory: backend
+        run: python -m pytest tests/test_phase5e_production_readiness.py -q
+
+  runtime-recovery:
+    name: Runtime, backup, restore, and rollback readiness
+    needs: repository-readiness
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      COMPOSE_PROJECT_NAME: mdt-phase5e-ci
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Create disposable Docker environment
+        shell: bash
+        run: |
+          cat > .env.docker.ci <<'EOF'
+          APP_VERSION=0.5.4
+          POSTGRES_DB=my_digital_twin_ci
+          POSTGRES_USER=mdt_app
+          POSTGRES_PASSWORD=phase5e_ci_url_safe_password
+          BACKEND_DATABASE_URL=postgresql+psycopg2://mdt_app:phase5e_ci_url_safe_password@database:5432/my_digital_twin_ci
+          JWT_SECRET_KEY=phase5e-ci-secret-0123456789abcdef-0123456789abcdef
+          BACKEND_PORT=8000
+          FRONTEND_PORT=3000
+          NEXT_PUBLIC_API_URL=http://localhost:8000
+          NEXT_PUBLIC_API_VERSION=v1
+          NEXT_PUBLIC_API_USE_VERSIONED_ROUTES=true
+          CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+          PUBLIC_API_BASE_URL=http://localhost:8000
+          AUTH_COOKIE_SECURE=false
+          AUTH_COOKIE_SAMESITE=lax
+          OPENAI_API_KEY=
+          ADZUNA_APP_ID=
+          ADZUNA_APP_KEY=
+          LOG_LEVEL=WARNING
+          LOG_FORMAT=text
+          ENABLE_LEGACY_API_ROUTES=true
+          API_DOCS_ENABLED=true
+          READINESS_REQUIRE_AUTH=true
+          READINESS_REQUIRE_AI=false
+          CONTAINER_RUN_MIGRATIONS=true
+          CONTAINER_DB_WAIT_TIMEOUT_SECONDS=120
+          CONTAINER_DB_WAIT_INTERVAL_SECONDS=2
+          EOF
+
+      - name: Build and start production-like stack
+        run: docker compose --env-file .env.docker.ci up --build -d
+
+      - name: Verify end-to-end runtime
+        run: >-
+          python scripts/production/end_to_end_verify.py
+          --backend-url http://localhost:8000
+          --frontend-url http://localhost:3000
+          --expected-version 0.5.4
+          --timeout-seconds 420
+
+      - name: Verify PostgreSQL backup and restore
+        run: >-
+          python scripts/production/backup_restore_test.py
+          --env-file .env.docker.ci
+          --compose-file docker-compose.yml
+
+      - name: Create rollback dry-run inputs
+        shell: bash
+        run: |
+          mkdir -p build/production-readiness
+          cp deploy/.env.release.example build/production-readiness/.env.release
+          sed -i 's#OWNER/REPOSITORY#owner/repository#g' build/production-readiness/.env.release
+          sed -i 's#CHANGE_ME_LONG_URL_SAFE_PASSWORD#phase5e_ci_url_safe_password#g' build/production-readiness/.env.release
+          sed -i 's#CHANGE_ME_GENERATE_AT_LEAST_32_CHARACTERS#phase5e-ci-secret-0123456789abcdef-0123456789abcdef#g' build/production-readiness/.env.release
+          cat > build/production-readiness/previous.json <<'EOF'
+          {
+            "backend_image": "ghcr.io/owner/repository-backend:0.5.3",
+            "frontend_image": "ghcr.io/owner/repository-frontend:0.5.3"
+          }
+          EOF
+
+      - name: Verify rollback plan
+        run: >-
+          python scripts/production/rollback_dry_run.py
+          --env-file build/production-readiness/.env.release
+          --state-file build/production-readiness/previous.json
+          --expected-version 0.5.3
+          --output build/production-readiness/rollback-plan.json
+
+      - name: Capture service state
+        if: always()
+        run: |
+          mkdir -p build/production-readiness
+          docker compose --env-file .env.docker.ci ps > build/production-readiness/compose-ps.txt || true
+          docker compose --env-file .env.docker.ci logs --no-color --tail 200 > build/production-readiness/compose-logs.txt || true
+
+      - name: Upload final-readiness artifacts
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: final-production-readiness
+          path: build/production-readiness
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Stop disposable stack
+        if: always()
+        run: docker compose --env-file .env.docker.ci down --volumes --remove-orphans
