@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM node:22-alpine AS dependencies
+FROM node:26-alpine AS dependencies
 
 WORKDIR /app
 
@@ -8,7 +8,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 
-FROM node:22-alpine AS builder
+FROM node:26-alpine AS builder
 
 WORKDIR /app
 
@@ -27,7 +27,7 @@ COPY . .
 RUN npm run build
 
 
-FROM node:22-alpine AS runtime
+FROM node:26-alpine AS runtime
 
 ARG APP_UID=10001
 ARG APP_GID=10001
