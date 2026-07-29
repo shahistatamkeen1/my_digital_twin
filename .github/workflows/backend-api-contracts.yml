@@ -86,7 +86,7 @@ jobs:
         run: python -m app.migrations.phase4e_export_contracts --output-dir build/api-contracts
 
       - name: Upload backend artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: backend-quality-artifacts
           path: |

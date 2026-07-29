@@ -95,7 +95,7 @@ jobs:
 
       - name: Upload secret-scan report
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: gitleaks-report
           path: build/security/gitleaks.json
@@ -164,7 +164,7 @@ jobs:
 
       - name: Upload dependency reports
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: dependency-audit-reports
           path: |
@@ -245,7 +245,7 @@ jobs:
 
       - name: Upload repository security artifacts
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: repository-security-reports
           path: build/security
@@ -348,7 +348,7 @@ jobs:
 
       - name: Upload image security artifacts
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: image-security-reports
           path: build/security
