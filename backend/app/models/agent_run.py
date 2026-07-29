@@ -29,18 +29,26 @@ class AgentRun(UserOwnedMixin, Base):
     __tablename__ = "agent_runs"
     __table_args__ = (
         CheckConstraint(
-            "status IN ('planned', 'running', 'completed', 'failed', 'cancelled')",
+            "status IN ('planned', 'running', 'synthesizing', 'completed', "
+            "'partially_completed', 'failed', 'cancelled')",
             name="status_values",
         ),
         CheckConstraint(
             "execution_mode IN ('single_agent', 'parallel_then_synthesize', 'sequential')",
             name="execution_mode_values",
         ),
+        CheckConstraint("prompt_tokens >= 0", name="prompt_tokens_nonnegative"),
+        CheckConstraint(
+            "completion_tokens >= 0",
+            name="completion_tokens_nonnegative",
+        ),
         CheckConstraint("total_tokens >= 0", name="total_tokens_nonnegative"),
         CheckConstraint(
             "estimated_cost >= 0",
             name="estimated_cost_nonnegative",
         ),
+        CheckConstraint("duration_ms >= 0", name="duration_ms_nonnegative"),
+        CheckConstraint("fallback_count >= 0", name="fallback_count_nonnegative"),
         Index("ix_agent_runs_user_status", "user_id", "status"),
         Index("ix_agent_runs_user_created", "user_id", "created_at"),
     )
@@ -66,6 +74,7 @@ class AgentRun(UserOwnedMixin, Base):
         default="parallel_then_synthesize",
         server_default="parallel_then_synthesize",
     )
+    execution_provider = Column(String(32), nullable=True)
     selected_agents = Column(
         JSON,
         nullable=False,
@@ -98,6 +107,18 @@ class AgentRun(UserOwnedMixin, Base):
     )
     result_payload = Column(JSON, nullable=True)
     error_message = Column(Text, nullable=True)
+    prompt_tokens = Column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
+    completion_tokens = Column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
     total_tokens = Column(
         Integer,
         nullable=False,
@@ -108,6 +129,18 @@ class AgentRun(UserOwnedMixin, Base):
         Float,
         nullable=False,
         default=0.0,
+        server_default="0",
+    )
+    duration_ms = Column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
+    fallback_count = Column(
+        Integer,
+        nullable=False,
+        default=0,
         server_default="0",
     )
 
@@ -148,6 +181,17 @@ class AgentStep(UserOwnedMixin, Base):
         CheckConstraint("attempt_count >= 0", name="attempt_count_nonnegative"),
         CheckConstraint("timeout_seconds > 0", name="timeout_seconds_positive"),
         CheckConstraint("max_retries >= 0", name="max_retries_nonnegative"),
+        CheckConstraint("prompt_tokens >= 0", name="prompt_tokens_nonnegative"),
+        CheckConstraint(
+            "completion_tokens >= 0",
+            name="completion_tokens_nonnegative",
+        ),
+        CheckConstraint("total_tokens >= 0", name="total_tokens_nonnegative"),
+        CheckConstraint(
+            "estimated_cost >= 0",
+            name="estimated_cost_nonnegative",
+        ),
+        CheckConstraint("duration_ms >= 0", name="duration_ms_nonnegative"),
         UniqueConstraint(
             "agent_run_id",
             "step_order",
@@ -211,6 +255,44 @@ class AgentStep(UserOwnedMixin, Base):
         nullable=False,
         default=False,
         server_default=false(),
+    )
+    provider = Column(String(32), nullable=True)
+    model = Column(String(128), nullable=True)
+    fallback_used = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=false(),
+    )
+    prompt_tokens = Column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
+    completion_tokens = Column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
+    total_tokens = Column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
+    estimated_cost = Column(
+        Float,
+        nullable=False,
+        default=0.0,
+        server_default="0",
+    )
+    duration_ms = Column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
     )
     started_at = Column(DateTime(timezone=True), nullable=True)
     completed_at = Column(DateTime(timezone=True), nullable=True)

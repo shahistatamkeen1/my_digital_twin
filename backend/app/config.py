@@ -20,6 +20,16 @@ def _get_bool(name: str, default: bool) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _get_float(name: str, default: float) -> float:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    try:
+        return float(value)
+    except ValueError:
+        return default
+
+
 def _get_int(name: str, default: int) -> int:
     value = os.getenv(name)
     if value is None:
@@ -52,7 +62,7 @@ def _get_path(name: str, default: str) -> str:
 @dataclass(frozen=True)
 class Settings:
     app_name: str = os.getenv("APP_NAME", "My Digital Twin API")
-    app_version: str = os.getenv("APP_VERSION", "0.6.0")
+    app_version: str = os.getenv("APP_VERSION", "0.6.1")
     environment: str = os.getenv("ENVIRONMENT", "development")
 
     log_level: str = os.getenv("LOG_LEVEL", "INFO").strip().upper()
@@ -185,6 +195,29 @@ class Settings:
     openai_api_key: str | None = _get_optional("OPENAI_API_KEY")
     openai_model: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     openai_timeout_seconds: int = _get_int("OPENAI_TIMEOUT_SECONDS", 60)
+
+    # Phase 6B local execution engine. Deterministic execution is intended for
+    # tests and local verification and is rejected in production by default.
+    agent_max_parallel_workers: int = min(
+        8,
+        max(1, _get_int("AGENT_MAX_PARALLEL_WORKERS", 4)),
+    )
+    agent_retry_backoff_seconds: float = max(
+        0.0,
+        _get_float("AGENT_RETRY_BACKOFF_SECONDS", 0.25),
+    )
+    agent_allow_deterministic_provider: bool = _get_bool(
+        "AGENT_ALLOW_DETERMINISTIC_PROVIDER",
+        os.getenv("ENVIRONMENT", "development").strip().lower() != "production",
+    )
+    agent_input_cost_per_million: float = max(
+        0.0,
+        _get_float("AGENT_INPUT_COST_PER_MILLION", 0.0),
+    )
+    agent_output_cost_per_million: float = max(
+        0.0,
+        _get_float("AGENT_OUTPUT_COST_PER_MILLION", 0.0),
+    )
 
     jwt_secret_key: str | None = _get_optional("JWT_SECRET_KEY")
     jwt_algorithm: str = os.getenv("JWT_ALGORITHM", "HS256")

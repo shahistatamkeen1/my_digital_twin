@@ -2,9 +2,10 @@
 
 ## Phase 6A scope
 
-Phase 6A establishes the persistent, typed foundation for coordinated Digital
-Twin workflows. It does not execute OpenAI calls or replace the existing
-Digital Twin Advisor.
+Phase 6A established the persistent, typed foundation for coordinated Digital
+Twin workflows. Phase 6B adds synchronous execution, domain-isolated context
+loading, bounded parallelism, retries, cancellation checkpoints, partial
+completion, telemetry, and unified synthesis.
 
 ## Registered agents
 
@@ -51,13 +52,14 @@ timestamps.
 ## Lifecycle
 
 ```text
-planned -> running -> completed
-                  \-> failed -> retry creates a new planned run
-planned/running -> cancelled -> retry creates a new planned run
+planned -> running -> synthesizing -> completed
+                              \-> partially_completed
+                  \-> failed
+planned/running/synthesizing -> cancelled
 ```
 
-Phase 6A creates `planned` runs and steps. Execution transitions are introduced
-in Phase 6B.
+Retries create a new planned run and preserve lineage through
+`retry_of_run_id`.
 
 ## API examples
 
@@ -93,12 +95,14 @@ enabled.
 - Runs and steps are automatically scoped to the authenticated user.
 - Another user receives `404` for a run they do not own.
 - Secrets must never be placed in the free-form request `context` object.
-- Running workflows cannot be deleted.
-- Retry is limited to failed or cancelled workflows.
+- Running or synthesizing workflows cannot be deleted.
+- Retry is limited to failed, cancelled, or partially completed workflows.
 
 ## Next increments
 
-- Phase 6B: execution engine and context adapters.
-- Phase 6C: parallel execution and final synthesis.
-- Phase 6D: streaming progress, cancellation, and retries.
-- Phase 7: durable human approval and external actions.
+- Phase 6B: execution engine, parallel execution, synthesis, and cancellation.
+- Phase 6C: frontend execution timeline and saved unified plans.
+- Phase 7: durable background workflows, human approval, and external actions.
+
+
+See [Agent Execution Engine](AGENT_EXECUTION.md) for the Phase 6B contract.

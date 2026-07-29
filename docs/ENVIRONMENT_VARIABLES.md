@@ -8,6 +8,11 @@ This inventory is generated from the committed environment templates. Never comm
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Backend/local development | No | Runtime configuration documented in the committed environment templates. | `backend/.env.example` |
 | `ADZUNA_APP_ID` | Deployment | No | Optional Adzuna application identifier for job discovery. | `.env.docker.example`<br>`backend/.env.example`<br>`deploy/.env.release.example` |
 | `ADZUNA_APP_KEY` | Deployment | Yes | Optional Adzuna credential for job discovery. | `.env.docker.example`<br>`backend/.env.example`<br>`deploy/.env.release.example` |
+| `AGENT_ALLOW_DETERMINISTIC_PROVIDER` | Deployment | No | Runtime configuration documented in the committed environment templates. | `.env.docker.example`<br>`backend/.env.example`<br>`deploy/.env.release.example` |
+| `AGENT_INPUT_COST_PER_MILLION` | Deployment | No | Runtime configuration documented in the committed environment templates. | `.env.docker.example`<br>`backend/.env.example`<br>`deploy/.env.release.example` |
+| `AGENT_MAX_PARALLEL_WORKERS` | Deployment | No | Runtime configuration documented in the committed environment templates. | `.env.docker.example`<br>`backend/.env.example`<br>`deploy/.env.release.example` |
+| `AGENT_OUTPUT_COST_PER_MILLION` | Deployment | No | Runtime configuration documented in the committed environment templates. | `.env.docker.example`<br>`backend/.env.example`<br>`deploy/.env.release.example` |
+| `AGENT_RETRY_BACKOFF_SECONDS` | Deployment | No | Runtime configuration documented in the committed environment templates. | `.env.docker.example`<br>`backend/.env.example`<br>`deploy/.env.release.example` |
 | `API_CURRENT_VERSION` | Backend/local development | No | Runtime configuration documented in the committed environment templates. | `backend/.env.example` |
 | `API_DEFAULT_PAGE_SIZE` | Backend/local development | No | Runtime configuration documented in the committed environment templates. | `backend/.env.example` |
 | `API_DOCS_ENABLED` | Deployment | No | Enable Swagger, ReDoc, and OpenAPI endpoints. | `.env.docker.example`<br>`backend/.env.example`<br>`deploy/.env.release.example` |

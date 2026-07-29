@@ -67,12 +67,15 @@ POST   /api/v1/agent-runs/
 GET    /api/v1/agent-runs/
 GET    /api/v1/agent-runs/{run_id}
 POST   /api/v1/agent-runs/{run_id}/retry
+POST   /api/v1/agent-runs/{run_id}/execute
+POST   /api/v1/agent-runs/{run_id}/cancel
 DELETE /api/v1/agent-runs/{run_id}
 ```
 
-Phase 6A plans and persists workflows only. Agent execution, synthesis,
-streaming progress, and human approval resume points are intentionally added in
-later Phase 6 increments.
+Phase 6A plans and persists workflows. Phase 6B executes selected agents,
+loads user-scoped domain context, records retries/latency/token telemetry, and
+synthesizes one unified plan. Streaming progress and durable human approval
+resume points remain later increments.
 
 ## Data and ownership
 
@@ -81,7 +84,7 @@ SQLAlchemy models use PostgreSQL in production and Alembic for schema evolution.
 Current Alembic head:
 
 ```text
-20260729_0004
+20260729_0005
 ```
 
 ## Authentication

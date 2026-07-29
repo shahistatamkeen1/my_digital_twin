@@ -1,7 +1,7 @@
-from app.services.ai_service import ask_ai_json
+from app.services.ai_service import AIUsage, ask_ai_json_with_metadata
 
 
-def run_learning_agent(question: str, learning_context: dict):
+def run_learning_agent_with_metadata(question: str, learning_context: dict):
     system_prompt = """
 You are the Learning Agent inside My Digital Twin.
 
@@ -45,9 +45,10 @@ Learning Context:
 Analyze only from the Learning Twin perspective.
 """
 
-    result = ask_ai_json(system_prompt, user_prompt, temperature=0.2)
+    response = ask_ai_json_with_metadata(system_prompt, user_prompt, temperature=0.2)
+    result = response.payload
 
-    return {
+    payload = {
         "summary": result.get("summary", ""),
         "key_data_points": result.get("key_data_points", []),
         "recommendations": result.get("recommendations", []),
@@ -55,3 +56,10 @@ Analyze only from the Learning Twin perspective.
         "score": result.get("score", 0),
         "confidence": result.get("confidence", 0),
     }
+
+    return payload, response.usage
+
+
+def run_learning_agent(question: str, learning_context: dict):
+    payload, _usage = run_learning_agent_with_metadata(question, learning_context)
+    return payload

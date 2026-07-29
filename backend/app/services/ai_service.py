@@ -1,5 +1,6 @@
 import json
-from typing import Optional
+from dataclasses import dataclass
+from typing import Any, Optional
 
 from openai import OpenAI
 
@@ -7,6 +8,36 @@ from app.config import settings
 
 
 _client: Optional[OpenAI] = None
+
+
+@dataclass(frozen=True)
+class AIUsage:
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
+    model: str | None = None
+
+
+@dataclass(frozen=True)
+class AIJSONResult:
+    payload: dict[str, Any]
+    usage: AIUsage
+
+
+def _usage_from_response(response) -> AIUsage:
+    usage = getattr(response, "usage", None)
+    prompt_tokens = int(getattr(usage, "prompt_tokens", 0) or 0)
+    completion_tokens = int(getattr(usage, "completion_tokens", 0) or 0)
+    total_tokens = int(
+        getattr(usage, "total_tokens", prompt_tokens + completion_tokens)
+        or prompt_tokens + completion_tokens
+    )
+    return AIUsage(
+        prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens,
+        total_tokens=total_tokens,
+        model=getattr(response, "model", None),
+    )
 
 
 def get_ai_client() -> OpenAI:
@@ -53,38 +84,54 @@ def ask_ai(system_prompt: str, user_prompt: str, temperature: float = 0.3):
 # -----------------------------
 # Generic JSON Response
 # -----------------------------
-def ask_ai_json(
+def ask_ai_json_with_metadata(
     system_prompt: str,
     user_prompt: str,
-    temperature: float = 0.2
-):
-
+    temperature: float = 0.2,
+) -> AIJSONResult:
     response = get_ai_client().chat.completions.create(
         model=settings.openai_model,
         messages=[
             {
                 "role": "system",
-                "content": system_prompt +
-                "\nReturn ONLY valid JSON. No markdown."
+                "content": system_prompt
+                + "\nReturn ONLY valid JSON. No markdown.",
             },
             {
                 "role": "user",
-                "content": user_prompt
+                "content": user_prompt,
             },
         ],
         temperature=temperature,
-        response_format={"type": "json_object"}
+        response_format={"type": "json_object"},
     )
 
-    content = response.choices[0].message.content
+    content = response.choices[0].message.content or "{}"
 
     try:
-        return json.loads(content)
+        payload = json.loads(content)
     except Exception:
-        return {
+        payload = {
             "error": "AI returned invalid JSON",
-            "raw_response": content
+            "raw_response": content,
         }
+
+    return AIJSONResult(
+        payload=payload,
+        usage=_usage_from_response(response),
+    )
+
+
+def ask_ai_json(
+    system_prompt: str,
+    user_prompt: str,
+    temperature: float = 0.2,
+):
+    return ask_ai_json_with_metadata(
+        system_prompt,
+        user_prompt,
+        temperature,
+    ).payload
 
 
 # -----------------------------

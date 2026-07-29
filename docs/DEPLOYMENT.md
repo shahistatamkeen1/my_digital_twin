@@ -95,7 +95,7 @@ Choose:
 ```text
 environment: staging
 operation: deploy
-version: 0.6.0
+version: 0.6.1
 ```
 
 After staging validation, repeat with `production`.
@@ -133,7 +133,7 @@ sh scripts/deploy/deploy.sh \
   --env-file deploy/.env.release \
   --backend-url https://api.example.com \
   --frontend-url https://example.com \
-  --expected-version 0.6.0
+  --expected-version 0.6.1
 ```
 
 The private environment file is ignored by Git.
@@ -151,7 +151,7 @@ docker compose \
 python3 scripts/release/smoke_test.py \
   --backend-url https://api.example.com \
   --frontend-url https://example.com \
-  --expected-version 0.6.0
+  --expected-version 0.6.1
 ```
 
 ## PostgreSQL backups

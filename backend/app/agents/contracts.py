@@ -18,7 +18,9 @@ class AgentName(str, Enum):
 class AgentRunStatus(str, Enum):
     planned = "planned"
     running = "running"
+    synthesizing = "synthesizing"
     completed = "completed"
+    partially_completed = "partially_completed"
     failed = "failed"
     cancelled = "cancelled"
 
@@ -36,6 +38,11 @@ class ExecutionMode(str, Enum):
     single_agent = "single_agent"
     parallel_then_synthesize = "parallel_then_synthesize"
     sequential = "sequential"
+
+
+class AgentExecutionProvider(str, Enum):
+    configured = "configured"
+    deterministic = "deterministic"
 
 
 class AgentDefinition(BaseModel):
@@ -100,6 +107,42 @@ class AgentRunCreate(BaseModel):
         return value
 
 
+class AgentRunExecuteRequest(BaseModel):
+    provider: AgentExecutionProvider = AgentExecutionProvider.configured
+    allow_partial: bool = True
+    allow_fallback: bool = False
+    force_sequential: bool = False
+
+
+class AgentUsage(BaseModel):
+    prompt_tokens: int = Field(default=0, ge=0)
+    completion_tokens: int = Field(default=0, ge=0)
+    total_tokens: int = Field(default=0, ge=0)
+    estimated_cost: float = Field(default=0.0, ge=0)
+    model: str | None = None
+
+
+class AgentContribution(BaseModel):
+    summary: str = ""
+    key_data_points: list[str] = Field(default_factory=list)
+    recommendations: list[str] = Field(default_factory=list)
+    risks: list[str] = Field(default_factory=list)
+    score: int = Field(default=0, ge=0, le=100)
+    confidence: int = Field(default=0, ge=0, le=100)
+
+
+class UnifiedAgentPlan(BaseModel):
+    summary: str = ""
+    priorities: list[str] = Field(default_factory=list)
+    weekly_plan: list[dict[str, Any]] = Field(default_factory=list)
+    risks: list[str] = Field(default_factory=list)
+    success_metrics: list[str] = Field(default_factory=list)
+    next_checkpoint: str = ""
+    agent_contributions: dict[AgentName, AgentContribution] = Field(
+        default_factory=dict
+    )
+
+
 class AgentStepRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -115,6 +158,14 @@ class AgentStepRead(BaseModel):
     timeout_seconds: int
     max_retries: int
     requires_approval: bool
+    provider: str | None
+    model: str | None
+    fallback_used: bool
+    prompt_tokens: int
+    completion_tokens: int
+    total_tokens: int
+    estimated_cost: float
+    duration_ms: int
     started_at: datetime | None
     completed_at: datetime | None
     created_at: datetime
@@ -129,6 +180,7 @@ class AgentRunSummary(BaseModel):
     goal: str
     status: AgentRunStatus
     execution_mode: ExecutionMode
+    execution_provider: str | None
     selected_agents: list[AgentName]
     preferred_agents: list[AgentName]
     include_weekly_plan: bool
@@ -136,8 +188,12 @@ class AgentRunSummary(BaseModel):
     request_payload: dict[str, Any]
     result_payload: dict[str, Any] | None
     error_message: str | None
+    prompt_tokens: int
+    completion_tokens: int
     total_tokens: int
     estimated_cost: float
+    duration_ms: int
+    fallback_count: int
     started_at: datetime | None
     completed_at: datetime | None
     created_at: datetime
@@ -151,3 +207,8 @@ class AgentRunDetail(AgentRunSummary):
 class AgentRunDeleteResponse(BaseModel):
     message: str
     deleted_run_id: int
+
+
+class AgentRunCancelResponse(BaseModel):
+    message: str
+    run: AgentRunDetail
