@@ -89,3 +89,5 @@ deploy/.rollback-dry-run/
 
 # Phase 6A agent-orchestration rollback artifacts
 .phase6a-backup-*/
+.phase*-backup-*/
+*.phase*-backup
