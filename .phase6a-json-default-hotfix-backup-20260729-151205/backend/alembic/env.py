@@ -7,7 +7,6 @@ from sqlalchemy import engine_from_config, pool
 
 from app.config import settings
 from app.database import Base
-from app.migrations.alembic_compare import compare_server_default
 
 # Import every model so target_metadata contains the complete application schema.
 from app.models import (  # noqa: F401
@@ -46,7 +45,7 @@ def _context_options(connection=None) -> dict:
     return {
         "target_metadata": target_metadata,
         "compare_type": True,
-        "compare_server_default": compare_server_default,
+        "compare_server_default": True,
         "render_as_batch": dialect_name == "sqlite",
     }
 

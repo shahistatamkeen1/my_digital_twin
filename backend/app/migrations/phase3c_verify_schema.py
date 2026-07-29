@@ -16,6 +16,7 @@ from app.models.agent_memory import AgentMemory
 from app.models.agent_plan import AgentPlan
 from app.models.agent_profile import AgentProfile
 from app.models.agent_reflection import AgentReflection
+from app.models.agent_run import AgentRun, AgentStep
 from app.models.application import Application
 from app.models.finance import FinanceMemory, FinanceTransaction, SavingsGoal
 from app.models.health import HealthHabit, HealthMemory
@@ -37,7 +38,7 @@ from app.services.schema_optimization_service import (
 )
 
 
-EXPECTED_HEAD = ("20260723_0003",)
+EXPECTED_HEAD = ("20260729_0004",)
 
 
 RELATIONSHIPS: tuple[tuple[type, str, str], ...] = (
@@ -56,6 +57,8 @@ RELATIONSHIPS: tuple[tuple[type, str, str], ...] = (
     (AgentPlan, "user", "agent_plans"),
     (AgentProfile, "user", "agent_profiles"),
     (AgentReflection, "user", "agent_reflections"),
+    (AgentRun, "user", "agent_runs"),
+    (AgentStep, "user", "agent_steps"),
     (TwinProgressSnapshot, "user", "twin_progress_snapshots"),
 )
 
@@ -252,7 +255,7 @@ def main() -> int:
     print("Phase 3C schema verification passed.")
     print(f"Database: {mask_database_url(settings.database_url)}")
     print(f"Migration head: {EXPECTED_HEAD[0]}")
-    print("Relationships: 16 user-owned model mappings verified")
+    print("Relationships: 18 user-owned model mappings verified")
     print("Indexes, checks, defaults, UTC timestamps, and cascade verified")
     return 0
 
