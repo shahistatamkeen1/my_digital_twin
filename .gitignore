@@ -63,3 +63,13 @@ backend/.phase5a-backup-*/
 !.env.docker.example
 .phase5b-backup-*/
 .phase5b-compose-config.yml
+
+
+# TypeScript incremental compiler artifacts
+*.tsbuildinfo
+
+# Phase 5C local security reports and rollback files
+build/security/
+.phase5c-backup-*/
+*.sarif
+*.cdx.json

@@ -14,7 +14,7 @@ from app.services.auth_service import (
 
 @pytest.mark.unit
 def test_password_hash_round_trip() -> None:
-    password = "Phase5Strong123"
+    password = "test-password-test-password"
     password_hash = hash_password(password)
 
     assert password_hash != password

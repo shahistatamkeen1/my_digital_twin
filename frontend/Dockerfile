@@ -37,8 +37,17 @@ ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0 \
     PORT=3000
 
-RUN addgroup --system --gid "${APP_GID}" nodejs \
-    && adduser --system --uid "${APP_UID}" --ingroup nodejs nextjs
+# npm is required only while building the application.
+# The production container runs with "node server.js", so remove npm and
+# its bundled dependencies, including the vulnerable global tar package.
+RUN rm -rf /usr/local/lib/node_modules/npm \
+    && rm -f /usr/local/bin/npm /usr/local/bin/npx \
+    && addgroup --system --gid "${APP_GID}" nodejs \
+    && adduser \
+        --system \
+        --uid "${APP_UID}" \
+        --ingroup nodejs \
+        nextjs
 
 WORKDIR /app
 

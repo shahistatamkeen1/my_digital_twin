@@ -177,3 +177,18 @@ Open:
 
 See `docs/DOCKER.md` for setup, verification, logs, shutdown, and reset instructions.
 
+
+
+## Security and supply-chain validation
+
+Phase 5C adds secret scanning, Python and npm dependency audits, Trivy
+filesystem/configuration/image scans, CycloneDX SBOM generation, and
+Dependabot updates.
+
+```powershell
+powershell -ExecutionPolicy Bypass `
+  -File ".\scripts\security\scan-local.ps1"
+```
+
+Generated reports are written to `build/security/`. See
+`docs/SECURITY.md` and `security/README.md`.
