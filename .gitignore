@@ -73,3 +73,11 @@ build/security/
 .phase5c-backup-*/
 *.sarif
 *.cdx.json
+
+# Phase 5D release and deployment artifacts
+build/release/
+deploy/.env.release
+deploy/.env.release.*
+!deploy/.env.release.example
+deploy/.deployment-state/
+.phase5d-backup-*/

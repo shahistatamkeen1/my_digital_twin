@@ -1,0 +1,205 @@
+name: Deploy or roll back release
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "GitHub Environment and deployment target"
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      operation:
+        description: "Deploy the requested version or roll back to previous images"
+        required: true
+        type: choice
+        options:
+          - deploy
+          - rollback
+      version:
+        description: "Semantic version without the v prefix"
+        required: true
+        default: "0.5.3"
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: ${{ inputs.operation }} ${{ inputs.version }} to ${{ inputs.environment }}
+    environment:
+      name: ${{ inputs.environment }}
+    runs-on:
+      - self-hosted
+      - linux
+      - x64
+      - my-digital-twin
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.operation == 'deploy' && format('v{0}', inputs.version) || github.ref }}
+          persist-credentials: false
+
+      - name: Validate requested release
+        if: inputs.operation == 'deploy'
+        run: python3 scripts/release/validate_release.py --version "${{ inputs.version }}"
+
+      - name: Resolve image and environment metadata
+        id: metadata
+        shell: bash
+        env:
+          PUBLIC_FRONTEND_URL: ${{ vars.PUBLIC_FRONTEND_URL }}
+          PUBLIC_API_BASE_URL: ${{ vars.PUBLIC_API_BASE_URL }}
+        run: |
+          set -euo pipefail
+          IMAGE_BASE=$(printf 'ghcr.io/%s' "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
+          [[ -n "${PUBLIC_FRONTEND_URL}" ]] || { echo "PUBLIC_FRONTEND_URL is required." >&2; exit 1; }
+          [[ -n "${PUBLIC_API_BASE_URL}" ]] || { echo "PUBLIC_API_BASE_URL is required." >&2; exit 1; }
+          echo "image_base=${IMAGE_BASE}" >> "${GITHUB_OUTPUT}"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create private deployment environment
+        shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
+          IMAGE_BASE: ${{ steps.metadata.outputs.image_base }}
+          DEPLOY_ENVIRONMENT: ${{ inputs.environment }}
+          COMPOSE_PROJECT_NAME: ${{ vars.COMPOSE_PROJECT_NAME }}
+          POSTGRES_DB: ${{ vars.POSTGRES_DB }}
+          POSTGRES_USER: ${{ vars.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+          PUBLIC_FRONTEND_URL: ${{ vars.PUBLIC_FRONTEND_URL }}
+          PUBLIC_API_BASE_URL: ${{ vars.PUBLIC_API_BASE_URL }}
+          CORS_ORIGINS: ${{ vars.CORS_ORIGINS }}
+          AUTH_COOKIE_DOMAIN: ${{ vars.AUTH_COOKIE_DOMAIN }}
+          BACKEND_BIND_ADDRESS: ${{ vars.BACKEND_BIND_ADDRESS }}
+          BACKEND_PORT: ${{ vars.BACKEND_PORT }}
+          FRONTEND_BIND_ADDRESS: ${{ vars.FRONTEND_BIND_ADDRESS }}
+          FRONTEND_PORT: ${{ vars.FRONTEND_PORT }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
+          ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
+          ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}
+          ENABLE_LEGACY_API_ROUTES: ${{ vars.ENABLE_LEGACY_API_ROUTES }}
+          API_DOCS_ENABLED: ${{ vars.API_DOCS_ENABLED }}
+          DEPLOY_STATE_DIR: ${{ vars.DEPLOY_STATE_DIR }}
+          DEPLOY_BACKUP_DIR: ${{ vars.DEPLOY_BACKUP_DIR }}
+        run: |
+          set -euo pipefail
+          [[ "${POSTGRES_PASSWORD}" =~ ^[A-Za-z0-9_-]{24,}$ ]] || {
+            echo "POSTGRES_PASSWORD must be at least 24 URL-safe characters." >&2
+            exit 1
+          }
+          [[ ${#JWT_SECRET_KEY} -ge 32 ]] || {
+            echo "JWT_SECRET_KEY must be at least 32 characters." >&2
+            exit 1
+          }
+
+          DB_NAME="${POSTGRES_DB:-my_digital_twin}"
+          DB_USER="${POSTGRES_USER:-mdt_app}"
+          PROJECT="${COMPOSE_PROJECT_NAME:-my-digital-twin-${DEPLOY_ENVIRONMENT}}"
+          BACKEND_HOST="${BACKEND_BIND_ADDRESS:-127.0.0.1}"
+          BACKEND_PORT_VALUE="${BACKEND_PORT:-8000}"
+          FRONTEND_HOST="${FRONTEND_BIND_ADDRESS:-127.0.0.1}"
+          FRONTEND_PORT_VALUE="${FRONTEND_PORT:-3000}"
+          CORS="${CORS_ORIGINS:-$PUBLIC_FRONTEND_URL}"
+
+          cat > deploy/.env.release.runtime <<EOF
+          APP_VERSION=${VERSION}
+          DEPLOY_ENVIRONMENT=${DEPLOY_ENVIRONMENT}
+          COMPOSE_PROJECT_NAME=${PROJECT}
+          BACKEND_IMAGE=${IMAGE_BASE}-backend:${VERSION}
+          FRONTEND_IMAGE=${IMAGE_BASE}-frontend:${VERSION}
+          POSTGRES_DB=${DB_NAME}
+          POSTGRES_USER=${DB_USER}
+          POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+          BACKEND_DATABASE_URL=postgresql+psycopg2://${DB_USER}:${POSTGRES_PASSWORD}@database:5432/${DB_NAME}
+          POSTGRES_VOLUME_NAME=${PROJECT}-postgres-data
+          JWT_SECRET_KEY=${JWT_SECRET_KEY}
+          BACKEND_BIND_ADDRESS=${BACKEND_HOST}
+          BACKEND_PORT=${BACKEND_PORT_VALUE}
+          FRONTEND_BIND_ADDRESS=${FRONTEND_HOST}
+          FRONTEND_PORT=${FRONTEND_PORT_VALUE}
+          PUBLIC_FRONTEND_URL=${PUBLIC_FRONTEND_URL}
+          PUBLIC_API_BASE_URL=${PUBLIC_API_BASE_URL}
+          CORS_ORIGINS=${CORS}
+          AUTH_COOKIE_SECURE=true
+          AUTH_COOKIE_SAMESITE=lax
+          AUTH_COOKIE_DOMAIN=${AUTH_COOKIE_DOMAIN:-}
+          OPENAI_API_KEY=${OPENAI_API_KEY:-}
+          OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+          ADZUNA_APP_ID=${ADZUNA_APP_ID:-}
+          ADZUNA_APP_KEY=${ADZUNA_APP_KEY:-}
+          LOG_LEVEL=INFO
+          LOG_FORMAT=json
+          ENABLE_LEGACY_API_ROUTES=${ENABLE_LEGACY_API_ROUTES:-true}
+          API_DOCS_ENABLED=${API_DOCS_ENABLED:-true}
+          READINESS_REQUIRE_AUTH=true
+          READINESS_REQUIRE_AI=false
+          CONTAINER_RUN_MIGRATIONS=true
+          CONTAINER_DB_WAIT_TIMEOUT_SECONDS=120
+          CONTAINER_DB_WAIT_INTERVAL_SECONDS=2
+          EDGE_NETWORK_NAME=${PROJECT}-edge
+          DATA_NETWORK_NAME=${PROJECT}-data
+          DEPLOY_STATE_DIR=${DEPLOY_STATE_DIR:-}
+          DEPLOY_BACKUP_DIR=${DEPLOY_BACKUP_DIR:-}
+          EOF
+          chmod 600 deploy/.env.release.runtime
+
+      - name: Deploy requested release
+        if: inputs.operation == 'deploy'
+        shell: bash
+        env:
+          PUBLIC_FRONTEND_URL: ${{ vars.PUBLIC_FRONTEND_URL }}
+          PUBLIC_API_BASE_URL: ${{ vars.PUBLIC_API_BASE_URL }}
+          DEPLOY_STATE_DIR: ${{ vars.DEPLOY_STATE_DIR }}
+          DEPLOY_BACKUP_DIR: ${{ vars.DEPLOY_BACKUP_DIR }}
+        run: |
+          sh scripts/deploy/deploy.sh \
+            --env-file deploy/.env.release.runtime \
+            --backend-url "${PUBLIC_API_BASE_URL}" \
+            --frontend-url "${PUBLIC_FRONTEND_URL}" \
+            --expected-version "${{ inputs.version }}"
+
+      - name: Roll back application images
+        if: inputs.operation == 'rollback'
+        shell: bash
+        env:
+          PUBLIC_FRONTEND_URL: ${{ vars.PUBLIC_FRONTEND_URL }}
+          PUBLIC_API_BASE_URL: ${{ vars.PUBLIC_API_BASE_URL }}
+          DEPLOY_STATE_DIR: ${{ vars.DEPLOY_STATE_DIR }}
+        run: |
+          sh scripts/deploy/rollback.sh \
+            --env-file deploy/.env.release.runtime \
+            --backend-url "${PUBLIC_API_BASE_URL}" \
+            --frontend-url "${PUBLIC_FRONTEND_URL}" \
+            --expected-version "${{ inputs.version }}"
+
+      - name: Show release service status
+        if: always()
+        shell: bash
+        run: >-
+          docker compose
+          --env-file deploy/.env.release.runtime
+          -f deploy/docker-compose.release.yml
+          ps || true
+
+      - name: Remove private deployment environment
+        if: always()
+        run: rm -f deploy/.env.release.runtime

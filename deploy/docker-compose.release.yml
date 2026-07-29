@@ -1,4 +1,4 @@
-name: my-digital-twin
+name: ${COMPOSE_PROJECT_NAME:-my-digital-twin-release}
 
 services:
   database:
@@ -16,23 +16,24 @@ services:
         - pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
       interval: 5s
       timeout: 5s
-      retries: 12
-      start_period: 10s
+      retries: 20
+      start_period: 15s
+    stop_grace_period: 30s
     networks:
       - data
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ${BACKEND_IMAGE:?BACKEND_IMAGE must be set}
+    pull_policy: always
+    init: true
     restart: unless-stopped
     depends_on:
       database:
         condition: service_healthy
     environment:
       APP_NAME: My Digital Twin API
-      APP_VERSION: ${APP_VERSION:-0.5.3}
-      ENVIRONMENT: container
+      APP_VERSION: ${APP_VERSION:?APP_VERSION must be set}
+      ENVIRONMENT: ${DEPLOY_ENVIRONMENT:-production}
 
       DATABASE_URL: ${BACKEND_DATABASE_URL:?BACKEND_DATABASE_URL must be set}
       DATABASE_POOL_SIZE: ${DATABASE_POOL_SIZE:-5}
@@ -48,11 +49,11 @@ services:
       ACCESS_COOKIE_NAME: ${ACCESS_COOKIE_NAME:-mdt_access_token}
       REFRESH_COOKIE_NAME: ${REFRESH_COOKIE_NAME:-mdt_refresh_token}
       REFRESH_COOKIE_PATH: ${REFRESH_COOKIE_PATH:-/api}
-      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-true}
       AUTH_COOKIE_SAMESITE: ${AUTH_COOKIE_SAMESITE:-lax}
       AUTH_COOKIE_DOMAIN: ${AUTH_COOKIE_DOMAIN:-}
 
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+      CORS_ORIGINS: ${CORS_ORIGINS:?CORS_ORIGINS must be set}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
       OPENAI_TIMEOUT_SECONDS: ${OPENAI_TIMEOUT_SECONDS:-60}
@@ -84,16 +85,16 @@ services:
       API_OPENAPI_PATH: ${API_OPENAPI_PATH:-/api/v1/openapi.json}
       API_DOCS_PATH: ${API_DOCS_PATH:-/api/v1/docs}
       API_REDOC_PATH: ${API_REDOC_PATH:-/api/v1/redoc}
-      PUBLIC_API_BASE_URL: ${PUBLIC_API_BASE_URL:-http://localhost:8000}
+      PUBLIC_API_BASE_URL: ${PUBLIC_API_BASE_URL:?PUBLIC_API_BASE_URL must be set}
       OPENAPI_CONTACT_NAME: ${OPENAPI_CONTACT_NAME:-My Digital Twin Engineering}
       OPENAPI_CONTACT_EMAIL: ${OPENAPI_CONTACT_EMAIL:-}
       OPENAPI_LICENSE_NAME: ${OPENAPI_LICENSE_NAME:-Proprietary}
 
       CONTAINER_RUN_MIGRATIONS: ${CONTAINER_RUN_MIGRATIONS:-true}
-      CONTAINER_DB_WAIT_TIMEOUT_SECONDS: ${CONTAINER_DB_WAIT_TIMEOUT_SECONDS:-60}
+      CONTAINER_DB_WAIT_TIMEOUT_SECONDS: ${CONTAINER_DB_WAIT_TIMEOUT_SECONDS:-120}
       CONTAINER_DB_WAIT_INTERVAL_SECONDS: ${CONTAINER_DB_WAIT_INTERVAL_SECONDS:-2}
     ports:
-      - "${BACKEND_PORT:-8000}:8000"
+      - "${BACKEND_BIND_ADDRESS:-127.0.0.1}:${BACKEND_PORT:-8000}:8000"
     healthcheck:
       test:
         - CMD
@@ -102,26 +103,26 @@ services:
         - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=4).read()
       interval: 10s
       timeout: 5s
-      retries: 12
-      start_period: 30s
+      retries: 18
+      start_period: 45s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     networks:
       - data
       - edge
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
-        NEXT_PUBLIC_API_VERSION: ${NEXT_PUBLIC_API_VERSION:-v1}
-        NEXT_PUBLIC_API_USE_VERSIONED_ROUTES: ${NEXT_PUBLIC_API_USE_VERSIONED_ROUTES:-true}
+    image: ${FRONTEND_IMAGE:?FRONTEND_IMAGE must be set}
+    pull_policy: always
+    init: true
     restart: unless-stopped
     depends_on:
       backend:
         condition: service_healthy
     ports:
-      - "${FRONTEND_PORT:-3000}:3000"
+      - "${FRONTEND_BIND_ADDRESS:-127.0.0.1}:${FRONTEND_PORT:-3000}:3000"
     healthcheck:
       test:
         - CMD
@@ -130,18 +131,22 @@ services:
         - fetch('http://127.0.0.1:3000').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
       interval: 10s
       timeout: 5s
-      retries: 12
-      start_period: 20s
+      retries: 18
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     networks:
       - edge
 
 volumes:
   postgres_data:
-    name: my-digital-twin-postgres-data
+    name: ${POSTGRES_VOLUME_NAME:-my-digital-twin-release-postgres-data}
 
 networks:
   edge:
-    name: my-digital-twin-edge
+    name: ${EDGE_NETWORK_NAME:-my-digital-twin-release-edge}
   data:
-    name: my-digital-twin-data
+    name: ${DATA_NETWORK_NAME:-my-digital-twin-release-data}
     internal: true

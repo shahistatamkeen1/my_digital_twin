@@ -192,3 +192,19 @@ powershell -ExecutionPolicy Bypass `
 
 Generated reports are written to `build/security/`. See
 `docs/SECURITY.md` and `security/README.md`.
+
+## Versioned releases and deployment
+
+Phase 5D adds GHCR image publishing, provenance attestations, release manifests,
+GitHub Environments, provider-neutral deployment, pre-migration PostgreSQL
+backups, smoke tests, and image rollback support.
+
+```powershell
+python .\scripts\release\validate_release.py
+```
+
+See:
+
+- `docs/RELEASE.md`
+- `docs/DEPLOYMENT.md`
+- `docs/ROLLBACK.md`
