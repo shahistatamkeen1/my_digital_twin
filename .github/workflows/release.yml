@@ -192,7 +192,10 @@ jobs:
           labels: ${{ steps.backend-meta.outputs.labels }}
           cache-from: type=gha,scope=release-backend
           cache-to: type=gha,mode=max,scope=release-backend
-          sbom: true
+          # The Docker exporter used by dry runs (`load: true`) cannot export
+          # the image index created by SBOM attestations. Generate SBOMs only
+          # for registry-published images, where attestations are supported.
+          sbom: ${{ needs.validate.outputs.publish == 'true' }}
           provenance: false
 
       - name: Build and optionally publish frontend image
@@ -211,7 +214,10 @@ jobs:
             NEXT_PUBLIC_API_USE_VERSIONED_ROUTES=true
           cache-from: type=gha,scope=release-frontend
           cache-to: type=gha,mode=max,scope=release-frontend
-          sbom: true
+          # The Docker exporter used by dry runs (`load: true`) cannot export
+          # the image index created by SBOM attestations. Generate SBOMs only
+          # for registry-published images, where attestations are supported.
+          sbom: ${{ needs.validate.outputs.publish == 'true' }}
           provenance: false
 
       - name: Attest backend image provenance

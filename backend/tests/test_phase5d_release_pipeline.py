@@ -74,6 +74,7 @@ def test_release_workflow_publishes_and_attests_both_images() -> None:
     assert "packages: write" in workflow
     assert "attestations: write" in workflow
     assert "id-token: write" in workflow
+    assert workflow.count("sbom: ${{ needs.validate.outputs.publish == 'true' }}") == 2
     assert "@main" not in workflow
     assert "@master" not in workflow
     assert "@latest" not in workflow
