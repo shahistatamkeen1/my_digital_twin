@@ -124,7 +124,7 @@ jobs:
         run: python -m pytest tests/test_phase5d_release_pipeline.py tests/test_phase5e_production_readiness.py -q
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
