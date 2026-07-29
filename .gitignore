@@ -91,3 +91,8 @@ deploy/.rollback-dry-run/
 .phase6a-backup-*/
 .phase*-backup-*/
 *.phase*-backup
+
+# Phase 6B execution-engine rollback and local source archives
+.phase6b-backup-*/
+my-digital-twin-*.zip
+*.phase4d-hotfix-backup

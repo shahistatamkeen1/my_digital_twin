@@ -73,7 +73,7 @@ def test_public_url_policy() -> None:
 
 def test_version_is_synchronized() -> None:
     version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
-    assert version == "0.6.0"
+    assert version == "0.6.1"
     assert f'"{version}"' in (ROOT / "backend/app/config.py").read_text(encoding="utf-8")
     assert f"APP_VERSION={version}" in (ROOT / ".env.docker.example").read_text(
         encoding="utf-8"

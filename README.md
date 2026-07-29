@@ -197,10 +197,26 @@ A published frontend image must use a real public HTTPS backend URL. `localhost`
 
 ## Release status
 
-Current repository version: **0.6.0**
+Current repository version: **0.6.1**
 
 The project is production-ready at the repository and local production-simulation level. A real public deployment still requires owned HTTPS domains, production infrastructure, secret stores, backups, monitoring, and environment approvals.
 
 ## Portfolio summary
 
 See [Portfolio and Recruiter Summary](docs/PORTFOLIO_SUMMARY.md) for concise technical highlights and interview discussion points.
+
+## Phase 6B multi-agent execution
+
+The persistent agent workflow API now supports bounded parallel or sequential
+execution, per-agent context isolation, retries, partial completion,
+cancellation checkpoints, token/latency telemetry, and unified synthesis.
+
+Canonical endpoints:
+
+```text
+POST /api/v1/agent-runs/{run_id}/execute
+POST /api/v1/agent-runs/{run_id}/cancel
+```
+
+See [Agent Execution Engine](docs/AGENT_EXECUTION.md).
+

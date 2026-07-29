@@ -20,6 +20,7 @@ from app.models.agent_run import AgentRun, AgentStep
 RETRYABLE_RUN_STATUSES = {
     AgentRunStatus.failed.value,
     AgentRunStatus.cancelled.value,
+    AgentRunStatus.partially_completed.value,
 }
 
 
@@ -73,8 +74,12 @@ def create_agent_run(
             },
         },
         result_payload=None,
+        prompt_tokens=0,
+        completion_tokens=0,
         total_tokens=0,
         estimated_cost=0.0,
+        duration_ms=0,
+        fallback_count=0,
     )
     db.add(run)
     db.flush()
@@ -116,7 +121,7 @@ def retry_agent_run(db: Session, run_id: int) -> AgentRun:
             status_code=409,
             code="AGENT_RUN_NOT_RETRYABLE",
             message=(
-                "Only failed or cancelled agent runs can be retried."
+                "Only failed, cancelled, or partially completed agent runs can be retried."
             ),
             details={"status": original.status},
         )
@@ -136,7 +141,10 @@ def retry_agent_run(db: Session, run_id: int) -> AgentRun:
 def delete_agent_run(db: Session, run_id: int) -> None:
     run = _require_owned_run(db, run_id)
 
-    if run.status == AgentRunStatus.running.value:
+    if run.status in {
+        AgentRunStatus.running.value,
+        AgentRunStatus.synthesizing.value,
+    }:
         raise APIError(
             status_code=409,
             code="AGENT_RUN_ACTIVE",

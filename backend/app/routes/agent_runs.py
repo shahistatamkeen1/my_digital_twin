@@ -4,9 +4,11 @@ from fastapi import APIRouter, Depends, Query, Request, Response, status
 from sqlalchemy.orm import Session
 
 from app.agents.contracts import (
+    AgentRunCancelResponse,
     AgentRunCreate,
     AgentRunDeleteResponse,
     AgentRunDetail,
+    AgentRunExecuteRequest,
     AgentRunStatus,
     ExecutionMode,
 )
@@ -19,6 +21,10 @@ from app.api.pagination import (
 from app.config import settings
 from app.database import get_db
 from app.models.agent_run import AgentRun
+from app.services.agent_execution_service import (
+    cancel_agent_run,
+    execute_agent_run,
+)
 from app.services.agent_orchestration_service import (
     create_agent_run,
     delete_agent_run,
@@ -132,13 +138,42 @@ def read_run(
     "/{run_id}/retry",
     response_model=AgentRunDetail,
     status_code=status.HTTP_201_CREATED,
-    summary="Create a new attempt for a failed or cancelled workflow",
+    summary="Create a new attempt for a failed, cancelled, or partial workflow",
 )
 def retry_run(
     run_id: int,
     db: Session = Depends(get_db),
 ) -> AgentRunDetail:
     return run_detail(retry_agent_run(db, run_id))
+
+
+@router.post(
+    "/{run_id}/execute",
+    response_model=AgentRunDetail,
+    summary="Execute a planned multi-agent workflow",
+)
+def execute_run(
+    run_id: int,
+    data: AgentRunExecuteRequest,
+    db: Session = Depends(get_db),
+) -> AgentRunDetail:
+    return run_detail(execute_agent_run(db, run_id, data))
+
+
+@router.post(
+    "/{run_id}/cancel",
+    response_model=AgentRunCancelResponse,
+    summary="Cancel a planned or active multi-agent workflow",
+)
+def cancel_run(
+    run_id: int,
+    db: Session = Depends(get_db),
+) -> AgentRunCancelResponse:
+    run = cancel_agent_run(db, run_id)
+    return AgentRunCancelResponse(
+        message="Agent run cancelled successfully.",
+        run=run_detail(run),
+    )
 
 
 @router.delete(
