@@ -34,3 +34,18 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Multi-Agent Mission Workspace
+
+`/digital-twin-advisor` is the authenticated Phase 6C orchestration workspace.
+Its typed API client is in `lib/agent-runs.ts`, shared contracts are in
+`types/agent-runs.ts`, and the presentation modules are under
+`components/orchestration/`.
+
+Run the frontend quality gate with:
+
+```bash
+npm run typecheck
+npm run lint
+npm run build
+```
