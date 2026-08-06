@@ -1,504 +1,658 @@
 "use client";
 
-import { apiFetch } from "@/lib/api";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { useEffect, useRef, useState } from "react";
-import ReactMarkdown from "react-markdown";
 import AppShell from "@/components/AppShell";
+import AgentGoalComposer, {
+  type GoalComposerValues,
+} from "@/components/orchestration/AgentGoalComposer";
+import AgentRunHistory from "@/components/orchestration/AgentRunHistory";
+import AgentRunProgress from "@/components/orchestration/AgentRunProgress";
+import AgentRunResult from "@/components/orchestration/AgentRunResult";
+import AgentRunTelemetry from "@/components/orchestration/AgentRunTelemetry";
+import AgentStatusBadge from "@/components/orchestration/AgentStatusBadge";
+import { AGENT_VISUALS } from "@/components/orchestration/agent-visuals";
+import {
+  cancelAgentRun,
+  createAgentRun,
+  deleteAgentRun,
+  executeAgentRun,
+  getAgentRun,
+  listAgentRuns,
+  listAgents,
+  retryAgentRun,
+} from "@/lib/agent-runs";
+import { ApiError, type PaginationMeta } from "@/lib/api";
+import type {
+  AgentDefinition,
+  AgentExecutionProvider,
+  AgentRunDetail,
+  AgentRunStatus,
+  AgentRunSummary,
+} from "@/types/agent-runs";
 
-type AdvisorReply = {
-  executive_summary: string;
-  mission_status: string;
-  career_signal: string;
-  finance_signal: string;
-  health_signal: string;
-  learning_signal: string;
-  personal_memory_signal: string;
-  conflict_resolution: string;
-  risk_level: string;
-  risks: string[];
-  recommended_actions: string[];
-  expected_roi: string;
-  next_best_action: string;
+const EMPTY_PAGINATION: PaginationMeta = {
+  page: 1,
+  page_size: 8,
+  total_items: 0,
+  total_pages: 0,
+  has_next: false,
+  has_previous: false,
 };
 
-type Message = {
-  role: "user" | "assistant";
-  content?: string;
-  structured?: AdvisorReply;
-};
+const TERMINAL_STATUSES = new Set<AgentRunStatus>([
+  "completed",
+  "partially_completed",
+  "failed",
+  "cancelled",
+]);
 
-type FocusScores = {
-  career_score: number;
-  finance_score: number;
-  health_score: number;
-  learning_score: number;
-  overall_score: number;
-  highest_roi_focus: string;
-};
-
-const initialMessage: Message = {
-  role: "assistant",
-  content:
-    "Hi, I'm your Digital Twin Advisor.\n\nI combine insights from your Career, Finance, Health, Learning, and Personal Memory twins to help you make smarter decisions, prioritize actions, and achieve your goals faster.",
-};
-
-const quickPrompts = [
-  {
-    label: "Become AI Engineer",
-    prompt:
-      "Create a practical plan to become job-ready for AI Engineer roles using my career, learning, finance, and health data.",
-  },
-  {
-    label: "Weekly Executive Plan",
-    prompt:
-      "Create my weekly executive plan using my personal memory, career, finance, health, and learning data.",
-  },
-  {
-    label: "Today's Best Action",
-    prompt:
-      "What is the single best action I should take today based on all my Digital Twin data?",
-  },
-  {
-    label: "Learning Roadmap",
-    prompt:
-      "Create a learning roadmap for my current goals and explain what I should study first.",
-  },
-  {
-    label: "Biggest Risk",
-    prompt:
-      "What is my biggest current risk or bottleneck across career, finance, health, and learning?",
-  },
-  {
-    label: "Focus This Week",
-    prompt:
-      "What should I focus on this week to improve my overall Digital Twin score?",
-  },
-  {
-    label: "Salary Growth Plan",
-    prompt:
-      "How can I improve my career path, learning plan, and income potential over the next 30 days?",
-  },
-  {
-    label: "Life Strategy",
-    prompt:
-      "Based on all my Digital Twin data, what should I prioritize this month?",
-  },
-];
+const RETRYABLE_STATUSES = new Set<AgentRunStatus>([
+  "partially_completed",
+  "failed",
+  "cancelled",
+]);
 
 export default function DigitalTwinAdvisorPage() {
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [focusScores, setFocusScores] = useState<FocusScores | null>(null);
-  const [messages, setMessages] = useState<Message[]>([initialMessage]);
-  const [mounted, setMounted] = useState(false);
+  const [agents, setAgents] = useState<AgentDefinition[]>([]);
+  const [runs, setRuns] = useState<AgentRunSummary[]>([]);
+  const [selectedRun, setSelectedRun] = useState<AgentRunDetail | null>(null);
+  const [pagination, setPagination] =
+    useState<PaginationMeta>(EMPTY_PAGINATION);
 
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const [composer, setComposer] = useState<GoalComposerValues>({
+    goal: "",
+    preferredAgents: [],
+    includeWeeklyPlan: true,
+  });
+  const [provider, setProvider] =
+    useState<AgentExecutionProvider>("deterministic");
+  const [allowPartial, setAllowPartial] = useState(true);
+  const [allowFallback, setAllowFallback] = useState(false);
+  const [forceSequential, setForceSequential] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<AgentRunStatus | "">("");
+  const [page, setPage] = useState(1);
 
-    const saved = localStorage.getItem("digitalTwinAdvisorHistory");
+  const [registryLoading, setRegistryLoading] = useState(true);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [executingRunId, setExecutingRunId] = useState<number | null>(null);
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          setMessages(parsed);
-        }
-      } catch {
-        setMessages([initialMessage]);
-      }
+  const activeSelectedRun =
+    selectedRun?.status === "running" ||
+    selectedRun?.status === "synthesizing" ||
+    selectedRun?.id === executingRunId;
+
+  const selectedRunTerminal = selectedRun
+    ? TERMINAL_STATUSES.has(selectedRun.status)
+    : false;
+
+  const loadRegistry = useCallback(async () => {
+    setRegistryLoading(true);
+    try {
+      setAgents(await listAgents());
+    } catch (requestError) {
+      setError(errorMessage(requestError));
+    } finally {
+      setRegistryLoading(false);
     }
   }, []);
 
+  const loadHistory = useCallback(
+    async (requestedPage = page) => {
+      setHistoryLoading(true);
+      try {
+        const result = await listAgentRuns({
+          page: requestedPage,
+          pageSize: 8,
+          search: search.trim() || undefined,
+          status: statusFilter,
+          sortBy: "created_at",
+          sortOrder: "desc",
+        });
+        setRuns(result.items);
+        setPagination(result.pagination);
+
+      } catch (requestError) {
+        setError(errorMessage(requestError));
+      } finally {
+        setHistoryLoading(false);
+      }
+    },
+    [page, search, statusFilter]
+  );
+
   useEffect(() => {
-    if (mounted) {
-      localStorage.setItem(
-        "digitalTwinAdvisorHistory",
-        JSON.stringify(messages)
-      );
+    void loadRegistry();
+  }, [loadRegistry]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void loadHistory();
+    }, search ? 300 : 0);
+
+    return () => window.clearTimeout(timer);
+  }, [loadHistory, search]);
+
+  useEffect(() => {
+    if (!selectedRun || !activeSelectedRun) {
+      return;
     }
-  }, [messages, mounted]);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+    const runId = selectedRun.id;
+    const timer = window.setInterval(() => {
+      void getAgentRun(runId)
+        .then((detail) => {
+          setSelectedRun(detail);
+          if (TERMINAL_STATUSES.has(detail.status)) {
+            setExecutingRunId(null);
+          }
+        })
+        .catch(() => {
+          // The main execute request reports actionable errors.
+        });
+    }, 1200);
 
-  const sendMessage = async (customPrompt?: string) => {
-    const messageToSend = customPrompt || input;
+    return () => window.clearInterval(timer);
+  }, [activeSelectedRun, selectedRun]);
 
-    if (!messageToSend.trim()) return;
+  const dashboardMetrics = useMemo(() => {
+    const completed = runs.filter((run) => run.status === "completed").length;
+    const active = runs.filter(
+      (run) => run.status === "running" || run.status === "synthesizing"
+    ).length;
 
-    setMessages((prev) => [
-      ...prev,
+    return [
       {
-        role: "user",
-        content: messageToSend,
+        label: "Registered twins",
+        value: registryLoading ? "—" : String(agents.length),
+        note: "Available for routing",
       },
-    ]);
+      {
+        label: "Visible workflows",
+        value: historyLoading ? "—" : String(pagination.total_items),
+        note: "Current history view",
+      },
+      {
+        label: "Completed here",
+        value: historyLoading ? "—" : String(completed),
+        note: "On this page",
+      },
+      {
+        label: "Active here",
+        value: historyLoading ? "—" : String(active),
+        note: "Running or synthesizing",
+      },
+    ];
+  }, [
+    agents.length,
+    historyLoading,
+    pagination.total_items,
+    registryLoading,
+    runs,
+  ]);
 
-    setInput("");
-    setLoading(true);
+  const selectRun = async (runId: number) => {
+    setDetailLoading(true);
+    setError(null);
+    try {
+      setSelectedRun(await getAgentRun(runId));
+    } catch (requestError) {
+      setError(errorMessage(requestError));
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const createRun = async () => {
+    if (composer.goal.trim().length < 5) {
+      setError("Enter a goal with at least five meaningful characters.");
+      return;
+    }
+
+    setCreating(true);
+    setError(null);
+    try {
+      const run = await createAgentRun({
+        goal: composer.goal.trim(),
+        preferred_agents: composer.preferredAgents,
+        include_weekly_plan: composer.includeWeeklyPlan,
+        context: {
+          source: "phase6c-agent-workspace",
+          requested_provider: provider,
+        },
+      });
+      setSelectedRun(run);
+      setComposer((current) => ({ ...current, goal: "" }));
+      setPage(1);
+      await loadHistory(1);
+    } catch (requestError) {
+      setError(errorMessage(requestError));
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const executeRun = async () => {
+    if (!selectedRun || selectedRun.status !== "planned") {
+      return;
+    }
+
+    const runId = selectedRun.id;
+    setExecutingRunId(runId);
+    setError(null);
+    setSelectedRun((current) =>
+      current
+        ? {
+            ...current,
+            status: "running",
+            execution_provider: provider,
+            steps: current.steps.map((step) => ({
+              ...step,
+              status: "running",
+              provider,
+            })),
+          }
+        : current
+    );
 
     try {
-      const res = await apiFetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/twin-orchestrator/`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            message: messageToSend,
-          }),
-        }
-      );
-
-      const data = await res.json();
-
-      if (data.focus_scores) {
-        setFocusScores(data.focus_scores);
+      const result = await executeAgentRun(runId, {
+        provider,
+        allow_partial: allowPartial,
+        allow_fallback: allowFallback,
+        force_sequential: forceSequential,
+      });
+      setSelectedRun(result);
+      await loadHistory();
+    } catch (requestError) {
+      setError(errorMessage(requestError));
+      try {
+        setSelectedRun(await getAgentRun(runId));
+      } catch {
+        // Preserve the optimistic run when the refresh also fails.
       }
-
-      if (data.reply && typeof data.reply === "object") {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "assistant",
-            structured: data.reply,
-          },
-        ]);
-      } else {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "assistant",
-            content: data.reply || "I could not generate a response.",
-          },
-        ]);
-      }
-    } catch (error) {
-      console.error("Digital Twin Advisor error:", error);
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "Something went wrong. Please try again.",
-        },
-      ]);
     } finally {
-      setLoading(false);
+      setExecutingRunId(null);
     }
   };
 
-  const clearChat = () => {
-    localStorage.removeItem("digitalTwinAdvisorHistory");
-    setMessages([initialMessage]);
+  const cancelRun = async () => {
+    if (!selectedRun) {
+      return;
+    }
+
+    setPendingAction("cancel");
+    setError(null);
+    try {
+      const response = await cancelAgentRun(selectedRun.id);
+      setSelectedRun(response.run);
+      setExecutingRunId(null);
+      await loadHistory();
+    } catch (requestError) {
+      setError(errorMessage(requestError));
+    } finally {
+      setPendingAction(null);
+    }
   };
 
-  if (!mounted) {
-    return (
-  <AppShell>
-    <div>
-      <p className="text-sm text-cyan-300">Master Digital Twin</p>
-      <h1 className="mt-2 text-3xl font-bold sm:text-4xl">
-        Digital Twin Advisor
-      </h1>
-      <p className="mt-3 text-slate-400">Loading advisor...</p>
-    </div>
-  </AppShell>
-);
-  }
+  const retryRun = async () => {
+    if (!selectedRun) {
+      return;
+    }
+
+    setPendingAction("retry");
+    setError(null);
+    try {
+      const retry = await retryAgentRun(selectedRun.id);
+      setSelectedRun(retry);
+      setPage(1);
+      await loadHistory(1);
+    } catch (requestError) {
+      setError(errorMessage(requestError));
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const removeRun = async () => {
+    if (!selectedRun) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Delete workflow #${selectedRun.id}? This removes its steps and results.`
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setPendingAction("delete");
+    setError(null);
+    try {
+      await deleteAgentRun(selectedRun.id);
+      setSelectedRun(null);
+      await loadHistory();
+    } catch (requestError) {
+      setError(errorMessage(requestError));
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const refreshSelectedRun = async () => {
+    if (!selectedRun) {
+      return;
+    }
+
+    setPendingAction("refresh");
+    setError(null);
+    try {
+      setSelectedRun(await getAgentRun(selectedRun.id));
+      await loadHistory();
+    } catch (requestError) {
+      setError(errorMessage(requestError));
+    } finally {
+      setPendingAction(null);
+    }
+  };
 
   return (
     <AppShell>
-      <div>
-        <p className="text-sm text-cyan-300">Master Digital Twin</p>
-
-        <h1 className="mt-2 text-3xl font-bold sm:text-4xl">
-  Digital Twin Advisor
-</h1>
-
-        <p className="mt-3 max-w-3xl text-slate-400">
-          Unified AI advisor that combines your Career, Finance, Health,
-          Learning, and Personal Memory twins into one intelligent decision
-          engine.
-        </p>
-
-        {focusScores && (
-          <section className="mt-8 rounded-2xl bg-slate-900 p-5 sm:p-6">
-            <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
-              <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-6">
-                <p className="text-sm text-cyan-300">Current Mission</p>
-                <h2 className="mt-2 text-2xl font-bold">
-                  Become Job-Ready AI Engineer
-                </h2>
-                <p className="mt-3 text-sm leading-6 text-slate-300">
-                  Your advisor is using all twin signals to help you prioritize
-                  the highest-impact next step.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-slate-700 bg-slate-800 p-6">
-                <p className="text-sm text-slate-400">Overall Twin Score</p>
-                <h2 className="mt-2 text-5xl font-bold text-cyan-400">
-                  {focusScores.overall_score}%
-                </h2>
-              </div>
-
-              <div className="rounded-2xl border border-violet-500/40 bg-violet-500/10 p-6">
-                <p className="text-sm text-violet-300">Primary Focus</p>
-                <h2 className="mt-2 text-3xl font-bold">
-                  {focusScores.highest_roi_focus}
-                </h2>
-                <p className="mt-3 text-sm text-slate-300">
-                  This is your highest ROI area right now.
-                </p>
-              </div>
+      <div className="mx-auto w-full max-w-[1650px]">
+        <header className="rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900 to-violet-950/40 p-6 shadow-2xl shadow-black/20 sm:p-8">
+          <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-cyan-300">
+                Master Digital Twin · Phase 6C
+              </p>
+              <h1 className="mt-2 text-3xl font-bold sm:text-4xl">
+                Multi-Agent Mission Workspace
+              </h1>
+              <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-400 sm:text-base">
+                Plan a cross-domain goal, review the routed twins, execute them
+                with isolated personal context, and receive one coordinated
+                action plan.
+              </p>
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-5">
-              <ScoreCard label="Career" value={focusScores.career_score} />
-              <ScoreCard label="Finance" value={focusScores.finance_score} />
-              <ScoreCard label="Health" value={focusScores.health_score} />
-              <ScoreCard label="Learning" value={focusScores.learning_score} />
-              <ScoreCard label="Overall" value={focusScores.overall_score} />
+            <div className="flex flex-wrap gap-2">
+              {agents.map((agent) => (
+                <span
+                  key={agent.name}
+                  className={`rounded-full px-3 py-2 text-xs font-semibold ${AGENT_VISUALS[agent.name].badgeClass}`}
+                >
+                  {AGENT_VISUALS[agent.name].icon} {agent.display_name}
+                </span>
+              ))}
             </div>
-          </section>
+          </div>
+        </header>
+
+        {error && (
+          <div
+            role="alert"
+            className="mt-5 flex flex-col gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-100 sm:flex-row sm:items-start sm:justify-between"
+          >
+            <span className="leading-6">{error}</span>
+            <button
+              type="button"
+              onClick={() => setError(null)}
+              className="self-start font-semibold text-rose-200 hover:text-white"
+            >
+              Dismiss
+            </button>
+          </div>
         )}
 
-        <section className="mt-8">
-          <p className="text-sm text-cyan-300">Quick Strategies</p>
-
-          <div className="mt-3 flex flex-wrap gap-3">
-            {quickPrompts.map((item) => (
-              <button
-                key={item.label}
-                onClick={() => sendMessage(item.prompt)}
-                disabled={loading}
-                className="rounded-full border border-slate-700 bg-slate-900 px-4 py-2 text-sm text-slate-300 hover:border-cyan-400 hover:text-white disabled:opacity-50"
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
+        <section className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {dashboardMetrics.map((metric) => (
+            <div
+              key={metric.label}
+              className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4"
+            >
+              <p className="text-xs text-slate-500">{metric.label}</p>
+              <p className="mt-2 text-2xl font-bold text-white">{metric.value}</p>
+              <p className="mt-1 text-xs text-slate-500">{metric.note}</p>
+            </div>
+          ))}
         </section>
 
-        <section className="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-[1fr_300px]">
-          <div className="custom-scrollbar h-[60vh] overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900 p-4 sm:h-[720px] sm:p-5">
-            <div className="space-y-5">
-              {messages.map((message, index) => (
-                <div
-                  key={index}
-                  className={`flex ${
-                    message.role === "user" ? "justify-end" : "justify-start"
-                  }`}
-                >
-                  <div
-                    className={`max-w-[95%] rounded-2xl p-4 text-sm leading-6 ${
-                      message.role === "user"
-                        ? "bg-cyan-600 text-white"
-                        : "bg-slate-800 text-slate-200"
-                    }`}
-                  >
-                    <p className="mb-2 text-xs font-semibold opacity-70">
-                      {message.role === "user"
-                        ? "You"
-                        : "Digital Twin Advisor"}
+        <div className="mt-6 grid items-start gap-6 xl:grid-cols-[430px_minmax(0,1fr)]">
+          <div className="space-y-6">
+            <AgentGoalComposer
+              agents={agents}
+              values={composer}
+              provider={provider}
+              allowPartial={allowPartial}
+              allowFallback={allowFallback}
+              forceSequential={forceSequential}
+              selectedAgents={selectedRun?.selected_agents}
+              busy={creating || registryLoading}
+              onChange={setComposer}
+              onProviderChange={(value) => {
+                setProvider(value);
+                if (value === "deterministic") {
+                  setAllowFallback(false);
+                }
+              }}
+              onAllowPartialChange={setAllowPartial}
+              onAllowFallbackChange={setAllowFallback}
+              onForceSequentialChange={setForceSequential}
+              onSubmit={createRun}
+            />
+
+            <AgentRunHistory
+              runs={runs}
+              pagination={pagination}
+              selectedRunId={selectedRun?.id ?? null}
+              search={search}
+              statusFilter={statusFilter}
+              loading={historyLoading}
+              onSearchChange={(value) => {
+                setSearch(value);
+                setPage(1);
+              }}
+              onStatusFilterChange={(value) => {
+                setStatusFilter(value);
+                setPage(1);
+              }}
+              onSelect={selectRun}
+              onPageChange={setPage}
+              onRefresh={() => void loadHistory()}
+            />
+          </div>
+
+          <main className="min-w-0 space-y-6">
+            {detailLoading ? (
+              <LoadingRun />
+            ) : selectedRun ? (
+              <>
+                <section className="rounded-3xl border border-slate-800 bg-slate-900/80 p-4">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <AgentStatusBadge status={selectedRun.status} />
+                      <span className="text-xs text-slate-500">
+                        Run #{selectedRun.id}
+                      </span>
+                      {selectedRun.retry_of_run_id && (
+                        <span className="text-xs text-slate-500">
+                          Retry of #{selectedRun.retry_of_run_id}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {selectedRun.status === "planned" && (
+                        <ActionButton
+                          label={
+                            executingRunId === selectedRun.id
+                              ? "Executing..."
+                              : "Execute workflow"
+                          }
+                          primary
+                          disabled={
+                            executingRunId !== null || pendingAction !== null
+                          }
+                          onClick={() => void executeRun()}
+                        />
+                      )}
+
+                      {activeSelectedRun && (
+                        <ActionButton
+                          label={
+                            pendingAction === "cancel"
+                              ? "Cancelling..."
+                              : "Cancel"
+                          }
+                          danger
+                          disabled={pendingAction !== null}
+                          onClick={() => void cancelRun()}
+                        />
+                      )}
+
+                      {selectedRunTerminal &&
+                        RETRYABLE_STATUSES.has(selectedRun.status) && (
+                          <ActionButton
+                            label={
+                              pendingAction === "retry"
+                                ? "Creating retry..."
+                                : "Retry"
+                            }
+                            disabled={pendingAction !== null}
+                            onClick={() => void retryRun()}
+                          />
+                        )}
+
+                      <ActionButton
+                        label={
+                          pendingAction === "refresh"
+                            ? "Refreshing..."
+                            : "Refresh"
+                        }
+                        disabled={pendingAction !== null}
+                        onClick={() => void refreshSelectedRun()}
+                      />
+
+                      {!activeSelectedRun && (
+                        <ActionButton
+                          label={
+                            pendingAction === "delete"
+                              ? "Deleting..."
+                              : "Delete"
+                          }
+                          danger
+                          disabled={pendingAction !== null}
+                          onClick={() => void removeRun()}
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {selectedRun.status === "planned" && (
+                    <div className="mt-4 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-4 text-sm leading-6 text-cyan-100">
+                      This plan is ready. Review the routed twins below, choose
+                      execution options in the composer, and select
+                      <strong> Execute workflow</strong>.
+                    </div>
+                  )}
+                </section>
+
+                <AgentRunProgress run={selectedRun} />
+
+                {selectedRun.error_message && (
+                  <section className="rounded-3xl border border-amber-500/30 bg-amber-500/10 p-5">
+                    <p className="text-sm font-semibold text-amber-200">
+                      Workflow notice
                     </p>
+                    <p className="mt-2 text-sm leading-6 text-amber-100/80">
+                      {selectedRun.error_message}
+                    </p>
+                  </section>
+                )}
 
-                    {message.structured ? (
-                      <AdvisorResponseCards reply={message.structured} />
-                    ) : (
-                      <div className="prose prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-li:my-1 prose-headings:text-white">
-                        <ReactMarkdown>{message.content || ""}</ReactMarkdown>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-
-              {loading && (
-                <div className="flex justify-start">
-                  <div className="rounded-2xl bg-slate-800 p-4 text-sm text-slate-300">
-                    Digital Twin Advisor is analyzing your Digital Twin data...
-                  </div>
-                </div>
-              )}
-
-              <div ref={bottomRef} />
-            </div>
-          </div>
-
-          <aside className="hidden rounded-2xl border border-slate-800 bg-slate-900 p-6 xl:block">
-            <h2 className="text-xl font-bold">How to use Advisor</h2>
-
-            <div className="mt-5 space-y-4 text-sm leading-6 text-slate-400">
-              <p>
-                Ask strategy questions that require more than one twin agent.
-              </p>
-
-              <div className="rounded-xl bg-slate-800 p-4">
-                <p className="text-cyan-300">Good examples</p>
-                <ul className="mt-2 list-disc space-y-2 pl-5">
-                  <li>What should I focus on this month?</li>
-                  <li>How do I become job-ready for AI Engineer roles?</li>
-                  <li>What is blocking my progress?</li>
-                  <li>How should I balance learning, job search, and health?</li>
-                </ul>
-              </div>
-
-              <div className="rounded-xl bg-slate-800 p-4">
-                <p className="text-violet-300">Best used for</p>
-                <ul className="mt-2 list-disc space-y-2 pl-5">
-                  <li>Life strategy</li>
-                  <li>Career planning</li>
-                  <li>Weekly focus</li>
-                  <li>Decision support</li>
-                  <li>Cross-twin recommendations</li>
-                </ul>
-              </div>
-            </div>
-          </aside>
-        </section>
-
-        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask your Digital Twin Advisor anything..."
-            rows={3}
-            className="min-h-[110px] flex-1 rounded-2xl border border-slate-800 bg-slate-900 p-4 outline-none focus:border-cyan-500"
-          />
-
-          <button
-            onClick={() => sendMessage()}
-            disabled={loading}
-            className="rounded-2xl bg-cyan-600 px-6 py-3 font-semibold hover:bg-cyan-500 disabled:opacity-50"
-          >
-            Send
-          </button>
-
-          <button
-            onClick={clearChat}
-            className="rounded-2xl border border-slate-700 px-4 py-3 text-sm hover:bg-slate-800"
-          >
-            Clear
-          </button>
+                <AgentRunResult run={selectedRun} />
+                <AgentRunTelemetry run={selectedRun} />
+              </>
+            ) : (
+              <EmptyWorkspace />
+            )}
+          </main>
         </div>
       </div>
     </AppShell>
   );
 }
 
-function ScoreCard({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-xl bg-slate-800 p-4">
-      <p className="text-sm text-slate-400">{label}</p>
-      <h3 className="mt-2 text-3xl font-bold text-cyan-400">{value}%</h3>
+function ActionButton({
+  label,
+  primary = false,
+  danger = false,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  primary?: boolean;
+  danger?: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  const style = primary
+    ? "border-cyan-400 bg-cyan-500 text-white hover:bg-cyan-400"
+    : danger
+      ? "border-rose-500/40 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20"
+      : "border-slate-700 bg-slate-950 text-slate-300 hover:border-cyan-400 hover:text-white";
 
-      <div className="mt-3 h-2 rounded-full bg-slate-700">
-        <div
-          className="h-2 rounded-full bg-cyan-500"
-          style={{ width: `${value}%` }}
-        />
-      </div>
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={`rounded-xl border px-3.5 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${style}`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function LoadingRun() {
+  return (
+    <div className="rounded-3xl border border-slate-800 bg-slate-900/70 px-6 py-20 text-center">
+      <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-cyan-500/20 border-t-cyan-400" />
+      <p className="mt-4 text-sm text-slate-400">Loading workflow detail...</p>
     </div>
   );
 }
 
-function AdvisorResponseCards({ reply }: { reply: AdvisorReply }) {
+function EmptyWorkspace() {
   return (
-    <div className="space-y-4">
-      <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-4">
-        <p className="text-sm font-semibold text-cyan-300">
-          🧠 Executive Summary
-        </p>
-        <p className="mt-2 text-slate-200">{reply.executive_summary}</p>
-      </div>
-
-      <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-4">
-        <p className="text-sm font-semibold text-blue-300">
-          🎯 Mission Status
-        </p>
-        <p className="mt-2 text-slate-200">{reply.mission_status}</p>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <SignalCard title="💼 Career Signal" value={reply.career_signal} />
-        <SignalCard title="💰 Finance Signal" value={reply.finance_signal} />
-        <SignalCard title="❤️ Health Signal" value={reply.health_signal} />
-        <SignalCard title="📚 Learning Signal" value={reply.learning_signal} />
-      </div>
-
-      <div className="rounded-xl bg-slate-900 p-4">
-        <p className="text-sm font-semibold text-violet-300">
-          🧬 Personal Memory Signal
-        </p>
-        <p className="mt-2 text-slate-300">
-          {reply.personal_memory_signal}
+    <section className="flex min-h-[640px] items-center justify-center rounded-3xl border border-dashed border-slate-700 bg-slate-900/40 p-8 text-center">
+      <div className="max-w-xl">
+        <div className="text-6xl">🧬</div>
+        <h2 className="mt-5 text-3xl font-bold">Coordinate your Digital Twins</h2>
+        <p className="mt-4 text-sm leading-7 text-slate-400">
+          Create a goal from the mission composer or select a previous workflow.
+          The router will choose the right twins while preserving domain-level
+          context isolation.
         </p>
       </div>
-
-      <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 p-4">
-        <p className="text-sm font-semibold text-orange-300">
-          ⚖️ Conflict Resolution
-        </p>
-        <p className="mt-2 text-slate-200">{reply.conflict_resolution}</p>
-      </div>
-
-      <div className="rounded-xl bg-slate-900 p-4">
-        <p className="text-sm font-semibold text-yellow-300">
-          ⚠️ Risk Level: {reply.risk_level}
-        </p>
-
-        <ul className="mt-3 space-y-2">
-          {(reply.risks || []).map((risk, index) => (
-            <li key={index} className="text-slate-300">
-              • {risk}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="rounded-xl bg-slate-900 p-4">
-        <p className="text-sm font-semibold text-emerald-300">
-          ✅ Recommended Actions
-        </p>
-
-        <ul className="mt-3 space-y-2">
-          {(reply.recommended_actions || []).map((action, index) => (
-            <li key={index} className="text-slate-300">
-              • {action}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="rounded-xl border border-purple-500/30 bg-purple-500/10 p-4">
-        <p className="text-sm font-semibold text-purple-300">
-          📈 Expected ROI
-        </p>
-        <p className="mt-2 text-slate-200">{reply.expected_roi}</p>
-      </div>
-
-      <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
-        <p className="text-sm font-semibold text-emerald-300">
-          🚀 Next Best Action
-        </p>
-        <p className="mt-2 text-slate-100">{reply.next_best_action}</p>
-      </div>
-    </div>
+    </section>
   );
 }
 
-function SignalCard({ title, value }: { title: string; value: string }) {
-  return (
-    <div className="rounded-xl bg-slate-900 p-4">
-      <p className="text-sm font-semibold text-slate-300">{title}</p>
-      <p className="mt-2 text-slate-400">{value}</p>
-    </div>
-  );
+function errorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    return error.requestId
+      ? `${error.message} Reference: ${error.requestId}`
+      : error.message;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return "The request could not be completed.";
 }

@@ -9,7 +9,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "quality": "npm run typecheck && npm run lint && npm run build",
-    "lint:strict": "eslint --max-warnings=0"
+    "lint:strict": "eslint --max-warnings=0",
+    "verify:phase6c": "node scripts/verify-phase6c-contracts.mjs"
   },
   "dependencies": {
     "next": "^16.2.9",

@@ -220,3 +220,12 @@ POST /api/v1/agent-runs/{run_id}/cancel
 
 See [Agent Execution Engine](docs/AGENT_EXECUTION.md).
 
+## Phase 6C — Multi-Agent Mission Workspace
+
+The authenticated Digital Twin Advisor now provides a complete orchestration
+workspace for planning and executing Career, Finance, Health, and Learning
+workflows. Users can review deterministic routing, monitor per-agent status,
+cancel or retry runs, search workflow history, inspect unified synthesis, and
+audit token, latency, provider, fallback, and estimated-cost telemetry.
+
+See `docs/AGENT_ORCHESTRATION_UI.md` for the frontend architecture and workflow.
