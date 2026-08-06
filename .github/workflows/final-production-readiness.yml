@@ -101,7 +101,7 @@ jobs:
         shell: bash
         run: |
           cat > .env.docker.ci <<'EOF'
-          APP_VERSION=0.6.1
+          APP_VERSION=0.6.3
           POSTGRES_DB=my_digital_twin_ci
           POSTGRES_USER=mdt_app
           POSTGRES_PASSWORD=phase5e_ci_url_safe_password
@@ -138,7 +138,7 @@ jobs:
           python scripts/production/end_to_end_verify.py
           --backend-url http://localhost:8000
           --frontend-url http://localhost:3000
-          --expected-version 0.6.1
+          --expected-version 0.6.3
           --timeout-seconds 420
 
       - name: Verify PostgreSQL backup and restore

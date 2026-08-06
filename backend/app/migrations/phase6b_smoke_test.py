@@ -13,7 +13,7 @@ BACKEND_DIR = Path(__file__).resolve().parents[2]
 ARTIFACT_DIR = BACKEND_DIR / ".test_artifacts"
 DATABASE_FILE = ARTIFACT_DIR / "phase6b_migration.db"
 DATABASE_URL = f"sqlite:///{DATABASE_FILE.as_posix()}"
-EXPECTED_HEAD = "20260729_0005"
+EXPECTED_HEAD = "20260806_0006"
 
 
 def _current_heads(engine) -> tuple[str, ...]:

@@ -191,7 +191,7 @@ def test_phase6a_contract_files_and_version_are_current() -> None:
     from pathlib import Path
 
     root = Path(__file__).resolve().parents[2]
-    assert (root / "VERSION").read_text(encoding="utf-8").strip() == "0.6.1"
+    assert (root / "VERSION").read_text(encoding="utf-8").strip() == "0.6.3"
     assert (
         root
         / "backend/alembic/versions/20260729_0004_add_agent_orchestration_foundation.py"
@@ -205,4 +205,4 @@ def test_phase6a_contract_files_and_version_are_current() -> None:
     manifest_renderer = (
         root / "scripts/release/render_release_manifest.py"
     ).read_text(encoding="utf-8")
-    assert '"alembic_head": "20260729_0005"' in manifest_renderer
+    assert '"alembic_head": "20260806_0006"' in manifest_renderer
