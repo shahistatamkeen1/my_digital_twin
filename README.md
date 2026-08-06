@@ -197,7 +197,17 @@ A published frontend image must use a real public HTTPS backend URL. `localhost`
 
 ## Release status
 
-Current repository version: **0.6.1**
+
+## Durable approval foundation
+
+Phase 6D1 adds user-owned approval requests and immutable audit events for
+consequential agent actions such as sending email, creating calendar events,
+submitting applications, deleting data, changing financial plans, and other
+external operations. Workflow pause/resume integration follows in Phase 6D2.
+
+See [`docs/AGENT_APPROVALS.md`](docs/AGENT_APPROVALS.md).
+
+Current repository version: **0.6.3**
 
 The project is production-ready at the repository and local production-simulation level. A real public deployment still requires owned HTTPS domains, production infrastructure, secret stores, backups, monitoring, and environment approvals.
 

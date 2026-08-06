@@ -130,13 +130,15 @@ def validate_runtime_dependency_pins() -> None:
 
 
 def validate_versions() -> None:
-    expected = "0.5.2"
-    if f"APP_VERSION={expected}" not in read(".env.docker.example"):
-        fail(".env.docker.example version is not 0.5.2")
-    if f"APP_VERSION={expected}" not in read("backend/.env.example"):
-        fail("backend/.env.example version is not 0.5.2")
-    if f"APP_VERSION: ${{APP_VERSION:-{expected}}}" not in read("docker-compose.yml"):
-        fail("docker-compose.yml default version is not 0.5.2")
+    expected = read("VERSION").strip()
+    checks = {
+        ".env.docker.example": f"APP_VERSION={expected}",
+        "backend/.env.example": f"APP_VERSION={expected}",
+        "docker-compose.yml": f"APP_VERSION: ${{APP_VERSION:-{expected}}}",
+    }
+    for path, token in checks.items():
+        if token not in read(path):
+            fail(f"{path} version is not synchronized with VERSION ({expected})")
 
 
 def main() -> None:

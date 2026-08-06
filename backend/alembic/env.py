@@ -11,6 +11,7 @@ from app.migrations.alembic_compare import compare_server_default
 
 # Import every model so target_metadata contains the complete application schema.
 from app.models import (  # noqa: F401
+    agent_approval,
     agent_memory,
     agent_plan,
     agent_profile,

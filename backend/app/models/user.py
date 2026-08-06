@@ -149,6 +149,18 @@ class User(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+    agent_approvals = relationship(
+        "AgentApproval",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    agent_approval_events = relationship(
+        "AgentApprovalEvent",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
     twin_progress_snapshots = relationship(
         "TwinProgressSnapshot",
         back_populates="user",
