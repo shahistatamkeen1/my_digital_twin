@@ -7,13 +7,11 @@ from alembic.runtime.migration import MigrationContext
 from sqlalchemy import create_engine, inspect
 
 from app.services.migration_status_service import build_alembic_config
-from app.services.ownership_schema_service import inspect_ownership_schema
-from app.services.schema_optimization_service import inspect_schema_optimization
 
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 ARTIFACT_DIR = BACKEND_DIR / ".test_artifacts"
-DATABASE_FILE = ARTIFACT_DIR / "phase6a_migration.db"
+DATABASE_FILE = ARTIFACT_DIR / "phase6d1_migration.db"
 DATABASE_URL = f"sqlite:///{DATABASE_FILE.as_posix()}"
 EXPECTED_HEAD = "20260806_0006"
 
@@ -37,29 +35,47 @@ def verify() -> None:
     try:
         command.upgrade(config, "head")
         inspector = inspect(engine)
-        tables = set(inspector.get_table_names())
-        assert {"agent_runs", "agent_steps"}.issubset(tables)
         assert _current_heads(engine) == (EXPECTED_HEAD,)
+        assert "agent_approvals" in inspector.get_table_names()
+        assert "agent_approval_events" in inspector.get_table_names()
 
-        run_columns = {
-            item["name"]: item for item in inspector.get_columns("agent_runs")
+        approval_columns = {
+            item["name"]
+            for item in inspector.get_columns("agent_approvals")
         }
-        step_columns = {
-            item["name"]: item for item in inspector.get_columns("agent_steps")
+        assert {
+            "agent_run_id",
+            "agent_step_id",
+            "action_type",
+            "action_summary",
+            "proposed_payload",
+            "decision_payload",
+            "status",
+            "decision_note",
+            "requested_at",
+            "decided_at",
+            "expires_at",
+            "user_id",
+        }.issubset(approval_columns)
+
+        event_columns = {
+            item["name"]
+            for item in inspector.get_columns("agent_approval_events")
         }
-        assert run_columns["user_id"]["nullable"] is False
-        assert step_columns["user_id"]["nullable"] is False
-        assert run_columns["selected_agents"]["nullable"] is False
-        assert step_columns["input_payload"]["nullable"] is False
+        assert {
+            "approval_id",
+            "event_type",
+            "previous_status",
+            "new_status",
+            "note",
+            "event_payload",
+            "user_id",
+        }.issubset(event_columns)
 
-        ownership = inspect_ownership_schema(engine)
-        optimization = inspect_schema_optimization(engine)
-        assert ownership.ready, ownership
-        assert optimization.ready, optimization
-
-        command.downgrade(config, "20260723_0003")
-        assert "agent_runs" not in set(inspect(engine).get_table_names())
-        assert "agent_steps" not in set(inspect(engine).get_table_names())
+        command.downgrade(config, "20260729_0005")
+        downgraded_tables = set(inspect(engine).get_table_names())
+        assert "agent_approvals" not in downgraded_tables
+        assert "agent_approval_events" not in downgraded_tables
 
         command.upgrade(config, "head")
         assert _current_heads(engine) == (EXPECTED_HEAD,)
@@ -70,7 +86,7 @@ def verify() -> None:
             if path.exists():
                 path.unlink()
 
-    print("Phase 6A Alembic migration smoke test passed.")
+    print("Phase 6D1 Alembic migration smoke test passed.")
 
 
 if __name__ == "__main__":

@@ -10,7 +10,14 @@ regexes = [
   '''CHANGE_ME_[A-Z0-9_]+''',
   '''phase5-ci-secret-0123456789abcdef-0123456789abcdef''',
   '''phase5b-ci-secret-0123456789abcdef-0123456789abcdef''',
-  '''phase5b_ci_url_safe_password'''
+  '''phase5b_ci_url_safe_password''',
+  '''phase5-test-secret-0123456789abcdef-0123456789abcdef''',
+  '''phase5e-test-secret-0123456789abcdef-0123456789abcdef''',
+  '''phase5e-local-secret-0123456789abcdef-0123456789abcdef''',
+  '''test-password-test-password''',
+  '''Phase6A-Test-Password-2026''',
+  '''Phase6B-Test-Password-2026''',
+  '''Phase6D-Test-Password-2026'''
 ]
 
 [[allowlists]]

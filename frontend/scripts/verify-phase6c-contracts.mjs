@@ -25,8 +25,8 @@ for (const relativePath of requiredFiles) {
 }
 
 const version = readFileSync(resolve(projectRoot, "VERSION"), "utf8").trim();
-if (version !== "0.6.2") {
-  throw new Error(`Expected VERSION 0.6.2, received ${version || "<empty>"}.`);
+if (version !== "0.6.3") {
+  throw new Error(`Expected VERSION 0.6.3, received ${version || "<empty>"}.`);
 }
 
 const apiClient = readFileSync(resolve(frontendRoot, "lib/agent-runs.ts"), "utf8");

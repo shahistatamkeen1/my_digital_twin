@@ -168,6 +168,13 @@ class AgentRun(UserOwnedMixin, Base):
         passive_deletes=True,
         order_by="AgentStep.step_order",
     )
+    approvals = relationship(
+        "AgentApproval",
+        back_populates="run",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="AgentApproval.requested_at",
+    )
 
 
 class AgentStep(UserOwnedMixin, Base):
@@ -312,3 +319,8 @@ class AgentStep(UserOwnedMixin, Base):
 
     run = relationship("AgentRun", back_populates="steps")
     user = relationship("User", back_populates="agent_steps")
+    approvals = relationship(
+        "AgentApproval",
+        back_populates="step",
+        passive_deletes=True,
+    )

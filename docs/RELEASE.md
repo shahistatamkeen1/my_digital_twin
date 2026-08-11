@@ -47,7 +47,7 @@ Open **Actions → Release container images → Run workflow**.
 Use:
 
 ```text
-version: 0.6.1
+version: 0.6.3
 public_api_url: http://localhost:8000
 publish: false
 ```
@@ -62,8 +62,8 @@ pushing packages.
 3. From a clean local `master` branch:
 
 ```powershell
-git tag -a v0.6.1 -m "My Digital Twin v0.6.1"
-git push origin v0.6.1
+git tag -a v0.6.3 -m "My Digital Twin v0.6.3"
+git push origin v0.6.3
 ```
 
 The tag triggers `.github/workflows/release.yml`.
@@ -77,7 +77,7 @@ The workflow:
 5. Publishes both images to GHCR.
 6. Generates signed GitHub artifact attestations.
 7. Produces a release manifest and deployment ZIP.
-8. Creates or updates GitHub Release `v0.6.1`.
+8. Creates or updates GitHub Release `v0.6.3`.
 
 ## Verify an attestation
 
@@ -85,7 +85,7 @@ After installing GitHub CLI and authenticating:
 
 ```bash
 gh attestation verify \
-  oci://ghcr.io/OWNER/REPOSITORY-backend:0.6.1 \
+  oci://ghcr.io/OWNER/REPOSITORY-backend:0.6.3 \
   --repo OWNER/REPOSITORY
 ```
 

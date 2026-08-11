@@ -12,6 +12,7 @@ from sqlalchemy.orm import configure_mappers
 
 from app.config import settings
 from app.database import engine
+from app.models.agent_approval import AgentApproval, AgentApprovalEvent
 from app.models.agent_memory import AgentMemory
 from app.models.agent_plan import AgentPlan
 from app.models.agent_profile import AgentProfile
@@ -38,7 +39,7 @@ from app.services.schema_optimization_service import (
 )
 
 
-EXPECTED_HEAD = ("20260729_0005",)
+EXPECTED_HEAD = ("20260806_0006",)
 
 
 RELATIONSHIPS: tuple[tuple[type, str, str], ...] = (
@@ -59,6 +60,8 @@ RELATIONSHIPS: tuple[tuple[type, str, str], ...] = (
     (AgentReflection, "user", "agent_reflections"),
     (AgentRun, "user", "agent_runs"),
     (AgentStep, "user", "agent_steps"),
+    (AgentApproval, "user", "agent_approvals"),
+    (AgentApprovalEvent, "user", "agent_approval_events"),
     (TwinProgressSnapshot, "user", "twin_progress_snapshots"),
 )
 

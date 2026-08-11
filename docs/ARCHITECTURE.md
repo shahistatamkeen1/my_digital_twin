@@ -84,7 +84,7 @@ SQLAlchemy models use PostgreSQL in production and Alembic for schema evolution.
 Current Alembic head:
 
 ```text
-20260729_0005
+20260806_0006
 ```
 
 ## Authentication
@@ -116,3 +116,13 @@ The database network is internal. Application containers run as non-root users w
 - Release workflow: version validation, multi-platform image publication, attestations, manifest, and deployment bundle.
 - Deployment workflow: GitHub Environment approval, self-hosted runner, backup, migration-safe deployment, smoke tests, and rollback state.
 - Final readiness workflow: repository policy, documentation, runtime end-to-end checks, backup/restore, and rollback-plan validation.
+
+
+## Durable approval records
+
+Consequential agent actions are represented by `AgentApproval` records linked
+to a user-owned `AgentRun` and optionally an `AgentStep`. Immutable
+`AgentApprovalEvent` rows preserve requested, approved, rejected, cancelled,
+and expired transitions. Phase 6D2 will connect these records to durable
+execution checkpoints.
+
