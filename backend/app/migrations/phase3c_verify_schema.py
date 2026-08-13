@@ -39,7 +39,7 @@ from app.services.schema_optimization_service import (
 )
 
 
-EXPECTED_HEAD = ("20260806_0006",)
+EXPECTED_HEAD = ("20260813_0007",)
 
 
 RELATIONSHIPS: tuple[tuple[type, str, str], ...] = (

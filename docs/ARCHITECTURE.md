@@ -84,7 +84,7 @@ SQLAlchemy models use PostgreSQL in production and Alembic for schema evolution.
 Current Alembic head:
 
 ```text
-20260806_0006
+20260813_0007
 ```
 
 ## Authentication

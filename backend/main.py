@@ -14,6 +14,7 @@ from app.logging_config import configure_logging
 # Import every model module so SQLAlchemy metadata is complete for Alembic.
 from app.models import (  # noqa: F401
     agent_approval,
+    agent_checkpoint,
     agent_memory,
     agent_plan,
     agent_profile,

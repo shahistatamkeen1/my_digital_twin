@@ -207,7 +207,7 @@ external operations. Workflow pause/resume integration follows in Phase 6D2.
 
 See [`docs/AGENT_APPROVALS.md`](docs/AGENT_APPROVALS.md).
 
-Current repository version: **0.6.3**
+Current repository version: **0.6.4**
 
 The project is production-ready at the repository and local production-simulation level. A real public deployment still requires owned HTTPS domains, production infrastructure, secret stores, backups, monitoring, and environment approvals.
 

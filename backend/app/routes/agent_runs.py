@@ -24,7 +24,9 @@ from app.models.agent_run import AgentRun
 from app.services.agent_execution_service import (
     cancel_agent_run,
     execute_agent_run,
+    resume_agent_run,
 )
+from app.services.agent_checkpoint_service import workflow_timeline
 from app.services.agent_orchestration_service import (
     create_agent_run,
     delete_agent_run,
@@ -174,6 +176,31 @@ def cancel_run(
         message="Agent run cancelled successfully.",
         run=run_detail(run),
     )
+
+
+
+
+@router.post(
+    "/{run_id}/resume",
+    response_model=AgentRunDetail,
+    summary="Resume a durable workflow after an approval decision",
+)
+def resume_run(
+    run_id: int,
+    db: Session = Depends(get_db),
+) -> AgentRunDetail:
+    return run_detail(resume_agent_run(db, run_id))
+
+
+@router.get(
+    "/{run_id}/timeline",
+    summary="Read the durable workflow audit timeline",
+)
+def read_run_timeline(
+    run_id: int,
+    db: Session = Depends(get_db),
+):
+    return [item.model_dump() for item in workflow_timeline(db, run_id)]
 
 
 @router.delete(

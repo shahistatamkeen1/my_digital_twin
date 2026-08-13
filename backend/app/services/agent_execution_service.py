@@ -26,6 +26,13 @@ from app.api.exceptions import APIError
 from app.config import settings
 from app.models.agent_run import AgentRun, AgentStep
 from app.models.common import utc_now
+from app.services.agent_checkpoint_service import (
+    append_workflow_event,
+    checkpoint_approval,
+    mark_checkpoint_terminal,
+    pause_for_next_approval,
+    require_pending_checkpoint,
+)
 from app.services.agent_synthesis_service import (
     SynthesisResult,
     synthesize_agent_results,
@@ -46,6 +53,8 @@ class StepOutcome:
 
 ACTIVE_RUN_STATUSES = {
     AgentRunStatus.running.value,
+    AgentRunStatus.awaiting_approval.value,
+    AgentRunStatus.resuming.value,
     AgentRunStatus.synthesizing.value,
 }
 
@@ -185,11 +194,14 @@ def _prepare_run(
     run: AgentRun,
     request: AgentRunExecuteRequest,
 ) -> dict[int, dict[str, Any]]:
-    if run.status != AgentRunStatus.planned.value:
+    if run.status not in {
+        AgentRunStatus.planned.value,
+        AgentRunStatus.resuming.value,
+    }:
         raise APIError(
             status_code=409,
             code="AGENT_RUN_NOT_EXECUTABLE",
-            message="Only planned agent runs can be executed.",
+            message="Only planned or resuming agent runs can be executed.",
             details={"status": run.status},
         )
 
@@ -211,6 +223,12 @@ def _prepare_run(
 
     contexts: dict[int, dict[str, Any]] = {}
     for step in run.steps:
+        if step.status in {
+            AgentStepStatus.skipped.value,
+            AgentStepStatus.rejected.value,
+            AgentStepStatus.cancelled.value,
+        }:
+            continue
         agent_name = AgentName(step.agent_name)
         context = load_agent_context(db, agent_name)
         contexts[step.id] = context
@@ -248,6 +266,8 @@ def _execute_sequential(
     provider = _provider_for_call(request.provider)
 
     for step in run.steps:
+        if step.id not in contexts:
+            continue
         outcomes.append(
             _invoke_with_retries(
                 step_id=step.id,
@@ -280,6 +300,8 @@ def _execute_parallel(
 
     try:
         for step in run.steps:
+            if step.id not in contexts:
+                continue
             future = executor.submit(
                 _invoke_with_retries,
                 step_id=step.id,
@@ -399,14 +421,26 @@ def _apply_synthesis(
     }
 
 
-def execute_agent_run(
+def _execute_agent_run_internal(
     db: Session,
-    run_id: int,
+    run: AgentRun,
     request: AgentRunExecuteRequest,
 ) -> AgentRun:
-    run = _require_owned_run(db, run_id)
+    if pause_for_next_approval(db, run, request) is not None:
+        return run
+
     started = perf_counter()
     contexts = _prepare_run(db, run, request)
+    append_workflow_event(
+        db,
+        run,
+        event_type="workflow_started",
+        event_payload={
+            "execution_mode": run.execution_mode,
+            "provider": run.execution_provider,
+        },
+    )
+    db.commit()
 
     logger.info(
         "Agent run execution started",
@@ -435,14 +469,23 @@ def execute_agent_run(
         outcomes,
     )
 
+    # Preserve contributions from an intentionally skipped approval-gated step.
+    # Skipped steps are represented in the audit trail rather than synthesized
+    # as if the sensitive action had executed.
     if _cancelled_during_execution(db, run):
         return run
 
     if not contributions:
         run.status = AgentRunStatus.failed.value
-        run.error_message = "All selected agents failed."
+        run.error_message = "All executable selected agents failed or were skipped."
         run.completed_at = utc_now()
         run.duration_ms = max(0, round((perf_counter() - started) * 1000))
+        append_workflow_event(
+            db,
+            run,
+            event_type="workflow_failed",
+            note=run.error_message,
+        )
         db.commit()
         db.refresh(run)
         return run
@@ -460,11 +503,22 @@ def execute_agent_run(
         }
         run.completed_at = utc_now()
         run.duration_ms = max(0, round((perf_counter() - started) * 1000))
+        append_workflow_event(
+            db,
+            run,
+            event_type="workflow_failed",
+            note=run.error_message,
+        )
         db.commit()
         db.refresh(run)
         return run
 
     run.status = AgentRunStatus.synthesizing.value
+    append_workflow_event(
+        db,
+        run,
+        event_type="workflow_synthesizing",
+    )
     db.commit()
     db.refresh(run)
 
@@ -532,6 +586,20 @@ def execute_agent_run(
         run.duration_ms,
         max(0, round((perf_counter() - started) * 1000)),
     )
+    append_workflow_event(
+        db,
+        run,
+        event_type=(
+            "workflow_completed"
+            if run.status == AgentRunStatus.completed.value
+            else "workflow_failed"
+        ),
+        event_payload={
+            "status": run.status,
+            "failed_agents": failed_agents,
+        },
+        note=run.error_message,
+    )
     db.commit()
     db.refresh(run)
 
@@ -548,6 +616,190 @@ def execute_agent_run(
     )
     return run
 
+
+def execute_agent_run(
+    db: Session,
+    run_id: int,
+    request: AgentRunExecuteRequest,
+) -> AgentRun:
+    run = _require_owned_run(db, run_id)
+    if run.status != AgentRunStatus.planned.value:
+        raise APIError(
+            status_code=409,
+            code="AGENT_RUN_NOT_EXECUTABLE",
+            message="Only planned agent runs can be executed.",
+            details={"status": run.status},
+        )
+    return _execute_agent_run_internal(db, run, request)
+
+
+def resume_agent_run(db: Session, run_id: int) -> AgentRun:
+    run = _require_owned_run(db, run_id)
+    if run.status != AgentRunStatus.awaiting_approval.value:
+        raise APIError(
+            status_code=409,
+            code="AGENT_RUN_NOT_AWAITING_APPROVAL",
+            message="Only workflows awaiting approval can be resumed.",
+            details={"status": run.status},
+        )
+
+    checkpoint = require_pending_checkpoint(db, run)
+    approval = checkpoint_approval(db, checkpoint)
+
+    if checkpoint.resume_count > 0:
+        raise APIError(
+            status_code=409,
+            code="AGENT_RUN_ALREADY_RESUMED",
+            message="This workflow checkpoint has already been consumed.",
+        )
+
+    if approval.status == "pending":
+        raise APIError(
+            status_code=409,
+            code="APPROVAL_DECISION_REQUIRED",
+            message="Approve or reject the pending action before resuming.",
+            details={"approval_id": approval.id},
+        )
+
+    if approval.status == "expired":
+        checkpoint.status = "expired"
+        run.status = AgentRunStatus.failed.value
+        run.error_message = "Required approval expired before workflow resume."
+        run.completed_at = utc_now()
+        append_workflow_event(
+            db,
+            run,
+            event_type="approval_expired",
+            step_id=checkpoint.agent_step_id,
+            approval_id=approval.id,
+            note=run.error_message,
+        )
+        append_workflow_event(
+            db,
+            run,
+            event_type="workflow_failed",
+            note=run.error_message,
+        )
+        db.commit()
+        db.refresh(run)
+        raise APIError(
+            status_code=409,
+            code="APPROVAL_EXPIRED",
+            message=run.error_message,
+        )
+
+    if approval.status == "cancelled":
+        mark_checkpoint_terminal(
+            db,
+            run,
+            checkpoint,
+            approval,
+            checkpoint_status="cancelled",
+            event_type="approval_cancelled",
+            step_status=AgentStepStatus.cancelled,
+            note=approval.decision_note,
+        )
+        run.status = AgentRunStatus.cancelled.value
+        run.error_message = "Required approval was cancelled."
+        run.completed_at = utc_now()
+        append_workflow_event(
+            db,
+            run,
+            event_type="workflow_cancelled",
+            note=run.error_message,
+        )
+        db.commit()
+        db.refresh(run)
+        return run
+
+    if approval.status == "rejected":
+        if checkpoint.rejection_policy == "stop_workflow":
+            mark_checkpoint_terminal(
+                db,
+                run,
+                checkpoint,
+                approval,
+                checkpoint_status="skipped",
+                event_type="approval_rejected",
+                step_status=AgentStepStatus.rejected,
+                note=approval.decision_note,
+            )
+            run.status = AgentRunStatus.cancelled.value
+            run.error_message = "Workflow stopped because the required action was rejected."
+            run.completed_at = utc_now()
+            append_workflow_event(
+                db,
+                run,
+                event_type="workflow_cancelled",
+                note=run.error_message,
+            )
+            db.commit()
+            db.refresh(run)
+            return run
+
+        mark_checkpoint_terminal(
+            db,
+            run,
+            checkpoint,
+            approval,
+            checkpoint_status="skipped",
+            event_type="approval_rejected",
+            step_status=AgentStepStatus.skipped,
+            note=approval.decision_note,
+        )
+        append_workflow_event(
+            db,
+            run,
+            event_type="step_skipped",
+            step_id=checkpoint.agent_step_id,
+            approval_id=approval.id,
+            note="Rejected sensitive action skipped; workflow may continue.",
+        )
+
+    elif approval.status == "approved":
+        mark_checkpoint_terminal(
+            db,
+            run,
+            checkpoint,
+            approval,
+            checkpoint_status="resumed",
+            event_type="approval_approved",
+            step_status=AgentStepStatus.approved,
+            note=approval.decision_note,
+        )
+    else:
+        raise APIError(
+            status_code=409,
+            code="APPROVAL_STATUS_UNSUPPORTED",
+            message="The approval is not in a resumable state.",
+            details={"status": approval.status},
+        )
+
+    run.status = AgentRunStatus.resuming.value
+    run.completed_at = None
+    append_workflow_event(
+        db,
+        run,
+        event_type="workflow_resumed",
+        step_id=checkpoint.agent_step_id,
+        approval_id=approval.id,
+        event_payload={"checkpoint_id": checkpoint.id},
+    )
+    db.commit()
+    db.refresh(run)
+
+    try:
+        execution_request = AgentRunExecuteRequest.model_validate(
+            checkpoint.workflow_state.get("execution_request", {})
+        )
+    except Exception as exc:  # noqa: BLE001
+        raise APIError(
+            status_code=409,
+            code="CHECKPOINT_STATE_INVALID",
+            message="The durable checkpoint cannot reconstruct the execution request.",
+        ) from exc
+
+    return _execute_agent_run_internal(db, run, execution_request)
 
 def cancel_agent_run(db: Session, run_id: int) -> AgentRun:
     run = _require_owned_run(db, run_id)
@@ -568,11 +820,20 @@ def cancel_agent_run(db: Session, run_id: int) -> AgentRun:
         if step.status in {
             AgentStepStatus.planned.value,
             AgentStepStatus.running.value,
+            AgentStepStatus.awaiting_approval.value,
+            AgentStepStatus.approved.value,
+            AgentStepStatus.resuming.value,
         }:
             step.status = AgentStepStatus.cancelled.value
             step.error_message = "Cancelled by the user."
             step.completed_at = utc_now()
 
+    append_workflow_event(
+        db,
+        run,
+        event_type="workflow_cancelled",
+        note=run.error_message,
+    )
     db.commit()
     db.refresh(run)
     return run

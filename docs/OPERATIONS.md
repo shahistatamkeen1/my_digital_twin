@@ -45,7 +45,7 @@ docker compose --env-file .env.docker exec -T backend alembic current --check-he
 Expected head:
 
 ```text
-20260806_0006
+20260813_0007
 ```
 
 ## Backup and restore verification
