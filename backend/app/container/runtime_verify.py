@@ -8,7 +8,7 @@ from typing import Any
 import requests
 
 
-EXPECTED_MIGRATION_HEAD = "20260806_0006"
+EXPECTED_MIGRATION_HEAD = "20260813_0007"
 
 
 def _get_json(base_url: str, path: str) -> tuple[requests.Response, dict[str, Any]]:

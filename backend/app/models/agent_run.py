@@ -29,8 +29,8 @@ class AgentRun(UserOwnedMixin, Base):
     __tablename__ = "agent_runs"
     __table_args__ = (
         CheckConstraint(
-            "status IN ('planned', 'running', 'synthesizing', 'completed', "
-            "'partially_completed', 'failed', 'cancelled')",
+            "status IN ('planned', 'running', 'awaiting_approval', 'resuming', "
+            "'synthesizing', 'completed', 'partially_completed', 'failed', 'cancelled')",
             name="status_values",
         ),
         CheckConstraint(
@@ -175,13 +175,28 @@ class AgentRun(UserOwnedMixin, Base):
         passive_deletes=True,
         order_by="AgentApproval.requested_at",
     )
+    checkpoints = relationship(
+        "AgentCheckpoint",
+        back_populates="run",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="AgentCheckpoint.created_at",
+    )
+    workflow_events = relationship(
+        "AgentWorkflowEvent",
+        back_populates="run",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="AgentWorkflowEvent.created_at",
+    )
 
 
 class AgentStep(UserOwnedMixin, Base):
     __tablename__ = "agent_steps"
     __table_args__ = (
         CheckConstraint(
-            "status IN ('planned', 'running', 'completed', 'failed', 'skipped', 'cancelled')",
+            "status IN ('planned', 'running', 'awaiting_approval', 'approved', 'rejected', "
+            "'resuming', 'completed', 'failed', 'skipped', 'cancelled')",
             name="status_values",
         ),
         CheckConstraint("step_order > 0", name="step_order_positive"),
@@ -321,6 +336,11 @@ class AgentStep(UserOwnedMixin, Base):
     user = relationship("User", back_populates="agent_steps")
     approvals = relationship(
         "AgentApproval",
+        back_populates="step",
+        passive_deletes=True,
+    )
+    checkpoints = relationship(
+        "AgentCheckpoint",
         back_populates="step",
         passive_deletes=True,
     )

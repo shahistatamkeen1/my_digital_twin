@@ -143,6 +143,8 @@ def delete_agent_run(db: Session, run_id: int) -> None:
 
     if run.status in {
         AgentRunStatus.running.value,
+        AgentRunStatus.awaiting_approval.value,
+        AgentRunStatus.resuming.value,
         AgentRunStatus.synthesizing.value,
     }:
         raise APIError(

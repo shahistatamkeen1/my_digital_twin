@@ -18,6 +18,8 @@ class AgentName(str, Enum):
 class AgentRunStatus(str, Enum):
     planned = "planned"
     running = "running"
+    awaiting_approval = "awaiting_approval"
+    resuming = "resuming"
     synthesizing = "synthesizing"
     completed = "completed"
     partially_completed = "partially_completed"
@@ -28,6 +30,10 @@ class AgentRunStatus(str, Enum):
 class AgentStepStatus(str, Enum):
     planned = "planned"
     running = "running"
+    awaiting_approval = "awaiting_approval"
+    approved = "approved"
+    rejected = "rejected"
+    resuming = "resuming"
     completed = "completed"
     failed = "failed"
     skipped = "skipped"

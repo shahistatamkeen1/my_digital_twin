@@ -29,7 +29,7 @@ def main() -> int:
             "tag": f"v{args.version}",
             "repository": args.repository,
             "commit": args.commit,
-            "alembic_head": "20260806_0006",
+            "alembic_head": "20260813_0007",
         },
         "images": {
             "backend": {
