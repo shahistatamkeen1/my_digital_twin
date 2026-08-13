@@ -208,8 +208,10 @@ pause/resume checkpoints, and Phase 6D3 adds the complete Approval Inbox UI.
 
 See [`docs/AGENT_APPROVALS.md`](docs/AGENT_APPROVALS.md).
 See [`docs/APPROVAL_EXPERIENCE.md`](docs/APPROVAL_EXPERIENCE.md).
+See [`docs/RUNTIME_INTELLIGENCE_UI_HOTFIX.md`](docs/RUNTIME_INTELLIGENCE_UI_HOTFIX.md)
+for the Personal HQ, Profiles, and Reflections runtime behavior.
 
-Current repository version: **0.6.5**
+Current repository version: **0.6.6**
 
 The project is production-ready at the repository and local production-simulation level. A real public deployment still requires owned HTTPS domains, production infrastructure, secret stores, backups, monitoring, and environment approvals.
 

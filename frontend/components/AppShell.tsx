@@ -35,7 +35,7 @@ const navItems = [
   {
     label: "Profiles",
     icon: "👤",
-    path: "/agent-profiles",
+    path: "/twin-personality",
   },
   {
     label: "Reflections",

@@ -25,8 +25,8 @@ for (const relativePath of requiredFiles) {
 }
 
 const version = readFileSync(resolve(projectRoot, "VERSION"), "utf8").trim();
-if (version !== "0.6.5") {
-  throw new Error(`Expected VERSION 0.6.5, received ${version || "<empty>"}.`);
+if (version !== "0.6.6") {
+  throw new Error(`Expected VERSION 0.6.6, received ${version || "<empty>"}.`);
 }
 
 const approvalClient = readFileSync(resolve(frontendRoot, "lib/approvals.ts"), "utf8");
