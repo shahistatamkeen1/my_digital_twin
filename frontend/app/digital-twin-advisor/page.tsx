@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 
 import AppShell from "@/components/AppShell";
 import AgentGoalComposer, {
@@ -85,6 +86,7 @@ export default function DigitalTwinAdvisorPage() {
 
   const activeSelectedRun =
     selectedRun?.status === "running" ||
+    selectedRun?.status === "resuming" ||
     selectedRun?.status === "synthesizing" ||
     selectedRun?.id === executingRunId;
 
@@ -164,7 +166,13 @@ export default function DigitalTwinAdvisorPage() {
   const dashboardMetrics = useMemo(() => {
     const completed = runs.filter((run) => run.status === "completed").length;
     const active = runs.filter(
-      (run) => run.status === "running" || run.status === "synthesizing"
+      (run) =>
+        run.status === "running" ||
+        run.status === "resuming" ||
+        run.status === "synthesizing"
+    ).length;
+    const awaitingApproval = runs.filter(
+      (run) => run.status === "awaiting_approval"
     ).length;
 
     return [
@@ -184,9 +192,9 @@ export default function DigitalTwinAdvisorPage() {
         note: "On this page",
       },
       {
-        label: "Active here",
-        value: historyLoading ? "—" : String(active),
-        note: "Running or synthesizing",
+        label: "Needs your review",
+        value: historyLoading ? "—" : String(awaitingApproval),
+        note: active > 0 ? `${active} active workflow${active === 1 ? "" : "s"}` : "No workflows running",
       },
     ];
   }, [
@@ -369,7 +377,7 @@ export default function DigitalTwinAdvisorPage() {
           <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
             <div>
               <p className="text-sm font-semibold text-cyan-300">
-                Master Digital Twin · Phase 6C
+                Master Digital Twin · Phase 6D3
               </p>
               <h1 className="mt-2 text-3xl font-bold sm:text-4xl">
                 Multi-Agent Mission Workspace
@@ -562,6 +570,24 @@ export default function DigitalTwinAdvisorPage() {
                     </div>
                   )}
                 </section>
+
+                {selectedRun.status === "awaiting_approval" && (
+                  <section className="rounded-3xl border border-amber-500/30 bg-amber-500/10 p-5 sm:p-6">
+                    <p className="text-sm font-semibold text-amber-200">
+                      This workflow is safely paused
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-amber-100/80">
+                      A sensitive action needs your decision. Review the exact payload,
+                      approve or reject it, and the workflow can resume from its durable checkpoint.
+                    </p>
+                    <Link
+                      href="/approvals"
+                      className="mt-4 inline-flex rounded-xl bg-amber-400 px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-amber-300"
+                    >
+                      Open Approval Inbox
+                    </Link>
+                  </section>
+                )}
 
                 <AgentRunProgress run={selectedRun} />
 

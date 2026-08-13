@@ -1,8 +1,10 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import UserMenu from "@/components/auth/UserMenu";
+import PendingApprovalBadge from "@/components/approvals/PendingApprovalBadge";
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -18,6 +20,12 @@ const navItems = [
     label: "Advisor",
     icon: "🤖",
     path: "/digital-twin-advisor",
+  },
+  {
+    label: "Approvals",
+    icon: "✓",
+    path: "/approvals",
+    badge: true,
   },
   {
     label: "Memory",
@@ -53,7 +61,6 @@ const navItems = [
 
 export default function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
-  const router = useRouter();
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
@@ -73,9 +80,9 @@ export default function AppShell({ children }: AppShellProps) {
             const active = pathname === item.path;
 
             return (
-              <button
+              <Link
                 key={item.path}
-                onClick={() => router.push(item.path)}
+                href={item.path}
                 className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm transition ${
                   active
                     ? "bg-cyan-500 text-white"
@@ -83,8 +90,9 @@ export default function AppShell({ children }: AppShellProps) {
                 }`}
               >
                 <span>{item.icon}</span>
-                <span>{item.label}</span>
-              </button>
+                <span className="flex-1">{item.label}</span>
+                {item.badge && <PendingApprovalBadge compact />}
+              </Link>
             );
           })}
         </nav>
@@ -102,23 +110,24 @@ export default function AppShell({ children }: AppShellProps) {
 
       {/* Mobile Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-800 bg-slate-950/95 px-2 py-1.5 backdrop-blur lg:hidden">
-        <div className="grid grid-cols-5 gap-1">
+        <div className="flex gap-1 overflow-x-auto pb-[env(safe-area-inset-bottom)]">
           {navItems.map((item) => {
             const active = pathname === item.path;
 
             return (
-              <button
-  key={item.path}
-  onClick={() => router.push(item.path)}
-  className={`flex items-center justify-center gap-1 rounded-xl px-2 py-2 text-xs transition ${
+              <Link
+                key={item.path}
+                href={item.path}
+                className={`relative flex min-w-[76px] shrink-0 flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[10px] transition ${
                   active
                     ? "bg-cyan-500 text-white"
                     : "text-slate-400"
                 }`}
               >
-                <span>{item.icon}</span>
-<span>{item.label}</span>
-              </button>
+                <span aria-hidden="true">{item.icon}</span>
+                <span>{item.label}</span>
+                {item.badge && <span className="absolute right-1 top-1"><PendingApprovalBadge compact /></span>}
+              </Link>
             );
           })}
         </div>

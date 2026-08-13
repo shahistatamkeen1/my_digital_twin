@@ -42,6 +42,15 @@ Its typed API client is in `lib/agent-runs.ts`, shared contracts are in
 `types/agent-runs.ts`, and the presentation modules are under
 `components/orchestration/`.
 
+## Approval Inbox
+
+`/approvals` is the authenticated Phase 6D3 human-in-the-loop workspace. It
+supports pending and historical filters, exact action previews,
+approve/edit-and-approve/reject decisions, automatic durable resume, manual
+resume recovery, and the approval plus workflow audit timelines.
+
+Run `npm run verify:phase6d3` to check the frontend approval contracts.
+
 Run the frontend quality gate with:
 
 ```bash

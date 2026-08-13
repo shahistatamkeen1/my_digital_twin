@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import UserMenu from "@/components/auth/UserMenu";
+import ApprovalQuickAccess from "@/components/approvals/ApprovalQuickAccess";
 
 const operatingFeatures = [
   {
@@ -142,6 +143,9 @@ export default function TwinHubPage() {
               <p className="text-sm text-cyan-300">Twin Network</p>
               <p className="mt-2 text-3xl font-bold">4 / 4</p>
               <p className="mt-1 text-sm text-slate-400">Twins connected</p>
+            </div>
+            <div className="mt-4">
+              <ApprovalQuickAccess />
             </div>
           </div>
         </div>

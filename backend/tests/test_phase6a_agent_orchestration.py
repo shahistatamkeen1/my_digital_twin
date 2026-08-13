@@ -191,7 +191,7 @@ def test_phase6a_contract_files_and_version_are_current() -> None:
     from pathlib import Path
 
     root = Path(__file__).resolve().parents[2]
-    assert (root / "VERSION").read_text(encoding="utf-8").strip() == "0.6.4"
+    assert (root / "VERSION").read_text(encoding="utf-8").strip() == "0.6.5"
     assert (
         root
         / "backend/alembic/versions/20260729_0004_add_agent_orchestration_foundation.py"

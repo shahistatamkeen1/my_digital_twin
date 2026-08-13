@@ -4,6 +4,7 @@ import "./globals.css";
 
 import AuthGate from "@/components/auth/AuthGate";
 import { AuthProvider } from "@/components/auth/AuthProvider";
+import { ApprovalProvider } from "@/components/approvals/ApprovalProvider";
 
 export const metadata: Metadata = {
   title: "My Digital Twin",
@@ -19,7 +20,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning>
         <AuthProvider>
-          <AuthGate>{children}</AuthGate>
+          <ApprovalProvider>
+            <AuthGate>{children}</AuthGate>
+          </ApprovalProvider>
         </AuthProvider>
       </body>
     </html>
