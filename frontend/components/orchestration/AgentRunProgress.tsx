@@ -3,7 +3,9 @@ import { AGENT_VISUALS } from "@/components/orchestration/agent-visuals";
 import type { AgentRunDetail } from "@/types/agent-runs";
 
 export default function AgentRunProgress({ run }: { run: AgentRunDetail }) {
-  const completed = run.steps.filter((step) => step.status === "completed").length;
+  const completed = run.steps.filter((step) =>
+    ["completed", "approved", "rejected", "skipped"].includes(step.status)
+  ).length;
   const progress =
     run.steps.length > 0 ? Math.round((completed / run.steps.length) * 100) : 0;
 
@@ -65,6 +67,13 @@ export default function AgentRunProgress({ run }: { run: AgentRunDetail }) {
                 <div className="mt-4 flex items-center gap-2 text-xs text-cyan-200">
                   <span className="h-2 w-2 animate-pulse rounded-full bg-cyan-300" />
                   Analysing isolated {visual.shortLabel.toLowerCase()} context...
+                </div>
+              )}
+
+              {step.status === "awaiting_approval" && (
+                <div className="mt-4 flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-100">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-amber-300" />
+                  Waiting for your decision in the Approval Inbox.
                 </div>
               )}
 

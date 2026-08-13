@@ -16,6 +16,7 @@ import type {
   AgentRunSummary,
   ExecutionMode,
 } from "@/types/agent-runs";
+import type { WorkflowTimelineItem } from "@/types/approvals";
 
 export type AgentRunListQuery = {
   page?: number;
@@ -101,6 +102,24 @@ export async function retryAgentRun(runId: number): Promise<AgentRunDetail> {
   });
   await requireApiSuccess(response, "A retry workflow could not be created.");
   return (await response.json()) as AgentRunDetail;
+}
+
+export async function resumeAgentRun(runId: number): Promise<AgentRunDetail> {
+  const response = await apiFetch(`/api/agent-runs/${runId}/resume`, {
+    method: "POST",
+  });
+  await requireApiSuccess(response, "The workflow could not be resumed.");
+  return (await response.json()) as AgentRunDetail;
+}
+
+export async function getAgentRunTimeline(
+  runId: number
+): Promise<WorkflowTimelineItem[]> {
+  const response = await apiFetch(`/api/agent-runs/${runId}/timeline`, {
+    cache: "no-store",
+  });
+  await requireApiSuccess(response, "The workflow timeline could not be loaded.");
+  return (await response.json()) as WorkflowTimelineItem[];
 }
 
 export async function deleteAgentRun(

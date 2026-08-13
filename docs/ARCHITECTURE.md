@@ -123,6 +123,6 @@ The database network is internal. Application containers run as non-root users w
 Consequential agent actions are represented by `AgentApproval` records linked
 to a user-owned `AgentRun` and optionally an `AgentStep`. Immutable
 `AgentApprovalEvent` rows preserve requested, approved, rejected, cancelled,
-and expired transitions. Phase 6D2 will connect these records to durable
-execution checkpoints.
-
+and expired transitions. Durable checkpoints connect those decisions to paused
+agent execution, while the Phase 6D3 Approval Inbox exposes proposal review,
+decision history, and safe workflow resume to authenticated users.

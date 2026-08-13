@@ -26,6 +26,8 @@ const STATUS_OPTIONS: Array<{ value: AgentRunStatus | ""; label: string }> = [
   { value: "", label: "All statuses" },
   { value: "planned", label: "Planned" },
   { value: "running", label: "Running" },
+  { value: "awaiting_approval", label: "Awaiting approval" },
+  { value: "resuming", label: "Resuming" },
   { value: "synthesizing", label: "Synthesizing" },
   { value: "completed", label: "Completed" },
   { value: "partially_completed", label: "Partial" },

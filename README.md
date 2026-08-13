@@ -203,11 +203,13 @@ A published frontend image must use a real public HTTPS backend URL. `localhost`
 Phase 6D1 adds user-owned approval requests and immutable audit events for
 consequential agent actions such as sending email, creating calendar events,
 submitting applications, deleting data, changing financial plans, and other
-external operations. Workflow pause/resume integration follows in Phase 6D2.
+external operations. Phase 6D2 connects those records to durable workflow
+pause/resume checkpoints, and Phase 6D3 adds the complete Approval Inbox UI.
 
 See [`docs/AGENT_APPROVALS.md`](docs/AGENT_APPROVALS.md).
+See [`docs/APPROVAL_EXPERIENCE.md`](docs/APPROVAL_EXPERIENCE.md).
 
-Current repository version: **0.6.4**
+Current repository version: **0.6.5**
 
 The project is production-ready at the repository and local production-simulation level. A real public deployment still requires owned HTTPS domains, production infrastructure, secret stores, backups, monitoring, and environment approvals.
 
@@ -239,3 +241,13 @@ cancel or retry runs, search workflow history, inspect unified synthesis, and
 audit token, latency, provider, fallback, and estimated-cost telemetry.
 
 See `docs/AGENT_ORCHESTRATION_UI.md` for the frontend architecture and workflow.
+
+## Phase 6D3 — Human-in-the-loop Approval Inbox
+
+The authenticated frontend now surfaces pending approvals globally, provides a
+filterable approval history and responsive detail drawer, previews exact action
+payloads, supports approve, edit-and-approve, and reject decisions, and resumes
+durable workflows with explicit recovery when only part of the operation
+succeeds.
+
+See `docs/APPROVAL_EXPERIENCE.md` for the user flow, safety model, and verification.

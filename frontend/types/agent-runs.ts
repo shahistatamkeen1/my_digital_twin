@@ -3,6 +3,8 @@ export type AgentName = "career" | "finance" | "health" | "learning";
 export type AgentRunStatus =
   | "planned"
   | "running"
+  | "awaiting_approval"
+  | "resuming"
   | "synthesizing"
   | "completed"
   | "partially_completed"
@@ -12,6 +14,10 @@ export type AgentRunStatus =
 export type AgentStepStatus =
   | "planned"
   | "running"
+  | "awaiting_approval"
+  | "approved"
+  | "rejected"
+  | "resuming"
   | "completed"
   | "failed"
   | "skipped"
