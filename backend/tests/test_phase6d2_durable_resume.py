@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import os
+import subprocess
+import sys
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -232,9 +237,48 @@ def test_resume_preserves_user_isolation(
     assert blocked_timeline.status_code == 404
 
 
-def test_phase6d2_contract_files_and_version_are_current() -> None:
-    from pathlib import Path
+def test_production_schema_verifier_registers_phase6d2_models() -> None:
+    """Exercise the PostgreSQL CI mapper check in a clean Python process."""
 
+    root = Path(__file__).resolve().parents[2]
+    backend = root / "backend"
+    environment = os.environ.copy()
+    environment.update(
+        {
+            "ENVIRONMENT": "test",
+            "DATABASE_URL": "sqlite:///./.test_artifacts/phase6d2-mapper.db",
+            "AUTO_CREATE_TABLES": "false",
+            "JWT_SECRET_KEY": (
+                "phase6d2-mapper-secret-0123456789abcdef-0123456789abcdef"
+            ),
+            "OPENAI_API_KEY": "",
+            "AUTH_COOKIE_SECURE": "false",
+        }
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "from app.migrations.phase3c_verify_schema import "
+                "_verify_relationships; "
+                "_verify_relationships(); "
+                "print('Phase 6D2 mapper registration passed.')"
+            ),
+        ],
+        cwd=backend,
+        env=environment,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_phase6d2_contract_files_and_version_are_current() -> None:
     root = Path(__file__).resolve().parents[2]
     assert (root / "VERSION").read_text(encoding="utf-8").strip() == "0.6.4"
     assert (

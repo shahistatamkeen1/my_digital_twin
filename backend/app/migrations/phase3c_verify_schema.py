@@ -13,6 +13,7 @@ from sqlalchemy.orm import configure_mappers
 from app.config import settings
 from app.database import engine
 from app.models.agent_approval import AgentApproval, AgentApprovalEvent
+from app.models.agent_checkpoint import AgentCheckpoint, AgentWorkflowEvent
 from app.models.agent_memory import AgentMemory
 from app.models.agent_plan import AgentPlan
 from app.models.agent_profile import AgentProfile
@@ -62,6 +63,8 @@ RELATIONSHIPS: tuple[tuple[type, str, str], ...] = (
     (AgentStep, "user", "agent_steps"),
     (AgentApproval, "user", "agent_approvals"),
     (AgentApprovalEvent, "user", "agent_approval_events"),
+    (AgentCheckpoint, "user", "agent_checkpoints"),
+    (AgentWorkflowEvent, "user", "agent_workflow_events"),
     (TwinProgressSnapshot, "user", "twin_progress_snapshots"),
 )
 
