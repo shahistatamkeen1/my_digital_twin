@@ -1,8 +1,9 @@
 "use client";
 
-import { apiFetch } from "@/lib/api";
-
 import { useCallback, useEffect, useState } from "react";
+
+import AppShell from "@/components/AppShell";
+import { ApiError, apiFetch, requireApiSuccess } from "@/lib/api";
 
 type AgentProfile = {
   id: number;
@@ -32,53 +33,101 @@ type AgentProfile = {
 export default function TwinPersonalityPage() {
   const [profiles, setProfiles] = useState<AgentProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const loadProfiles = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const res = await apiFetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/agent-profiles/`
-      );
+      const res = await apiFetch("/api/agent-profiles/", {
+        cache: "no-store",
+      });
+      await requireApiSuccess(res, "Agent profiles could not be loaded.");
 
-      const data = await res.json();
+      const data = (await res.json()) as AgentProfile[];
+      if (!Array.isArray(data)) {
+        throw new Error("The profile service returned an invalid response.");
+      }
       setProfiles(data);
-    } catch (error) {
-      console.error(error);
+    } catch (requestError) {
+      console.error("Agent profiles error:", requestError);
+      setError(errorMessage(requestError));
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void loadProfiles();
+    const timer = window.setTimeout(() => {
+      void loadProfiles();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [loadProfiles]);
 
   return (
-    <main className="min-h-screen bg-slate-950 p-8 text-white">
+    <AppShell>
       <div className="mx-auto max-w-7xl">
-        <p className="text-sm text-cyan-300">Digital Twin Intelligence</p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-sm text-cyan-300">Digital Twin Intelligence</p>
+            <h1 className="mt-2 text-3xl font-bold sm:text-4xl">
+              Agent Profiles
+            </h1>
+            <p className="mt-3 max-w-3xl text-slate-400">
+              View learned goals, preferences, risks, and confidence growth
+              across your AI agents.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void loadProfiles()}
+            disabled={loading}
+            className="self-start rounded-xl bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loading ? "Refreshing…" : "Refresh profiles"}
+          </button>
+        </div>
 
-        <h1 className="mt-2 text-4xl font-bold">
-          Twin Personality Dashboard
-        </h1>
-
-        <p className="mt-3 max-w-3xl text-slate-400">
-          View learned goals, preferences, risks, and confidence growth across
-          your AI agents.
-        </p>
+        {!loading && error && (
+          <div
+            role="alert"
+            className="mt-8 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-5 text-sm leading-6 text-rose-100"
+          >
+            <p className="font-semibold">Profiles could not load</p>
+            <p className="mt-2 break-words">{error}</p>
+            <button
+              type="button"
+              onClick={() => void loadProfiles()}
+              className="mt-4 rounded-lg border border-rose-300/40 px-4 py-2 font-semibold text-rose-100 hover:bg-rose-500/20"
+            >
+              Try again
+            </button>
+          </div>
+        )}
 
         {loading ? (
           <div className="mt-8 rounded-2xl bg-slate-900 p-8">
             Loading personality profiles...
           </div>
-        ) : (
+        ) : !error && profiles.length > 0 ? (
           <div className="mt-8 grid gap-6 lg:grid-cols-2">
             {profiles.map((profile) => (
               <AgentProfileCard key={profile.id} profile={profile} />
             ))}
           </div>
-        )}
+        ) : !error ? (
+          <div className="mt-8 rounded-2xl border border-dashed border-slate-700 bg-slate-900/60 p-8 text-center sm:p-12">
+            <div className="text-4xl" aria-hidden="true">🧠</div>
+            <h2 className="mt-4 text-xl font-bold">No learned profiles yet</h2>
+            <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-400">
+              Agent profiles are created from saved agent memories. Run an
+              AI-powered Personal HQ or Advisor interaction first, then refresh
+              this page.
+            </p>
+          </div>
+        ) : null}
       </div>
-    </main>
+    </AppShell>
   );
 }
 
@@ -262,4 +311,15 @@ function MiniStat({ label, value }: { label: string; value: number }) {
       <p className="mt-1 text-lg font-bold text-cyan-300">+{value}</p>
     </div>
   );
+}
+
+function errorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    return error.requestId
+      ? `${error.message} Reference: ${error.requestId}`
+      : error.message;
+  }
+  return error instanceof Error
+    ? error.message
+    : "Agent profiles could not be loaded.";
 }

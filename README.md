@@ -204,12 +204,16 @@ Phase 6D1 adds user-owned approval requests and immutable audit events for
 consequential agent actions such as sending email, creating calendar events,
 submitting applications, deleting data, changing financial plans, and other
 external operations. Phase 6D2 connects those records to durable workflow
-pause/resume checkpoints, and Phase 6D3 adds the complete Approval Inbox UI.
+pause/resume checkpoints, Phase 6D3 adds the complete Approval Inbox UI, and
+Phase 6D4 adds the durable Action Outbox execution boundary.
 
 See [`docs/AGENT_APPROVALS.md`](docs/AGENT_APPROVALS.md).
 See [`docs/APPROVAL_EXPERIENCE.md`](docs/APPROVAL_EXPERIENCE.md).
+See [`docs/ACTION_OUTBOX.md`](docs/ACTION_OUTBOX.md).
+See [`docs/RUNTIME_INTELLIGENCE_UI_HOTFIX.md`](docs/RUNTIME_INTELLIGENCE_UI_HOTFIX.md)
+for the Personal HQ, Profiles, and Reflections runtime behavior.
 
-Current repository version: **0.6.5**
+Current repository version: **0.6.7**
 
 The project is production-ready at the repository and local production-simulation level. A real public deployment still requires owned HTTPS domains, production infrastructure, secret stores, backups, monitoring, and environment approvals.
 
@@ -251,3 +255,15 @@ durable workflows with explicit recovery when only part of the operation
 succeeds.
 
 See `docs/APPROVAL_EXPERIENCE.md` for the user flow, safety model, and verification.
+
+## Phase 6D4 — Approval-controlled Action Outbox
+
+Every newly approved action is now queued atomically in a user-owned outbox.
+The authenticated `/action-outbox` workspace exposes status filters, exact
+approved payloads, bounded batch processing, idempotent dispatch, explicit
+retry and cancellation controls, deterministic receipts, failure details, and
+an immutable execution history. Phase 6D4 dispatch is deliberately dry-run
+only; external provider adapters are not enabled by this release.
+
+See `docs/ACTION_OUTBOX.md` for the data model, API, safety boundary, and
+verification procedure.

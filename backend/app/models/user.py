@@ -161,6 +161,18 @@ class User(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+    agent_action_outbox_entries = relationship(
+        "AgentActionOutbox",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    agent_action_outbox_events = relationship(
+        "AgentActionOutboxEvent",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
     agent_checkpoints = relationship(
         "AgentCheckpoint",
         back_populates="user",

@@ -28,6 +28,11 @@ const navItems = [
     badge: true,
   },
   {
+    label: "Outbox",
+    icon: "📤",
+    path: "/action-outbox",
+  },
+  {
     label: "Memory",
     icon: "🧠",
     path: "/agent-memory",
@@ -35,7 +40,7 @@ const navItems = [
   {
     label: "Profiles",
     icon: "👤",
-    path: "/agent-profiles",
+    path: "/twin-personality",
   },
   {
     label: "Reflections",

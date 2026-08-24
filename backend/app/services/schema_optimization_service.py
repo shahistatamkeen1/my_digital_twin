@@ -6,6 +6,15 @@ from sqlalchemy import DateTime, Engine, inspect
 
 
 EXPECTED_INDEXES: dict[str, tuple[str, ...]] = {
+    "agent_action_outbox": (
+        "ix_agent_action_outbox_user_status",
+        "ix_agent_action_outbox_run_created",
+        "ix_agent_action_outbox_ready",
+    ),
+    "agent_action_outbox_events": (
+        "ix_agent_action_outbox_events_entry_created",
+        "ix_agent_action_outbox_events_user_created",
+    ),
     "agent_memory": (
         "ix_agent_memory_user_agent_created",
         "ix_agent_memory_user_created",
@@ -66,6 +75,15 @@ EXPECTED_INDEXES: dict[str, tuple[str, ...]] = {
 
 
 EXPECTED_CHECKS: dict[str, tuple[str, ...]] = {
+    "agent_action_outbox": (
+        "ck_agent_action_outbox_status_values",
+        "ck_agent_action_outbox_execution_mode_values",
+        "ck_agent_action_outbox_attempt_count_nonnegative",
+        "ck_agent_action_outbox_max_attempts_positive",
+    ),
+    "agent_action_outbox_events": (
+        "ck_agent_action_outbox_events_event_type_values",
+    ),
     "agent_memory": ("ck_agent_memory_confidence_range",),
     "agent_plans": ("ck_agent_plans_completion_percent_range",),
     "agent_profiles": ("ck_agent_profiles_confidence_score_range",),
@@ -124,6 +142,8 @@ UTC_TIMESTAMP_COLUMNS: dict[str, tuple[str, ...]] = {
     "agent_reflections": ("created_at",),
     "agent_runs": ("created_at", "updated_at"),
     "agent_steps": ("created_at", "updated_at"),
+    "agent_action_outbox": ("created_at", "updated_at"),
+    "agent_action_outbox_events": ("created_at",),
     "applications": ("created_at",),
     "career_memory": ("created_at",),
     "career_roadmap": ("created_at",),
@@ -133,6 +153,11 @@ UTC_TIMESTAMP_COLUMNS: dict[str, tuple[str, ...]] = {
 
 
 SERVER_DEFAULT_OPTIONAL_COLUMNS = {
+    "agent_action_outbox.approval_id",
+    "agent_action_outbox.agent_run_id",
+    "agent_action_outbox.idempotency_key",
+    "agent_action_outbox.action_type",
+    "agent_action_outbox.action_summary",
     "agent_runs.goal",
     "agent_steps.agent_run_id",
     "agent_steps.agent_name",
@@ -141,6 +166,20 @@ SERVER_DEFAULT_OPTIONAL_COLUMNS = {
 
 
 REQUIRED_NOT_NULL_COLUMNS: dict[str, tuple[str, ...]] = {
+    "agent_action_outbox": (
+        "approval_id",
+        "agent_run_id",
+        "idempotency_key",
+        "action_type",
+        "action_summary",
+        "execution_payload",
+        "execution_mode",
+        "status",
+        "attempt_count",
+        "max_attempts",
+        "created_at",
+        "updated_at",
+    ),
     "users": (
         "role",
         "is_active",

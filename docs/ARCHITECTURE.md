@@ -84,7 +84,7 @@ SQLAlchemy models use PostgreSQL in production and Alembic for schema evolution.
 Current Alembic head:
 
 ```text
-20260813_0007
+20260823_0008
 ```
 
 ## Authentication
@@ -126,3 +126,19 @@ to a user-owned `AgentRun` and optionally an `AgentStep`. Immutable
 and expired transitions. Durable checkpoints connect those decisions to paused
 agent execution, while the Phase 6D3 Approval Inbox exposes proposal review,
 decision history, and safe workflow resume to authenticated users.
+
+## Approval-controlled action execution
+
+Phase 6D4 adds `AgentActionOutbox` and `AgentActionOutboxEvent`. Approval and
+queue creation share one database transaction, so a committed approval cannot
+lose its execution intent. Each outbox record stores the final approved
+payload, a unique idempotency key, bounded attempt counters, lifecycle
+timestamps, the last error, and a deterministic receipt. Immutable event rows
+record queueing, dispatch, failure, retry, cancellation, dead-letter, and stale
+claim recovery transitions.
+
+The current executor supports `dry_run` only. It proves queue semantics and the
+full operator workflow without performing external side effects. Real email,
+calendar, application, finance, and deletion adapters require a later phase
+with provider credentials, destination-specific validation, and environment
+approval.

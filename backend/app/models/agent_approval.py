@@ -141,6 +141,13 @@ class AgentApproval(UserOwnedMixin, Base):
         passive_deletes=True,
         order_by="AgentApprovalEvent.created_at",
     )
+    outbox_entry = relationship(
+        "AgentActionOutbox",
+        back_populates="approval",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        uselist=False,
+    )
 
 
 class AgentApprovalEvent(UserOwnedMixin, Base):

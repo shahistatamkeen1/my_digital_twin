@@ -13,6 +13,7 @@ from app.logging_config import configure_logging
 
 # Import every model module so SQLAlchemy metadata is complete for Alembic.
 from app.models import (  # noqa: F401
+    agent_action_outbox,
     agent_approval,
     agent_checkpoint,
     agent_memory,
@@ -32,6 +33,7 @@ from app.models import (  # noqa: F401
     user,
 )
 from app.routes import (
+    agent_action_outbox,
     agent_approvals,
     agent_memory as agent_memory_routes,
     agent_plans,
@@ -192,6 +194,11 @@ ROUTERS = (
     (agent_profiles.router, "/api/agent-profiles", ["Agent Profiles"]),
     (agent_registry.router, "/api/agents", ["Agent Registry"]),
     (agent_approvals.router, "/api/approvals", ["Agent Approvals"]),
+    (
+        agent_action_outbox.router,
+        "/api/action-outbox",
+        ["Agent Action Outbox"],
+    ),
     (agent_runs.router, "/api/agent-runs", ["Agent Runs"]),
     (
         agent_reflections.router,

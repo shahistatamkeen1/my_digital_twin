@@ -1,10 +1,10 @@
 "use client";
 
-import { apiFetch } from "@/lib/api";
-
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+
 import AppShell from "@/components/AppShell";
+import { ApiError, apiFetch, requireApiSuccess } from "@/lib/api";
 
 type FocusScores = {
   career_score: number;
@@ -39,22 +39,35 @@ export default function CommandCenterPage() {
   const [data, setData] = useState<NotificationResponse | null>(null);
   const [previousScores, setPreviousScores] = useState<FocusScores | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const loadCommandCenter = async () => {
+  const loadCommandCenter = useCallback(async () => {
     setLoading(true);
+    setError(null);
 
     try {
       const savedScores = localStorage.getItem("digital_twin_previous_scores");
 
       if (savedScores) {
-        setPreviousScores(JSON.parse(savedScores));
+        try {
+          setPreviousScores(JSON.parse(savedScores) as FocusScores);
+        } catch {
+          localStorage.removeItem("digital_twin_previous_scores");
+        }
       }
 
-      const res = await apiFetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/twin-notifications/`
+      const res = await apiFetch("/api/twin-notifications/", {
+        cache: "no-store",
+      });
+      await requireApiSuccess(
+        res,
+        "Personal HQ intelligence could not be generated."
       );
 
-      const result = await res.json();
+      const result = (await res.json()) as NotificationResponse;
+      if (!result?.focus_scores || !Array.isArray(result.notifications)) {
+        throw new Error("Personal HQ received an invalid intelligence response.");
+      }
       setData(result);
 
       if (result?.focus_scores) {
@@ -63,17 +76,21 @@ export default function CommandCenterPage() {
           JSON.stringify(result.focus_scores)
         );
       }
-    } catch (error) {
-      console.error("Command Center error:", error);
-      alert("Could not load Command Center.");
+    } catch (requestError) {
+      console.error("Command Center error:", requestError);
+      setData(null);
+      setError(errorMessage(requestError));
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    loadCommandCenter();
-  }, []);
+    const timer = window.setTimeout(() => {
+      void loadCommandCenter();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [loadCommandCenter]);
 
   const priorityClass = (priority: string) => {
     if (priority === "Critical") {
@@ -167,7 +184,33 @@ export default function CommandCenterPage() {
           </div>
         )}
 
-        {!loading && data && (
+        {!loading && error && (
+          <section
+            role="alert"
+            className="mt-8 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-5 sm:p-6"
+          >
+            <p className="text-sm font-semibold text-rose-200">
+              Personal HQ could not load
+            </p>
+            <p className="mt-2 break-words text-sm leading-6 text-rose-100/90">
+              {error}
+            </p>
+            <p className="mt-3 text-xs leading-5 text-slate-400">
+              Personal HQ uses the configured OpenAI provider. For Docker,
+              confirm OPENAI_API_KEY is present in .env.docker and recreate the
+              backend container.
+            </p>
+            <button
+              type="button"
+              onClick={() => void loadCommandCenter()}
+              className="mt-4 rounded-lg bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-400"
+            >
+              Retry Personal HQ
+            </button>
+          </section>
+        )}
+
+        {!loading && !error && data && (
           <div className="mt-8 space-y-8">
             <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
               <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-8 lg:col-span-1">
@@ -193,7 +236,7 @@ export default function CommandCenterPage() {
                   Executive Twin Summary
                 </p>
                 <h2 className="mt-2 text-2xl font-bold">
-                  Today's Intelligence Brief
+                  Today&apos;s Intelligence Brief
                 </h2>
                 <p className="mt-4 leading-7 text-slate-300">
                   {data.summary}
@@ -263,7 +306,7 @@ export default function CommandCenterPage() {
               </div>
 
               <div className="rounded-2xl bg-slate-900 p-6 lg:col-span-2">
-                <p className="text-sm text-cyan-300">Today's Priorities</p>
+                <p className="text-sm text-cyan-300">Today&apos;s Priorities</p>
                 <h2 className="mt-2 text-2xl font-bold">
                   Action Plan for Today
                 </h2>
@@ -334,7 +377,7 @@ export default function CommandCenterPage() {
 
 <QuickAction
   title="Twin Personality"
-  description="See what your Digital Twin has learned about your goals, habits, and decision patterns."
+                description="See what your Digital Twin has learned about your goals, habits, and decision patterns."
   button="Open Personality"
   onClick={() => router.push("/twin-personality")}
 />
@@ -523,4 +566,15 @@ function StatusCard({
       <h3 className="mt-1 font-semibold text-white">{label}</h3>
     </button>
   );
+}
+
+function errorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    return error.requestId
+      ? `${error.message} Reference: ${error.requestId}`
+      : error.message;
+  }
+  return error instanceof Error
+    ? error.message
+    : "Personal HQ could not be loaded.";
 }

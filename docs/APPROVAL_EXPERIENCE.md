@@ -72,4 +72,4 @@ npm run build
 
 The Phase 6D3 contract verifier checks required files, endpoint wiring,
 decision modes, global provider integration, navigation badge, durable statuses,
-and repository version `0.6.5`.
+and the current repository version.

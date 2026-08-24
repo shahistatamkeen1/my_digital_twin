@@ -51,7 +51,7 @@ def verify(base_url: str) -> None:
     try:
         ready = requests.get(f"{base_url}/ready", timeout=20)
         ready.raise_for_status()
-        assert "20260813_0007" in ready.json().get("migration_heads", [])
+        assert "20260823_0008" in ready.json().get("migration_heads", [])
 
         owner = _register(base_url, emails[0], "Phase 6D Runtime Owner")
         other = _register(base_url, emails[1], "Phase 6D Runtime Other")

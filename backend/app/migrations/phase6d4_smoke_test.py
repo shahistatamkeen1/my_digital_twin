@@ -11,7 +11,7 @@ from app.services.migration_status_service import build_alembic_config
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 ARTIFACT_DIR = BACKEND_DIR / ".test_artifacts"
-DATABASE_FILE = ARTIFACT_DIR / "phase6b_migration.db"
+DATABASE_FILE = ARTIFACT_DIR / "phase6d4_migration.db"
 DATABASE_URL = f"sqlite:///{DATABASE_FILE.as_posix()}"
 EXPECTED_HEAD = "20260823_0008"
 
@@ -36,37 +36,33 @@ def verify() -> None:
         command.upgrade(config, "head")
         inspector = inspect(engine)
         assert _current_heads(engine) == (EXPECTED_HEAD,)
+        tables = set(inspector.get_table_names())
+        assert {"agent_action_outbox", "agent_action_outbox_events"}.issubset(tables)
 
-        run_columns = {
-            item["name"]: item for item in inspector.get_columns("agent_runs")
+        columns = {
+            item["name"]
+            for item in inspector.get_columns("agent_action_outbox")
         }
-        step_columns = {
-            item["name"]: item for item in inspector.get_columns("agent_steps")
-        }
-
         assert {
-            "execution_provider",
-            "prompt_tokens",
-            "completion_tokens",
-            "duration_ms",
-            "fallback_count",
-        }.issubset(run_columns)
-        assert {
-            "provider",
-            "model",
-            "fallback_used",
-            "prompt_tokens",
-            "completion_tokens",
-            "total_tokens",
-            "estimated_cost",
-            "duration_ms",
-        }.issubset(step_columns)
+            "approval_id",
+            "agent_run_id",
+            "agent_step_id",
+            "idempotency_key",
+            "action_type",
+            "execution_payload",
+            "execution_mode",
+            "status",
+            "attempt_count",
+            "max_attempts",
+            "result_payload",
+            "last_error",
+            "user_id",
+        }.issubset(columns)
 
-        command.downgrade(config, "20260729_0004")
-        downgraded_runs = {
-            item["name"] for item in inspect(engine).get_columns("agent_runs")
-        }
-        assert "execution_provider" not in downgraded_runs
+        command.downgrade(config, "20260813_0007")
+        downgraded = set(inspect(engine).get_table_names())
+        assert "agent_action_outbox" not in downgraded
+        assert "agent_action_outbox_events" not in downgraded
 
         command.upgrade(config, "head")
         assert _current_heads(engine) == (EXPECTED_HEAD,)
@@ -77,7 +73,7 @@ def verify() -> None:
             if path.exists():
                 path.unlink()
 
-    print("Phase 6B Alembic migration smoke test passed.")
+    print("Phase 6D4 Action Outbox migration smoke test passed.")
 
 
 if __name__ == "__main__":
