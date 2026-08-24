@@ -16,11 +16,11 @@
     "verify:phase6d4": "node scripts/verify-phase6d4-contracts.mjs"
   },
   "dependencies": {
-    "next": "^16.2.9",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
+    "next": "^16.3.1",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "react-markdown": "^10.1.0",
-    "recharts": "^3.9.1"
+    "recharts": "^3.10.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
