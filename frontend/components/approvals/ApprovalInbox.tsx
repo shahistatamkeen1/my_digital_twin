@@ -168,7 +168,7 @@ export default function ApprovalInbox() {
             decision_payload: mode === "edit" ? payload : undefined,
           });
       setSelected(decided);
-      setMessage(`${formatLabel(decided.status)} decision saved. Resuming workflow…`);
+      setMessage(`${formatLabel(decided.status)} decision saved. Approved actions are now queued in the Action Outbox. Resuming workflow…`);
       await Promise.all([loadInbox(), refreshPendingCount()]);
     } catch (requestError) {
       setDrawerError(errorMessage(requestError));

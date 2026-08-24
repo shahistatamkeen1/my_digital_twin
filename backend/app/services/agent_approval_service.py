@@ -312,6 +312,12 @@ def approve_agent_approval(
             "decision_payload": approval.decision_payload,
         },
     )
+    # The approved payload and its outbox record are committed atomically.
+    # This prevents an approved external action from being lost between the
+    # decision transaction and a later enqueue request.
+    from app.services.agent_action_outbox_service import enqueue_approved_action
+
+    enqueue_approved_action(db, approval, commit=False)
     db.commit()
     db.refresh(approval)
     return approval

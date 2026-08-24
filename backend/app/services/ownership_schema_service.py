@@ -6,12 +6,18 @@ from sqlalchemy import Engine, inspect, text
 
 
 OWNED_TABLES = (
+    "agent_action_outbox",
+    "agent_action_outbox_events",
+    "agent_approval_events",
+    "agent_approvals",
+    "agent_checkpoints",
     "agent_memory",
     "agent_plans",
     "agent_profiles",
     "agent_reflections",
     "agent_runs",
     "agent_steps",
+    "agent_workflow_events",
     "applications",
     "career_memory",
     "career_roadmap",

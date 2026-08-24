@@ -51,6 +51,12 @@ resume recovery, and the approval plus workflow audit timelines.
 
 Run `npm run verify:phase6d3` to check the frontend approval contracts.
 
+`/action-outbox` is the authenticated Phase 6D4 controlled-execution
+workspace. It shows approved action payloads, durable queue state, dry-run
+dispatch receipts, bounded retries, cancellation, batch processing, and the
+execution event history. Run `npm run verify:phase6d4` to check these frontend
+contracts.
+
 Run the frontend quality gate with:
 
 ```bash

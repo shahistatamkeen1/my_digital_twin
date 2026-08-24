@@ -189,6 +189,13 @@ class AgentRun(UserOwnedMixin, Base):
         passive_deletes=True,
         order_by="AgentWorkflowEvent.created_at",
     )
+    outbox_entries = relationship(
+        "AgentActionOutbox",
+        back_populates="run",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="AgentActionOutbox.created_at",
+    )
 
 
 class AgentStep(UserOwnedMixin, Base):
@@ -341,6 +348,11 @@ class AgentStep(UserOwnedMixin, Base):
     )
     checkpoints = relationship(
         "AgentCheckpoint",
+        back_populates="step",
+        passive_deletes=True,
+    )
+    outbox_entries = relationship(
+        "AgentActionOutbox",
         back_populates="step",
         passive_deletes=True,
     )

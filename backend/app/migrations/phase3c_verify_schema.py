@@ -12,6 +12,10 @@ from sqlalchemy.orm import configure_mappers
 
 from app.config import settings
 from app.database import engine
+from app.models.agent_action_outbox import (
+    AgentActionOutbox,
+    AgentActionOutboxEvent,
+)
 from app.models.agent_approval import AgentApproval, AgentApprovalEvent
 from app.models.agent_checkpoint import AgentCheckpoint, AgentWorkflowEvent
 from app.models.agent_memory import AgentMemory
@@ -40,7 +44,7 @@ from app.services.schema_optimization_service import (
 )
 
 
-EXPECTED_HEAD = ("20260813_0007",)
+EXPECTED_HEAD = ("20260823_0008",)
 
 
 RELATIONSHIPS: tuple[tuple[type, str, str], ...] = (
@@ -63,6 +67,8 @@ RELATIONSHIPS: tuple[tuple[type, str, str], ...] = (
     (AgentStep, "user", "agent_steps"),
     (AgentApproval, "user", "agent_approvals"),
     (AgentApprovalEvent, "user", "agent_approval_events"),
+    (AgentActionOutbox, "user", "agent_action_outbox_entries"),
+    (AgentActionOutboxEvent, "user", "agent_action_outbox_events"),
     (AgentCheckpoint, "user", "agent_checkpoints"),
     (AgentWorkflowEvent, "user", "agent_workflow_events"),
     (TwinProgressSnapshot, "user", "twin_progress_snapshots"),
@@ -261,7 +267,7 @@ def main() -> int:
     print("Phase 3C schema verification passed.")
     print(f"Database: {mask_database_url(settings.database_url)}")
     print(f"Migration head: {EXPECTED_HEAD[0]}")
-    print("Relationships: 18 user-owned model mappings verified")
+    print("Relationships: 20 user-owned model mappings verified")
     print("Indexes, checks, defaults, UTC timestamps, and cascade verified")
     return 0
 
