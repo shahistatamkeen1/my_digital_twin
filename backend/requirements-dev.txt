@@ -2,7 +2,7 @@
 
 # Phase 5A development and CI tooling
 pytest>=8.0,<10
-pytest-cov>=5.0,<8
+pytest-cov>=7.1.0,<8
 ruff>=0.12,<1
 
 # Phase 5C dependency vulnerability auditing
